@@ -2,7 +2,7 @@
 
 import unittest
 
-import app4triqs
+import triqs_ghostGA
 from h5 import *
 from triqs.utility import mpi
 

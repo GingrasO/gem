@@ -1,20 +1,20 @@
 # ##############################################################################
 #
-# app4triqs - An example application using triqs and cpp2py
+# triqs_ghostGA - An example application using triqs and cpp2py
 #
 # Copyright (C) ...
 #
-# app4triqs is free software: you can redistribute it and/or modify it under the
+# triqs_ghostGA is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# app4triqs is distributed in the hope that it will be useful, but WITHOUT ANY
+# triqs_ghostGA is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# app4triqs (in the file COPYING.txt in this directory). If not, see
+# triqs_ghostGA (in the file COPYING.txt in this directory). If not, see
 # <http://www.gnu.org/licenses/>.
 #
 # ##############################################################################
@@ -24,7 +24,7 @@ cmake_policy(VERSION 3.20)
 
 # ############
 # Define Project
-project(app4triqs VERSION 3.2.0 LANGUAGES C CXX)
+project(triqs_ghostGA VERSION 3.2.0 LANGUAGES C CXX)
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 
 # ############

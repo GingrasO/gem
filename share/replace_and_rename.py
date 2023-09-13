@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import sys
 import os
@@ -8,7 +8,7 @@ if len(sys.argv) != 2:
     print("Please pass the application name")
     sys.exit()
 
-app_name = str(sys.argv[1]).lower()
+app_name = str(sys.argv[1])
 capital_name = app_name.upper()
 
 # Move app4triqs directories if necessary
@@ -21,11 +21,17 @@ ignore_lst = [".git/", "replace_and_rename.py", "squash_history.sh"]
 # Find the root directory of app4triqs
 app4triqs_root = os.path.abspath(os.path.dirname(__file__) + "/..")
 
+fmt_blacklist = [".h5", ".png", ".jpg", ".ico"]
+
 # Recurse over all subdirectories and files
 for root, dirs, files in os.walk(app4triqs_root):
 
     for fname in files:
         fpath = os.path.join(root, fname)
+
+        ext = os.path.splitext(fname)[1]
+        if ext in fmt_blacklist:
+            continue
 
         # Ignore certain files / directories
         if any(it in fpath for it in ignore_lst): continue
@@ -39,6 +45,7 @@ for root, dirs, files in os.walk(app4triqs_root):
 
             # Replace app4triqs and APP4TRIQS in all files
             with open(fpath, 'r') as f:
+                print(fpath)
                 s = f.read()
             if "app4triqs" in s or "APP4TRIQS" in s:
                 with open(fpath, 'w') as f:
