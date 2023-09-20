@@ -22,7 +22,9 @@
 ################################################################################
 
 r"""
-DOC
+Module containing the ghost-Gutzwiller approximation lattice solver
 
 """
-__all__ = []
+
+from .lattice import LatticeSolver
+__all__ = ["LatticeSolver"]
