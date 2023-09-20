@@ -1,7 +1,7 @@
 .. _about:
 
 About triqs_ghostGA
-***************
+*******************
 
 An example application using ``cpp2py`` and TRIQS.
 

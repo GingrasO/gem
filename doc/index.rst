@@ -1,7 +1,7 @@
 .. _welcome:
 
 triqs_ghostGA
-*********
+*************
 
 .. sidebar:: triqs_ghostGA |PROJECT_VERSION|
 
