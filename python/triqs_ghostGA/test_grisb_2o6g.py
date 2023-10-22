@@ -1,4 +1,8 @@
-# Author: Tsung-Han Lee henhans74716@gmail.com
+#######################################################
+# Example for the degenerate two-orbital Hubbard model
+# Author: Tsung-Han Lee 
+# Email: henhans74716@gmail.com
+#######################################################
 import unittest
 import numpy
 import h5py
