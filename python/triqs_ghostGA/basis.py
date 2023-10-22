@@ -1,3 +1,4 @@
+# Author: Tsung-Han Lee henhans74716@gmail.com
 import numpy as np
 from math import factorial
 from itertools import combinations

@@ -1,3 +1,4 @@
+# Author: Tsung-Han Lee henhans74716@gmail.com
 import scipy
 from scipy.linalg import sqrtm
 import h5py

@@ -1,5 +1,5 @@
 ###########################################
-#      GA root for Hubbard mode
+#      utilities for grisb
 #      Author: Tsung-Han Lee
 #      email: henhans74716@gmail.com  
 ###########################################
