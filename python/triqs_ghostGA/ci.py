@@ -1,4 +1,8 @@
-# Author: Tsung-Han Lee henhans74716@gmail.com
+#######################################################
+# Full Configuration Interaction Exact Diagonalization
+# Author: Tsung-Han Lee 
+# Email:  henhans74716@gmail.com
+#######################################################
 from basis import *#table_ep, table_es
 from scipy.sparse import csc_matrix, lil_matrix
 #from scipy.sparse.linalg import eigsh
