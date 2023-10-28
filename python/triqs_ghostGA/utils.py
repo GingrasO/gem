@@ -20,9 +20,9 @@ import triqs.utility.mpi as mpi
 
 def logo():
     logo = """
-╔╦╗╦═╗╦╔═╗ ╔═╗  ┬ ┬┌─┐
- ║ ╠╦╝║║═╬╗╚═╗  ├─┤├┤
- ╩ ╩╚═╩╚═╝╚╚═╝  ┴ ┴└
-TRIQS: Hartree-Fock solver
+╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┬ ┬┌─┐┌─┐┌┬┐ ┌─┐┌─┐
+ ║ ╠╦╝║║═╬╗╚═╗  │╶┐├─┤│ │└─┐ │ -│╶┐├─┤
+ ╩ ╩╚═╩╚═╝╚╚═╝  └─┘┴ ┴└─┘└─┘ ┴  └─┘┴ ┴
+TRIQS: Ghost-Gutzwiller solver
 """
     return logo
