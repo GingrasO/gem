@@ -191,6 +191,7 @@ Utensor[1,1,0,0] = U
 edsolver.build_Hemb(h1e, Utensor, spin_pen=0.0, sz_pen=0.0)
 edsolver.solve_Hemb(num_eig=1, verbose=True )
 denMat = edsolver.calc_density_matrix()
+np.set_printoptions(precision=3, threshold=np.inf, linewidth=np.inf)
 print('density matrix CI=')
 print(denMat)
 print('density matrix FTPS=')

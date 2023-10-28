@@ -18,7 +18,7 @@
 import numpy as np
 import triqs.utility.mpi as mpi
 import forktps as ftps
-from forktps.solver_core import Bath
+from forktps.solver_core import Bath, HInt
 from itertools import product as itp
 
 def ConstructBath(gfstruc_ , Nbath_, SpinOrbCoup_, hopping_, eps_):
@@ -45,7 +45,7 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
     """
     Given the embedded Hamiltonian and parameters, run ForkTPS and return density matrix.
         M               : Embedded Hamiltonian in a matrix of size (Norb+Nbath)x(Norb+Nbath), containing local hamiltonian,
-                        hybridization with the bath, and bath degrees of freedom. The bath should be diagonal.
+                          hybridization with the bath, and bath degrees of freedom. The bath should be diagonal.
         Norb            : Number of physical orbitals.
         Nbath           : Number of bath degrees of freedom.
         gf_struct       : Structure of the impurity model.
@@ -57,18 +57,22 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
     """
 
     # Construct the real time ForkTPS solver.
-    S = ftps.Solver(gf_struct = gf_struct , nw = w_grid["nw"], wmin=w_grid["window"][0], wmax=w_grid["window"][1])
+    S = ftps.Solver(gf_struct = gf_struct , nw = w_grid["nw"],
+                    wmin=w_grid["window"][0], wmax=w_grid["window"][1])
 
     # Fix the interacting Hamiltonian
-    Hint = ftps.solver_core.HInt(u=int_params["U"], j=int_params["J"], up=int_params["Up"], dd=int_params["dd"])
+    Hint = HInt(u=int_params["U"], j=int_params["J"],
+                up=int_params["Up"], dd=int_params["dd"])
 
-        # Construct the local Hamiltonian and extract from M matrix
-    e0 = ftps.solver_core.Hloc(gf_struct) #give the local Hamiltonian the right block structure
+    # Construct the local Hamiltonian and extract from M matrix
+    # give the local Hamiltonian the right block structure
+    e0 = ftps.solver_core.Hloc(gf_struct)
     e0.Fill("up", M["up"][:Norb, :Norb])
     e0.Fill("dn", M["dn"][:Norb, :Norb])
 
     # Construct the bath:
-    # the bath sites are assigned to an orbital. Since it should be diagonal,
+    # the bath sites are assigned to an orbital.
+    # Since it should be diagonal,
     # there is only one bath orbital, which is (orb, bath).
     eps = {"up": np.zeros((Norb, Nbath)),
            "dn": np.zeros((Norb, Nbath))}
@@ -78,21 +82,25 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
                "dn": np.zeros((Norb, Norb, Nbath), dtype=complex)}
     # Mapping M to the correct shape for ForkTPS:
     for a in range(Norb):
-        eps["up"][a, :] = np.diag(M["up"][Norb+a*Nbath:Norb+(a+1)*Nbath, Norb+a*Nbath:Norb+(a+1)*Nbath])
-        eps["dn"][a, :] = np.diag(M["dn"][Norb+a*Nbath:Norb+(a+1)*Nbath, Norb+a*Nbath:Norb+(a+1)*Nbath])
-        hopping["up"][:, a, :] = M["up"][:Norb, Norb+a*Nbath:Norb+(a+1)*Nbath]
-        hopping["dn"][:, a, :] = M["dn"][:Norb, Norb+a*Nbath:Norb+(a+1)*Nbath]
+        pos0 = Norb+a*Nbath
+        pos1 = Norb+(a+1)*Nbath
+        eps["up"][a, :] = np.diag(M["up"][pos0:pos1, pos0:pos1])
+        eps["dn"][a, :] = np.diag(M["dn"][pos0:pos1, pos0:pos1])
+        hopping["up"][:, a, :] = M["up"][:Norb, pos0:pos1]
+        hopping["dn"][:, a, :] = M["dn"][:Norb, pos0:pos1]
 
     # Assigning in the solver object
     S.b = ConstructBath(gf_struct, Nbath, False, hopping, eps)
     S.e0 = e0
 
     # Setting up the time-evolution solver
-    tevo = ftps.solver.TevoParams(dt = other_params["dt"], time_steps = other_params["time_steps"])
+    tevo = ftps.solver.TevoParams(dt = other_params["dt"],
+                                  time_steps = other_params["time_steps"])
     # Setting up the DMRG parameters
     dmrg = ftps.solver.DMRGParams(sweeps = other_params["sweeps"],
                                   prep_napph = other_params["prep_napph"],
-                                  maxm=maxm, tw=tw, DMRGMethod=other_params["DMRGMethod"])
+                                  maxm=maxm, tw=tw,
+                                  DMRGMethod=other_params["DMRGMethod"])
 
     # Solve the impurity model
     S.solve(h_int = Hint,
@@ -109,9 +117,15 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
     rho_CDC = np.reshape(rho_CDC, (Norb*2*(Nbath+1), Norb*2*(Nbath+1)))
 
     A = list(range(2*Norb*(Nbath+1)))
-    B = list(np.arange(0, 2*Norb*(1+Nbath), (1+Nbath)))
-    for a, b in itp(range(2*Norb), range(Nbath)):
-        B.append(1+b+a*(1+Nbath))
+    B = []
+    for a in range(Norb*(Nbath+1)):
+        B.append(a)
+        B.append(a+Norb*(Nbath+1))
+    # B = list(np.arange(0, 2*Norb*(1+Nbath), (1+Nbath)))
+    # B = list(np.arange(0, 2*Norb*(1+Nbath), 2))
+    # B += list(np.arange(1, 2*Norb*(1+Nbath), 2))
+    # for a, b in itp(range(2*Norb), range(Nbath)):
+    #     B.append(1+b+a*(1+Nbath))
 
     rho_CDC[A, :] = rho_CDC[B, :]
     rho_CDC[:, A] = rho_CDC[:, B]
