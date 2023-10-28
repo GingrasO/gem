@@ -17,7 +17,6 @@
 
 import numpy as np
 import triqs.utility.mpi as mpi
-from forktps.solver_core import Bath
 
 def logo():
     logo = """
@@ -27,22 +26,3 @@ def logo():
 TRIQS: Ghost-Gutzwiller solver
 """
     return logo
-
-def ConstructBath(gfstruc_ , Nbath_, SpinOrbCoup_, hopping_, eps_):
-    """
-    Construct the bath for the impurity solver.
-        gfstruc_ : the structure of the impurity model
-        Nbath_ : the number of bath sites for each band or impurity degree of freedom
-        SpinOrbCoup_ : the spin-orbital coupling
-        hopping_ : np.zeros([size, size, Nbath_], dtype=complex), hopping_[ i_imp, j_bath, ib] : the hopping amptitute from (j_bath orbital of the ib bath) to (i_imp orbital of the impurity)
-        eps_ : np.zeros([size, Nbath_])
-    """
-    bath = Bath(gfstruc_, SpinOrbCoup_)
-    for name,size in gfstruc_:
-        for iorb in range(size):
-            for ib in np.arange(Nbath_):
-                indx = [name, iorb]
-                eps = eps_[name][iorb, Nbath_ - 1 - ib]
-                hop = hopping_[name][:, iorb, Nbath_ - 1 - ib]
-                bath.addSite(indx, eps, hop) # note that the first added bath site is placed at the end of the fork
-    return bath
