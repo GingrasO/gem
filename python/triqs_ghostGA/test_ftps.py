@@ -6,13 +6,15 @@ from triqs.gf import *
 import forktps as ftps
 from forktps.solver import DMRGParams, TevoParams
 
-
 from forktps.DiscreteBath import *
 from forktps.Helpers import getX,MakeGFstruct
 
 # from h5 import *
 
 from itertools import product as itp
+import triqs_ghostGA
+from triqs_ghostGA.utils import ConstructBath
+
 np.set_printoptions(suppress=True, precision=6)
 
 def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
@@ -30,23 +32,6 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
         tw              : Cutoff parameter for the bound dimension.
         other_params    : Other parameters for ForkTPS.
     """
-    
-    def ConstructBath(gfstruc_ , Nbath_, SpinOrbCoup_, hopping_, eps_):
-        """
-        Construct the bath for the impurity solver.
-            gfstruc_ : the structure of the impurity model
-            Nbath_ : the number of bath sites for each band or impurity degree of freedom
-            SpinOrbCoup_ : the spin-orbital coupling
-            hopping_ : np.zeros([size, size, Nbath_], dtype=complex), hopping_[ i_imp, j_bath, ib] : the hopping amptitute from (j_bath orbital of the ib bath) to (i_imp orbital of the impurity)
-            eps_ : np.zeros([size, Nbath_])
-        """
-        bath = Bath(gfstruc_, SpinOrbCoup_)
-        for name,size in gfstruc_:
-            for iorb in range(size):
-                for ib in np.arange(Nbath_):
-                    indx = [name, iorb]        
-                    bath.addSite(indx, eps_[name][iorb, Nbath_- 1 - ib], hopping_[name][:, iorb, Nbath_ - 1 - ib]) # note that the first added bath site is placed at the end of the fork
-        return bath
     
     # Construct the real time ForkTPS solver.
     S = ftps.Solver(gf_struct = gf_struct , nw = w_grid["nw"], wmin=w_grid["window"][0], wmax=w_grid["window"][1])
