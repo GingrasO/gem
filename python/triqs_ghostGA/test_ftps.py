@@ -13,7 +13,7 @@ from forktps.Helpers import getX,MakeGFstruct
 
 from itertools import product as itp
 import triqs_ghostGA
-from triqs_ghostGA.utils import ConstructBath
+from triqs_ghostGA.utils_forktps import ConstructBath
 
 np.set_printoptions(suppress=True, precision=6)
 
