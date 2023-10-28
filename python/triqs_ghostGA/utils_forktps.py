@@ -132,3 +132,71 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
 
     # Return density matrix and interaction energy
     return rho_CDC, S.Ehint
+
+def rotateBath(M, Norb, Nbath):
+    """
+    Diagonalizes the Bath part of the M matrix. Also rotates the hybridization.
+    This function returns the rotated M matrix, along with the vectors to
+    rotate it back.
+        M : np.array((Norb*(Nbath+1), Norb*(Nbath+1))) : M matrix describing the 
+            embedded Hamiltonian.
+        Norb : int : Number of orbital degrees of freedom.
+        Nbath : int : Number of bath per orbital.
+    """
+    # Preparing the rotated Embedded Hamiltonian
+    M_rot = {"up": np.copy(M["up"]),
+             "dn": np.copy(M["dn"])}
+
+    # Obtained the eigenvectors of the bath sites to rotate the matrix
+    v_all = {"up": [], "dn": []}
+    for name in ["up", "dn"]:
+        B = M[name][Norb:, Norb:] # Bath sites
+        # W = M[name][:Norb, Norb:]
+        # Wd = M[name][Norb:, :Norb]
+
+        # Diagonalization of the bath
+        w, v = np.linalg.eig(B)
+        # Keep the eigenvectors in memory
+        v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
+                                [np.zeros((Norb*Nbath, Norb)), v]])
+
+        # Rotate the embedded Hamiltonian
+        M_rot[name] = np.linalg.inv(v_all[name]) @ M_rot[name] @ v_all[name]
+    return M, v_all
+
+def rotateDensityMatrix(singleP, Norb, Nbath, v):
+    """
+    Rotate back the density matrix. Used with rotateBath to minimize the entropy
+    in forkTPS.
+        singleP : Density matrix obtained by forkTPS.
+        Norb : int : Number of orbital degrees of freedom.
+        Nbath : int : Number of baths per orbital.
+        v : Eigenvectors of the Bath obtained from rotateBath.
+    """
+    # ForkTPS writes the density matrix in a basis that mixes spin up and down.
+    # These list help convert to separate up and down.
+    list_up = list(range(0, 2*Norb, 2))
+    list_dn = list(range(1, 2*Norb, 2))
+    for a in range(Norb):
+        list_up += list(range(Norb*2+2*a*Nbath, Norb*2+(2*a+1)*Nbath))
+        list_dn += list(range(Norb*2+(2*a+1)*Nbath, Norb*2+(2*a+2)*Nbath))
+
+    # Extract density matrix for up and rotate back to the original basis,
+    # before the bath was diagonalized.
+    single_up = singleP[list_up, :][:, list_up]
+    v_up = v["up"]
+    single_up = np.linalg.inv(v_up).T @ single_up @ v_up.T
+
+    # Same for down
+    single_dn = singleP[list_dn, :][:, list_dn]
+    v_dn = v["dn"]
+    single_dn = np.linalg.inv(v_dn).T @ single_dn @ v_dn.T
+
+    # Replace in the density matrix
+    for a, A in enumerate(list_up):
+        for b, B in enumerate(list_up):
+            singleP[A, B] = single_up[a, b]
+    for a, A in enumerate(list_dn):
+        for b, B in enumerate(list_dn):
+            singleP[A, B] = single_dn[a, b]
+    return singleP
