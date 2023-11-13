@@ -33,18 +33,18 @@ if __name__ == "__main__":
     # Hybridization matrix
     W = {"up": np.zeros((Norb, Nbath)),
          "dn": np.zeros((Norb, Nbath))}
-    W["up"][:,:] = np.array([[0.3,0.4,0.5]])
-    W["dn"][:,:] = np.array([[0.3,0.4,0.5]])
+    W["up"][:,:] = np.array([[0.5,0.4,0.5]])
+    W["dn"][:,:] = np.array([[0.5,0.4,0.5]])
     
     # Bath parameters
     B = {"up": np.zeros((Nbath, Nbath)),
          "dn": np.zeros((Nbath, Nbath))}
-    B["up"][:,:] = np.array([[ 1.0, 0.0, 0.0],
+    B["up"][:,:] = np.array([[ 1.0, 0.0, 0.2],
                              [ 0.0, 0.0, 0.0],
-                             [ 0.0, 0.0,-1.0]]) 
-    B["dn"][:,:] = np.array([[ 1.0, 0.0, 0.0],
+                             [ 0.2, 0.0,-1.0]]) 
+    B["dn"][:,:] = np.array([[ 1.0, 0.0, 0.2],
                              [ 0.0, 0.0, 0.0],
-                             [ 0.0, 0.0,-1.0]]) 
+                             [ 0.2, 0.0,-1.0]]) 
    
     # Half filled case: mu = -U/2 for local Hamiltonian
     Filling=1.0
