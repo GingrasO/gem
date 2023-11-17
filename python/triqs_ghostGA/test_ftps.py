@@ -13,7 +13,7 @@ from forktps.Helpers import getX,MakeGFstruct
 
 from itertools import product as itp
 import triqs_ghostGA
-from triqs_ghostGA.utils_forktps import ConstructBath, setup_forkTPS, rotateBath, rotateDensityMatrix
+from triqs_ghostGA.utils_forktps import ConstructBath, setup_forkTPS, rotateBath, rotateDensityMatrix, rotateToTsungHanConvention
 
 np.set_printoptions(suppress=True, precision=6)
 
@@ -57,6 +57,7 @@ if __name__ == "__main__":
                          [W["up"].T, B["up"]]]),
          "dn": np.block([[E["dn"], W["dn"]],
                          [W["dn"].T, B["dn"]]])}
+    np.set_printoptions(precision=5, threshold=np.inf, linewidth=np.inf)
     print('M["up"] before rotating the bath:')
     print(M["up"])
     print()
@@ -64,6 +65,7 @@ if __name__ == "__main__":
 
     # Rotate the Bath and Hybridization for smaller entropy
     M, v = rotateBath(M, Norb, Nbath)
+    print(v)
 
     print("M['up'] after rotating to the basis in which the bath is diagonal:")
     print(M['up'])
@@ -87,7 +89,11 @@ if __name__ == "__main__":
     singleP_rot, EHint = setup_forkTPS(M, Norb, Nbath, gfstruct, int_params,
                                        w_grid, maxm, tw)
     
+    print(singleP_rot)
+    print(v)
     singleP = rotateDensityMatrix(singleP_rot, Norb, Nbath, v)
+    print(singleP)
+    singleP = rotateToTsungHanConvention(singleP, Norb, Nbath)
    
     print('density matrix=')
     print(singleP)

@@ -110,25 +110,13 @@ def setup_forkTPS(M, Norb, Nbath, gf_struct, int_params, w_grid, maxm, tw,
            )
 
     # Extract the single-particle density matrix and reshape it
+    np.set_printoptions(precision=2, threshold=np.inf, linewidth=np.inf)
     singleP = S.singleParticleDensity
     print('singleP=')
     print(singleP)
     rho_CDC = singleP[:(Norb*2*(Nbath+1))**2]
     rho_CDC = np.reshape(rho_CDC, (Norb*2*(Nbath+1), Norb*2*(Nbath+1)))
-
-    A = list(range(2*Norb*(Nbath+1)))
-    B = []
-    for a in range(Norb*(Nbath+1)):
-        B.append(a)
-        B.append(a+Norb*(Nbath+1))
-    # B = list(np.arange(0, 2*Norb*(1+Nbath), (1+Nbath)))
-    # B = list(np.arange(0, 2*Norb*(1+Nbath), 2))
-    # B += list(np.arange(1, 2*Norb*(1+Nbath), 2))
-    # for a, b in itp(range(2*Norb), range(Nbath)):
-    #     B.append(1+b+a*(1+Nbath))
-
-    rho_CDC[A, :] = rho_CDC[B, :]
-    rho_CDC[:, A] = rho_CDC[:, B]
+    print(rho_CDC)
 
     # Return density matrix and interaction energy
     return rho_CDC, S.Ehint
@@ -162,7 +150,7 @@ def rotateBath(M, Norb, Nbath):
 
         # Rotate the embedded Hamiltonian
         M_rot[name] = np.linalg.inv(v_all[name]) @ M_rot[name] @ v_all[name]
-    return M, v_all
+    return M_rot, v_all
 
 def rotateDensityMatrix(singleP, Norb, Nbath, v):
     """
@@ -175,22 +163,24 @@ def rotateDensityMatrix(singleP, Norb, Nbath, v):
     """
     # ForkTPS writes the density matrix in a basis that mixes spin up and down.
     # These list help convert to separate up and down.
-    list_up = list(range(0, 2*Norb, 2))
-    list_dn = list(range(1, 2*Norb, 2))
-    for a in range(Norb):
-        list_up += list(range(Norb*2+2*a*Nbath, Norb*2+(2*a+1)*Nbath))
-        list_dn += list(range(Norb*2+(2*a+1)*Nbath, Norb*2+(2*a+2)*Nbath))
+    # list_up = list(range(0, 2*Norb, 2))
+    # list_dn = list(range(1, 2*Norb, 2))
+    # for a in range(Norb):
+    #     list_up += list(range(2*Norb+2*a*Nbath, 2*Norb+(2*a+1)*Nbath))
+    #     list_dn += list(range(2*Norb+(2*a+1)*Nbath, 2*Norb+(2*a+2)*Nbath))
+    list_up = range(0, Norb*(1+Nbath))
+    list_dn = range(Norb*(1+Nbath), 2*Norb*(1+Nbath))
 
     # Extract density matrix for up and rotate back to the original basis,
     # before the bath was diagonalized.
     single_up = singleP[list_up, :][:, list_up]
     v_up = v["up"]
-    single_up = np.linalg.inv(v_up).T @ single_up @ v_up.T
+    single_up = v_up @ single_up @ np.linalg.inv(v_up)
 
     # Same for down
     single_dn = singleP[list_dn, :][:, list_dn]
     v_dn = v["dn"]
-    single_dn = np.linalg.inv(v_dn).T @ single_dn @ v_dn.T
+    single_dn = v_dn @ single_dn @ np.linalg.inv(v_dn)
 
     # Replace in the density matrix
     for a, A in enumerate(list_up):
@@ -200,3 +190,21 @@ def rotateDensityMatrix(singleP, Norb, Nbath, v):
         for b, B in enumerate(list_dn):
             singleP[A, B] = single_dn[a, b]
     return singleP
+
+def rotateToTsungHanConvention(rho_CDC, Norb, Nbath):
+
+    A = list(range(2*Norb*(Nbath+1)))
+    B = []
+    for a in range(Norb*(Nbath+1)):
+        B.append(a)
+        B.append(a+Norb*(Nbath+1))
+    # B = list(np.arange(0, 2*Norb*(1+Nbath), (1+Nbath)))
+    # B = list(np.arange(0, 2*Norb*(1+Nbath), 2))
+    # B += list(np.arange(1, 2*Norb*(1+Nbath), 2))
+    # for a, b in itp(range(2*Norb), range(Nbath)):
+    #     B.append(1+b+a*(1+Nbath))
+
+    rho_CDC[A, :] = rho_CDC[B, :]
+    rho_CDC[:, A] = rho_CDC[:, B]
+    return rho_CDC
+
