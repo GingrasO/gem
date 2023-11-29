@@ -9,6 +9,7 @@ import h5py
 import numpy
 import numba
 from ci import *
+from ftps import *
 from utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination\
      , Hermitian_list, get_blocks, funcMat, calc_nf, dF
 import DIIS
@@ -163,6 +164,8 @@ class Grisb(object):
     def initialize_edsolver(self, ed_params):
         if ed_params["solver"] == 'ci':
             self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
+        elif ed_params["solver"] == 'ftps':
+            self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
         else:
             raise ValueError("impurity solver are supported")
 
@@ -197,7 +200,12 @@ class Grisb(object):
             self.edsolver.build_Hemb(h1e, self.Utensor, spin_pen=spin_pen, sz_pen=sz_pen)
             self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
             self.denMat = self.edsolver.calc_density_matrix()
-            self.E2loc = self.edsolver.compute_E2loc() 
+            self.E2loc = self.edsolver.compute_E2loc()
+        elif type(self.edsolver) == FTPS:
+            self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
+            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
+            self.denMat = self.edsolver.calc_density_matrix()
+            self.E2loc = self.edsolver.compute_E2loc()
         else:
             raise ValueError("only Full ED, CI, and HCI are supported")
         #print(self.denMat)
