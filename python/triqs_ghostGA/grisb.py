@@ -12,7 +12,7 @@ from ci import *
 from ftps import *
 from utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination\
      , Hermitian_list, get_blocks, funcMat, calc_nf, dF
-import DIIS
+from DIIS import *
 
 def calc_rhoks(R, Lambda, eks, T):
     return [calc_nf( numpy.dot(R, numpy.dot(x, R.conj().T ) ) + Lambda ,T).T for x in eks]

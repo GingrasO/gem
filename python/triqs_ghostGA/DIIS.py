@@ -20,8 +20,7 @@
 import numpy as np
 from scipy.optimize import fmin_slsqp
 
-class DIIS:
-
+class DIIS(object):
     def __init__( self, numVecs ):
         self.errors  = []
         self.states  = []
