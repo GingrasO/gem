@@ -49,8 +49,8 @@ class TestGrisb(unittest.TestCase):
         Utensor[0,0,1,1] = U
         Utensor[1,1,0,0] = U
 
-        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ftps', 'maxM': 100})
-        grisb.run(itmax=1000, mix=0.5, tol=5e-5, beta=10000, silence=True, spin_pen=0.05, diis=False)
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ci', 'use_Sz': True, 'use_Ntot': True})
+        grisb.run(itmax=1000, mix=0.5, tol=5e-5, beta=50000, silence=True, spin_pen=0.05, diis=True)
 
         docc0 = grisb.docc[0]
         Z = grisb.R.conj().T.dot(grisb.R)

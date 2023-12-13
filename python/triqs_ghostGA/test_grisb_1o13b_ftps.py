@@ -12,9 +12,9 @@ from utils_TH import get_semicircle_e_list,U_matrix_kanamori
 class TestGrisb(unittest.TestCase):
     def runTest(self):
         numpy.set_printoptions(suppress=True,precision=10)
-        ntot = 24
+        ntot = 28
         nimp = 2
-        nbath= 22
+        nbath= 26
 
         # construct ek with semicircular DOS 
         e_list = get_semicircle_e_list(nmesh=5000) 
@@ -25,21 +25,30 @@ class TestGrisb(unittest.TestCase):
             eks.append(tmp)
         eks = numpy.array(eks)
         numpy.random.seed(1234)
-        R0 = numpy.random.rand(nbath//2,nimp//2)
-        R0 = numpy.kron(R0,numpy.eye(2))
-        Lambda0 = numpy.zeros((nbath//2,nbath//2))
-        Lambda0[0,0] = 2.0
-        Lambda0[1,1] = 1.6
-        Lambda0[2,2] = 1.0
-        Lambda0[3,3] = 0.8
-        Lambda0[4,4] = 0.5
-        Lambda0[5,5] = 0.0
-        Lambda0[6,6] =-0.5
-        Lambda0[7,7] =-0.8
-        Lambda0[8,8] =-1.0
-        Lambda0[9,9] =-1.6
-        Lambda0[10,10] =-2.0
-        Lambda0 = numpy.kron(Lambda0,numpy.eye(2))
+        try:
+            fh5 = h5py.File('checkpoint.h5','r')
+            R0 = fh5['R'][...]
+            Lambda0 = fh5['Lambda'][...]
+            fh5.close()
+        except:
+            print('---- no checkpoint exist: initialize R and Lambda ----')
+            R0 = numpy.random.rand(nbath//2,nimp//2)
+            R0 = numpy.kron(R0,numpy.eye(2))
+            Lambda0 = numpy.zeros((nbath//2,nbath//2))
+            Lambda0[0,0] = 3.0
+            Lambda0[1,1] = 2.5
+            Lambda0[2,2] = 2.0
+            Lambda0[3,3] = 1.5
+            Lambda0[4,4] = 1.0
+            Lambda0[5,5] = 0.5
+            Lambda0[6,6] = 0.0
+            Lambda0[7,7] =-0.5
+            Lambda0[8,8] =-1.0
+            Lambda0[9,9] =-1.5
+            Lambda0[10,10] =-2.0
+            Lambda0[11,11] =-2.5
+            Lambda0[12,12] =-3.0
+            Lambda0 = numpy.kron(Lambda0,numpy.eye(2))
 
         U = 2.4
         eloc = numpy.zeros((nimp,nimp))
