@@ -26,12 +26,14 @@ class TestGrisb(unittest.TestCase):
         eks = numpy.array(eks)
         numpy.random.seed(1234)
         try:
+            print('--- reading R and Lambda from checkpoint ---')
             fh5 = h5py.File('checkpoint.h5','r')
             R0 = fh5['R'][...]
             Lambda0 = fh5['Lambda'][...]
             fh5.close()
+            assert(R0.shape == (nbath,nimp))
         except:
-            print('---- no checkpoint exist: initialize R and Lambda ----')
+            print('--- no checkpoint exist or R.shape mismatch with the number of orbitals: initialize R and Lambda ---')
             R0 = numpy.random.rand(nbath//2,nimp//2)
             R0 = numpy.kron(R0,numpy.eye(2))
             Lambda0 = numpy.zeros((nbath//2,nbath//2))
