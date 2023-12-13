@@ -87,6 +87,22 @@ def find_Lambda(Lambda0, R, ffdagger, eks, Hspin_list, beta):
     Lambda = numpy.kron(realHcombination(result.x, Hspin_list),numpy.eye(2))
     return Lambda
 
+def svd_truncate_R(R, eps=0.5):
+    "perform SVD truncation for the singular value of R greater than 1 and smaller than a threshold eps"
+    from scipy.linalg import svd
+    u, s, vh = svd(R)
+    print('singular values of R:', s)
+    sp = np.zeros(R.shape, dtype=s.dtype)
+    for i,si in enumerate(s):
+        if si > 1.0:
+            sp[i,i] = 1.0
+        elif si < (1.0 - eps):
+            sp[i,i] = (1.0 - eps)
+        else:
+            sp[i,i] = si
+    Rp = u @ sp @ vh
+    return Rp
+
 class Grisb(object):
     """This is a class representation of a ghost-RISB object.
 
@@ -282,6 +298,7 @@ class Grisb(object):
             R_new = numpy.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
             if not self.soc:
                 R_new = numpy.kron(R_new[::2,::2],numpy.eye(2))# symmetrize
+            R_new = svd_truncate_R(R_new)
             #Lambda_new = find_Lambda(self.Lambda, R_new, ffdagger, self.eks, self.Hspin_list, beta)
             Lambda_new = calc_Lambda(R_new, self.Lambda_c, self.Delta_p, self.D, self.Hfull_list)
             if not self.soc:
@@ -305,6 +322,14 @@ class Grisb(object):
 #            tmp = numpy.zeros(self.R.shape,dtype=self.R.dtype)
 #            tmp[:self.nimp,:self.nimp] = sqrtm(self.R.conj().T.dot(self.R)[:self.nimp,:self.nimp])
 #            self.R = tmp
+            # check point
+            fh5 = h5py.File('checkpoint.h5','w')
+            fh5['R'] = self.R
+            fh5['Lambda'] = self.Lambda
+            fh5['eks'] = self.eks
+            fh5['Utensor'] = self.Utensor
+            fh5['mu'] = mu
+            fh5.close()
             if not silence:
                 print("R_new=")
                 print(R_new)
