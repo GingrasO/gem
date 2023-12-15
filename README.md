@@ -1,34 +1,27 @@
-[![build](https://github.com/TRIQS/triqs_ghostGA/workflows/build/badge.svg)](https://github.com/TRIQS/triqs_ghostGA/actions?query=workflow%3Abuild)
+# TRIQS ghostGA
 
-# triqs_ghostGA - A skeleton for a TRIQS application
+About
+-----
+
+This is an implement of the ghost-Gutwiller approximation (ghost-GA) based
+on the TRIQS library [1].
 
 Initial Setup
 -------------
 
-To adapt this skeleton for a new TRIQS application, the following steps are necessary:
-
-* Create a repository, e.g. https://github.com/username/appname
-
-* Run the following commands in order after replacing **appname** accordingly
+To install this package, run the following commands in order:
 
 ```bash
-git clone https://github.com/triqs/triqs_ghostGA --branch python_only appname
-cd appname
-./share/squash_history.sh
-./share/replace_and_rename.py appname
-git add -A && git commit -m "Adjust triqs_ghostGA skeleton for appname"
+git clone https://github.com/TRIQS/hartree_fock.git
+
+mkdir ghostGA.build && cd ghostGA.build
+
+cmake ../ghostGA
+
+make
+make test
+make install
 ```
-
-You can now add your github repository and push to it
-
-```bash
-git remote add origin https://github.com/username/appname
-git remote update
-git push origin unstable
-```
-
-If you prefer to use the [SSH interface](https://help.github.com/en/articles/connecting-to-github-with-ssh)
-to the remote repository, replace the http link with e.g. `git@github.com:username/appname`.
 
 ### Merging triqs_ghostGA skeleton updates ###
 
@@ -51,19 +44,6 @@ Now you can compare against the previous commit with:
 ```bash
 git diff prev_git_hash
 ````
-
-Getting Started
----------------
-
-After setting up your application as described above you should customize the following files and directories
-according to your needs (replace triqs_ghostGA in the following by the name of your application)
-
-* Adjust or remove the `README.md` and `doc/ChangeLog.md` file
-* In the `python/triqs_ghostGA` subdirectory add your Python source files.
-* In the `test/python` subdirectory adjust the example test `Basic.py` or add your own tests.
-* Adjust any documentation examples given as `*.rst` files in the doc directory.
-* Adjust the sphinx configuration in `doc/conf.py.in` as necessary.
-* The build and install process is identical to the one outline [here](https://triqs.github.io/triqs_ghostGA/unstable/install.html).
 
 ### Optional ###
 ----------------
