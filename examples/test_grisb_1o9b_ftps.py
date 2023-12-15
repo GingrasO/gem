@@ -4,14 +4,14 @@
 # Email: henhans74716@gmail.com
 #######################################################
 import unittest
-import numpy
+import numpy as np
 import h5py
-from grisb import *
-from utils_TH import get_semicircle_e_list,U_matrix_kanamori
+from triqs_ghostGA.grisb import *
+from triqs_ghostGA.utils_TH import get_semicircle_e_list,U_matrix_kanamori
 
 class TestGrisb(unittest.TestCase):
     def runTest(self):
-        numpy.set_printoptions(suppress=True,precision=10)
+        np.set_printoptions(suppress=True,precision=10)
         ntot = 20
         nimp = 2
         nbath= 18
@@ -20,14 +20,14 @@ class TestGrisb(unittest.TestCase):
         e_list = get_semicircle_e_list(nmesh=5000) 
         eks = []
         for e in e_list:
-            tmp = numpy.array([[1.0*e]],dtype=numpy.complex128)
-            tmp = numpy.kron(tmp,numpy.eye(2))
+            tmp = np.array([[1.0*e]],dtype=np.complex128)
+            tmp = np.kron(tmp,np.eye(2))
             eks.append(tmp)
-        eks = numpy.array(eks)
-        numpy.random.seed(1234)
-        R0 = numpy.random.rand(nbath//2,nimp//2)
-        R0 = numpy.kron(R0,numpy.eye(2))
-        Lambda0 = numpy.zeros((nbath//2,nbath//2))
+        eks = np.array(eks)
+        np.random.seed(1234)
+        R0 = np.random.rand(nbath//2,nimp//2)
+        R0 = np.kron(R0,np.eye(2))
+        Lambda0 = np.zeros((nbath//2,nbath//2))
         Lambda0[0,0] = 2.0
         Lambda0[1,1] = 1.6
         Lambda0[2,2] = 1.0
@@ -37,10 +37,10 @@ class TestGrisb(unittest.TestCase):
         Lambda0[6,6] =-1.0
         Lambda0[7,7] =-1.6
         Lambda0[8,8] =-2.0
-        Lambda0 = numpy.kron(Lambda0,numpy.eye(2))
+        Lambda0 = np.kron(Lambda0,np.eye(2))
 
         U = 2.4
-        eloc = numpy.zeros((nimp,nimp))
+        eloc = np.zeros((nimp,nimp))
         Utensor = np.zeros((nimp,nimp,nimp,nimp))
         eloc[0,0] =-U/2.
         eloc[1,1] =-U/2.

@@ -1,9 +1,9 @@
-#import numpy as np
+import numpy as np
 #import scipy.linalg as lg
 #from scipy.optimize import minimize
 #
 #from triqs.gf import *
-#import forktps as ftps
+# import forktps as ftps
 #from forktps.solver import DMRGParams, TevoParams
 #
 #from forktps.DiscreteBath import *
@@ -14,7 +14,7 @@
 #from itertools import product as itp
 #import triqs_ghostGA
 #from triqs_ghostGA.utils_forktps import ConstructBath, setup_forkTPS, rotateBath, rotateDensityMatrix, rotateToTsungHanConvention
-from ftps import *
+from triqs.ghostGA.forktps import *
 
 np.set_printoptions(suppress=True, precision=6)
 
@@ -22,7 +22,8 @@ np.set_printoptions(suppress=True, precision=6)
 if __name__ == "__main__":
 
     import h5py
-    fh5 = h5py.File('hemb_test_1orb3bath.h5')
+    # fh5 = h5py.File('data/hemb_test_1orb3bath.h5')
+    fh5 = h5py.File('data/hemb_test.h5')
     D = fh5['D'][...]
     Lambda_c = fh5['Lambda_c'][...]
     Utensor = fh5['Utensor'][...]

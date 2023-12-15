@@ -8,11 +8,11 @@ from scipy.linalg import sqrtm
 import h5py
 import numpy
 import numba
-from ci import *
-from ftps import *
-from utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination\
+from triqs_ghostGA.ci import *
+from triqs_ghostGA.ftps import *
+from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination\
      , Hermitian_list, get_blocks, funcMat, calc_nf, dF
-from DIIS import *
+from triqs_ghostGA.DIIS import *
 
 def calc_rhoks(R, Lambda, eks, T):
     return [calc_nf( numpy.dot(R, numpy.dot(x, R.conj().T ) ) + Lambda ,T).T for x in eks]
