@@ -3,6 +3,8 @@
 import unittest
 
 from triqs_ghostGA import LatticeSolver
+from triqs_ghostGA.grisb import *
+from triqs_ghostGA.utils_TH import get_semicircle_e_list, U_matrix_kanamori
 from h5 import *
 import numpy as np
 from triqs.utility import mpi
@@ -36,6 +38,43 @@ class test_lattice_solver(unittest.TestCase):
         S.solve_ForkTPS(h_int=h_int)
 
         pass
+
+    def test_grisb_1o3_ftps_and_ci(self):
+        # 1 orbital with 2 spins, 3 bath per orbital, total 8
+        nimp, nbath, ntot = 2, 6, 8
+
+        # construct ek with semicircular DOS
+        e_list = get_semicircle_e_list(nmesh=5000)
+        eks = []
+        for e in e_list:
+            tmp = np.array([[1.0*e]],dtype=np.complex128)
+            tmp = np.kron(tmp,np.eye(2))
+            eks.append(tmp)
+        eks = np.array(eks)
+
+        # random initial value for hybridization
+        R0 = np.random.rand(nbath//2, nimp//2)
+        R0 = np.kron(R0, np.eye(2))
+
+        Lambda0 = np.zeros((nbath//2, nbath//2))
+        Lambda0 = np.diag([0.6, 0, -0.6])
+        Lambda0 = np.kron(Lambda0, np.eye(2))
+
+        U = 2.4
+        eloc = np.zeros((nimp, nimp))
+        Utensor = np.zeros((nimp, nimp, nimp, nimp))
+        eloc[0,0] = -U/2.
+        eloc[1,1] = -U/2.
+        Utensor[0,0,1,1] = U
+        Utensor[1,1,0,0] = U
+
+        # test ForkTPS solver
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ftps', 'maxM': 300})
+        grisb.run(itmax=2, mix=0.5, tol=5e-2, beta=500, silence=True, spin_pen=0.05)
+
+        # test CI solver
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ci', 'use_Sz': True, 'use_Ntot': True})
+        grisb.run(itmax=2, mix=0.5, tol=5e-2, beta=500, silence=True, spin_pen=0.05)
 
 if __name__ == '__main__':
     unittest.main()
