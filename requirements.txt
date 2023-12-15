@@ -5,5 +5,3 @@ pytest
 scipy
 primme
 h5py
-unitest
-basis
