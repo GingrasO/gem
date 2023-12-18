@@ -13,18 +13,59 @@ from forktps.Helpers import getX,MakeGFstruct
 
 from itertools import product as itp
 import triqs_ghostGA
-from triqs_ghostGA.utils_forktps import ConstructBath, setup_forkTPS, rotateBath, rotateDensityMatrix, rotateToTsungHanConvention
+from triqs_ghostGA.utils_mps import ConstructBath, setup_forkTPS, rotateBath, rotateDensityMatrix, rotateToTsungHanConvention
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath, maxM=200):
+    def __init__(self, ntot, nimp, nbath, maxM=200,):
         """Constructor method
         """
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
         self.maxM = maxM
- 
+        self.schedule = []
+        self.tolerances = []
+
+    def add_to_schedule(self,nsweeps=1,maxdim=1024,reverse_step=False,normalize=True, cutoff=1e-14,noise=0.0,outputlevel=1,nsites=2)
+        thesweep=    Dict(
+            "nsweeps":nsweeps,
+            "reverse_step":reverse_step,
+            "normalize":normalize,
+            "cutoff":cutoff,
+            "noise":noise,
+            "outputlevel"=outputlevel,
+            "nsites"=nsites)
+
+        self.schedule.append(
+        thesweep)
+        return thesweep
+    def make_schedule(self, input=False)
+        assert input=False
+        if type(input)==bool and input==False:
+            self.add_to_schedule(nsweeps=15,maxdim=32,cutoff=1e-10,noise=1e-5)
+            self.add_to_schedule(nsweeps=15,maxdim=64,cutoff=1e-10,noise=1e-6)
+            self.add_to_schedule(nsweeps=15,maxdim=128,cutoff=1e-12,noise=1e-6)
+            self.add_to_schedule(nsweeps=10,maxdim=256,cutoff=1e-12,noise=1e-6)
+            self.add_to_schedule(nsweeps=10,maxdim=512,cutoff=1e-12,noise=1e-7)
+            self.add_to_schedule(nsweeps=10,maxdim=1024,cutoff=1e-14,noise=1e-8)
+            self.add_to_schedule(nsweeps=10,maxdim=2048,cutoff=1e-14,noise=1e-9)
+            self.add_to_schedule(nsweeps=5,maxdim=4096,cutoff=1e-14,noise=1e-10)
+            self.add_to_schedule(nsweeps=3,maxdim=8192,cutoff=1e-14,noise=1e-12)
+            self.add_to_schedule(nsweeps=2,maxdim=8192,cutoff=1e-14,noise=0.0)
+            #setup standard schedule
+        else:
+            #not implemented yet
+            assert False
+        return
+
+    def make_kwargs(self,use_Sz=True,use_Ntot=True,spin_pen=0.0)
+        self.kwargs=[["use_Sz","use_Ntot","spin_pen"],(use_Sz,useNtot,spin_pen)]
+        return
+    def set_tolerances(tol_names,tol_vals)
+        self.tolerances=[tol_names,tol_vals]
+        return
+        
     def build_Hemb(self, D, H1E, LAMBDA, V2E, spin_pen=0.0):
         # Local Hamiltonian
         self.E = {"up": np.zeros((self.nimp//2, self.nimp//2)),
@@ -67,28 +108,25 @@ class ITensorMPSSolver(object):
         #print(self.M['up'])
         #print()
 
-    def solve_Hemb(self, num_eig=1, verbose=0):
+    def solve_Hemb(self, num_eig=1, verbose=1, ):
         # Setting up some parameters for ForkTPS
         #maxM = 300 # Maximum dimension bond for DMRG
         
         # Criteria for the bound dimension of the DMRG, just be converged
-        tw = 1e-20
-        
         # Set up and run ForkTPS using the useful_func.py
-        self.singleP_rot, self.EHint = setup_forkTPS(self.M, self.nimp//2, self.nbath//self.nimp, gfstruct, int_params,
-                                                   w_grid, self.maxM, tw)
+        self.converged=False
+        self.converged,self.singleP_rot_up,self.singleP_rot_dn, self.EHint = Main.solve(self.Utensor,self.M, self.schedule,self.tolerances,)
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')
         #print(self.v)
 
     def calc_density_matrix(self):
-        self.singleP = rotateDensityMatrix(self.singleP_rot, self.nimp//2, self.nbath//self.nimp, self.v)
+        self.singleP = rotateDensityMatrix(singleP_rot_up,single_P_rod_dn, self.v)
         #print(self.singleP)
+        ##Assumes this one is the same now
         self.singleP = rotateToTsungHanConvention(self.singleP, self.nimp//2, self.nbath//self.nimp)
        
-        #print('density matrix=')
-        #print(self.singleP)
         self.dm = self.singleP
         return self.dm
 
