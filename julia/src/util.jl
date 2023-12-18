@@ -1,0 +1,44 @@
+function check_convergence(E::Number,Cuu::AbstractMatrix,Cdd::AbstractMatrix,Eold::Number,Cuuold::AbstractMatrix,Cddold::AbstractMatrix,tolerances)
+    Etol=tolerances["E"]
+    rhotol=tolerances["rho"]
+    converged=false
+    if maximum(abs.(oldCuu.-Cuu))<=rhotol && abs((E-Eold)/E)<=Etol
+        converged=true
+    end
+    return converged
+    
+
+function  convert_schedule(schedule)::Vector{NamedTuple}
+    param_vec=NamedTuple[]
+    for apair in schedule
+        keys,values=apair
+        push!(param_vec,namedtuple(keys,values))
+    end
+    return param_vec
+
+function get_perm(Nimp,Nbath,es;mu=0.0)
+    normal=1:(Nimp+Nbath)
+    impnormal=1:Nimp
+    bathnormal=Nimp+1:(Nimp+Nbath)
+    left=bathnormal[es .< mu]
+    right=bathnormal[es .>= mu]
+    return sortperm(vcat(left,impnormal,right))
+end
+
+function get_perm_bybathabs(Nimp,Nbath,es;mu=0.0)
+    return vcat(1:Nimp,sortperm(abs(es)) .+Nimp)
+end
+
+function compute_commutator(A,B)
+    Bp=prime(siteinds,B)
+    Ap=prime(siteinds,A)
+    return norm(A*Bp - B*Ap)
+end
+
+
+
+function symmetrize(A)
+    n=length(size(A))
+    A .+= conj.(permutedims(A,n:-1:1))
+    return A
+end
