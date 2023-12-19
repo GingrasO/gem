@@ -6,7 +6,7 @@ function check_convergence(E::Number,Cuu::AbstractMatrix,Cdd::AbstractMatrix,Eol
         converged=true
     end
     return converged
-    
+end
 
 function  convert_schedule(schedule)::Vector{NamedTuple}
     param_vec=NamedTuple[]
@@ -15,6 +15,7 @@ function  convert_schedule(schedule)::Vector{NamedTuple}
         push!(param_vec,namedtuple(keys,values))
     end
     return param_vec
+end
 
 function get_perm(Nimp,Nbath,es;mu=0.0)
     normal=1:(Nimp+Nbath)

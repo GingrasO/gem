@@ -1,5 +1,5 @@
 using MKL
-using PyCall
+using PythonCall
 using ITensors
 using NamedTupleTools
 using Random
@@ -7,37 +7,9 @@ using LinearAlgebra
 include("model.jl")
 include("util.jl")
 
-"""
-Computes the GS of impurity model using DMRG and returns correlation matrix and scalar <Himp>
-"""
-function compute_gs_corrmatrix(U::Number,J::Number,Jmat::AbstractMatrix,bath_energies::AbstractVector,hybs::AbstractMatrix)
-    #setup sites
 
-    #setup hamiltonian
 
-    #setup initial state
 
-    #
-end
-
-function setup_H(sites,U,J,Jmat,bath_energies,hybs)
-    N=length(sites)
-    Utensor=triqsutils.U_matrix(2,U_int=U,J_hund=J)
-    Nimp=size(Utensor,1)
-    Nbath=N-Nimp
-    perm=get_perm(Nimp,Nbath,bath_energies;mu=0.0)
-    os_imp=get_H_imp(N,J,U;perm=perm)
-    os_bath=get_H_bath(N,diagm(bath_energies),bathoffset=Nimp;perm=perm)
-    os_hyb=get_H_hyb(N,hybs;perm=perm)
-    Himp=MPO(os_imp,sites,)
-    H=MPO(os_imp+os_bath+os_hyb,sites)
-    return H,Himp
-end
-
-###assumes:
-###half filling, zero magnetization sector
-###spin rotational symmetry
-###
 function solve(Utensor,H1E,schedule,tolerances,kwargs)
     # kwargs
     #   sweep schedule as a list of Dictionaries or zipped key value pairs
@@ -46,6 +18,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     #   
     dmrg_params=convert_schedule(schedule)
     kwargs=convert_schedule(kwargs)
+    tolerances=convert_schedule(tolerances)
     conserve_sz=get(kwargs, :use_Sz, True)
     conserve_N=get(kwargs, :use_Ntot, True)
     spin_pen=get(kwargs,:spin_pen,0.0)
@@ -76,7 +49,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     os_S2=get_Ssquared(N)
        
     #make sites
-    sites=siteinds("Electron", N; conserve_nf=conserve_nf,conserve_sz=conserve_sz))
+    sites=siteinds("Electron", N; conserve_nf=conserve_nf,conserve_sz=conserve_sz)
     
     S2=MPO(os_S2,sites)
     if !iszero(spin_pen)
@@ -101,9 +74,11 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
         E,psi=dmrg(H,psi; pars...)
+        GC.gc()
         Eimp=inner(psi',Himp,psi)
         Cuu = correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
         Cdd = correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
+        GC.gc()
         converged=false
         if !isnothing(oldCuu)
             @show E,Eold

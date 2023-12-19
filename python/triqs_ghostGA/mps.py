@@ -2,12 +2,6 @@ import numpy as np
 import scipy.linalg as lg
 from scipy.optimize import minimize
 
-from triqs.gf import *
-import forktps as ftps
-from forktps.solver import DMRGParams, TevoParams
-
-from forktps.DiscreteBath import *
-from forktps.Helpers import getX,MakeGFstruct
 
 # from h5 import *
 
@@ -17,13 +11,12 @@ from triqs_ghostGA.utils_mps import ConstructBath, setup_forkTPS, rotateBath, ro
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath, maxM=200,):
+    def __init__(self, ntot, nimp, nbath):
         """Constructor method
         """
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
-        self.maxM = maxM
         self.schedule = []
         self.tolerances = []
 
@@ -62,7 +55,7 @@ class ITensorMPSSolver(object):
     def make_kwargs(self,use_Sz=True,use_Ntot=True,spin_pen=0.0)
         self.kwargs=[["use_Sz","use_Ntot","spin_pen"],(use_Sz,useNtot,spin_pen)]
         return
-    def set_tolerances(tol_names,tol_vals)
+    def set_tolerances(tol_names=["E","rho"],tol_vals=[1e-5,5e-3])
         self.tolerances=[tol_names,tol_vals]
         return
         
@@ -74,17 +67,17 @@ class ITensorMPSSolver(object):
         self.E["dn"] = H1E[1::2,1::2]
 
         # Hybridization matrix
-        self.W = {"up": np.zeros((self.nimp//2, self.nbath//self.nimp)),
-                  "dn": np.zeros((self.nimp//2, self.nbath//self.nimp))}
+        self.W = {"up": np.zeros((self.nimp//2, self.nbath//2)),
+                  "dn": np.zeros((self.nimp//2, self.nbath//2))}
         self.W["up"][:,:] = D[::2,::2].conj().T
         self.W["dn"][:,:] = D[1::2,1::2].conj().T
         
         # Bath parameters
-        self.B = {"up": np.zeros((self.nbath//self.nimp, self.nbath//self.nimp)),
-                  "dn": np.zeros((self.nbath//self.nimp, self.nbath//self.nimp))}
+        self.B = {"up": np.zeros((self.nbath//2, self.nbath//2)),
+                  "dn": np.zeros((self.nbath//2, self.nbath//2))}
         self.B["up"][:,:] = -LAMBDA[::2,::2]
         self.B["dn"][:,:] = -LAMBDA[1::2,1::2]
-   
+
         # Set up the M matrix which has all local Ham, hybridization and bath
         self.M = {"up": np.block([[self.E["up"], self.W["up"]],
                                  [self.W["up"].T, self.B["up"]]]),
@@ -115,7 +108,7 @@ class ITensorMPSSolver(object):
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
         self.converged=False
-        self.converged,self.singleP_rot_up,self.singleP_rot_dn, self.EHint = Main.solve(self.Utensor,self.M, self.schedule,self.tolerances,)
+        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= Main.solve(self.Utensor,self.M, self.schedule,self.tolerances,)
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')
