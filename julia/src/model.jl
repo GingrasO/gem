@@ -4,10 +4,11 @@ function get_H_imp(n::Int,Jup::AbstractMatrix,Jdn::AbstractMatrix,U::AbstractArr
     for i in 1:size(Jup,1)
         for j in i:size(Jup,2)
             if Jup[i,j]!=0.0
-                @assert J[i,j]==conj(J[j,i])
+                @assert Jup[i,j]==conj(Jup[j,i])
                 os+=Jup[i,j],"Cdagup",perm[i],"Cup",perm[j]
             end
             if Jdn[i,j]!=0.0
+                @assert Jdn[i,j]==conj(Jdn[j,i])
                 os+=Jdn[i,j],"Cdagdn",perm[i],"Cdn",perm[j]
             end
         end
@@ -93,8 +94,10 @@ function get_H_bath(n::Int,Gamma_up::AbstractMatrix,Gamma_dn::AbstractMatrix;bat
     bo=bathoffset
     for i in 1:size(Gamma_up,1)
         for j in 1:size(Gamma_up,2)
-            if !iszero(Gamma[i,j])
+            if !iszero(Gamma_up[i,j])
                 os+=Gamma_up[i,j],"Cdagup",perm[bo+i],"Cup",perm[bo+j]
+            end
+            if !iszero(Gamma_dn[i,j])
                 os+=Gamma_dn[i,j],"Cdagdn",perm[bo+i],"Cdn",perm[bo+j]
             end
         end
@@ -120,9 +123,9 @@ end
          
 function get_H_hyb(n,Dup::AbstractMatrix,Ddn::AbstractMatrix;perm=1:n)
     os=OpSum()
-    bo=size(D,1)
-    for i in 1:size(D,1)
-        for j in 1:size(D,2)
+    bo=size(Dup,1)
+    for i in 1:size(Dup,1)
+        for j in 1:size(Dup,2)
             if !iszero(Dup[i,j])
                 os+=Dup[i,j],"Cdagup",perm[i],"Cup",perm[bo+j]
                 os+=conj(Dup[i,j]),"Cdagup",perm[bo+j],"Cup",perm[i]

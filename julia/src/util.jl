@@ -1,8 +1,8 @@
 function check_convergence(E::Number,Cuu::AbstractMatrix,Cdd::AbstractMatrix,Eold::Number,Cuuold::AbstractMatrix,Cddold::AbstractMatrix,tolerances)
-    Etol=tolerances["E"]
-    rhotol=tolerances["rho"]
+    Etol=tolerances[:E]
+    rhotol=tolerances[:rho]
     converged=false
-    if maximum(abs.(oldCuu.-Cuu))<=rhotol && abs((E-Eold)/E)<=Etol
+    if maximum(abs.(Cuuold.-Cuu))<=rhotol && maximum(abs.(Cddold.-Cdd))<=rhotol && abs((E-Eold)/E)<=Etol
         converged=true
     end
     return converged
@@ -10,8 +10,14 @@ end
 
 function  convert_schedule(schedule)::Vector{NamedTuple}
     param_vec=NamedTuple[]
+    
     for apair in schedule
         keys,values=apair
+        
+        #pyconvert(Vector{Any},values)
+        @show typeof(values)
+        @show typeof(keys)
+        
         push!(param_vec,namedtuple(keys,values))
     end
     return param_vec

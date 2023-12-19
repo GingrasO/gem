@@ -17,17 +17,23 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     #   conserve_qns=true
     #   
     dmrg_params=convert_schedule(schedule)
-    kwargs=convert_schedule(kwargs)
-    tolerances=convert_schedule(tolerances)
-    conserve_sz=get(kwargs, :use_Sz, True)
-    conserve_N=get(kwargs, :use_Ntot, True)
+    kwargs=convert_schedule(kwargs)[]
+    tolerances=convert_schedule(tolerances)[]
+    conserve_sz=get(kwargs, :use_Sz, true)
+    conserve_N=get(kwargs, :use_Ntot,true)
     spin_pen=get(kwargs,:spin_pen,0.0)
-    
+    @show typeof(tolerances)
+    @show typeof(kwargs)
+    @show typeof(dmrg_params[1])
+    @show dmrg_params[1]
     
     #extract the relevant quantities
+
+    Utensor=pyconvert(Array,Utensor)
     Nimp=size(Utensor,1)
-    H1Eup=H1E["up"]
-    H1Edn=H1E["dn"]
+    
+    H1Eup=pyconvert(Matrix,H1E["up"])
+    H1Edn=pyconvert(Matrix,H1E["dn"])
     N=size(H1Eup,1)
     Nbath=N-Nimp
     hbath_up=H1Eup[Nimp+1:end,Nimp+1:end]
@@ -49,7 +55,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     os_S2=get_Ssquared(N)
        
     #make sites
-    sites=siteinds("Electron", N; conserve_nf=conserve_nf,conserve_sz=conserve_sz)
+    sites=siteinds("Electron", N; conserve_nf=conserve_N,conserve_sz=conserve_sz)
     
     S2=MPO(os_S2,sites)
     if !iszero(spin_pen)
@@ -59,7 +65,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     end
     #TODO: verify whether <Eint> (quartic only) or <Eimp> to be returned
     Himp=MPO(os_imp,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
-    @assert compute_commutator(H,S2m)<1e-3
+    @assert compute_commutator(H,S2)<1e-3
     #make starting MPS
     ##potentially trigger different behaviour via kwarg
     ##assumes that the total system size is even, otherwise not half filled and zero mag
@@ -69,28 +75,33 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     oldCuu=nothing
     oldCdd=nothing
     Eold=nothing
+    @show maxlinkdim(H)
     #run dmrg loop, terminate when tolerances are satisfied
     for (iteration,pars) in enumerate(dmrg_params)
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
+        @show typeof(H)
         E,psi=dmrg(H,psi; pars...)
         GC.gc()
         Eimp=inner(psi',Himp,psi)
+        S2val=inner(psi',S2,psi)
         Cuu = correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
         Cdd = correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
         GC.gc()
         converged=false
         if !isnothing(oldCuu)
             @show E,Eold
-            @show Maximum(abs.(oldCuu .- Cuu))
-            @show Maximum(abs.(oldCdd .- Cdd))            
+            @show maximum(abs.(oldCuu .- Cuu))
+            @show maximum(abs.(oldCdd .- Cdd))
+            @show S2val            
             converged=check_convergence(E,Cuu,Cdd,Eold,oldCuu,oldCdd,tolerances)
         end
         if converged
-            return True, E,Cuu,Cdd
+            return True, Eimp,Cuu,Cdd
         end
         oldCuu=deepcopy(Cuu)
-        oldCdn=deepcopy(Cdn)
+        oldCdd=deepcopy(Cdd)
+        Eold=deepcopy(E)
     end
     return False, Eimp, Cuu, Cdd
 end
