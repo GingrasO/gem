@@ -4,12 +4,19 @@
 #      email: henhans74716@gmail.com
 ###########################################
 import numpy as np
+from numpy import sqrt, heaviside as hside, pi, arcsin
+from numpy.linalg import inv, eigh
 import h5py
 import cmath
+from cmath import sqrt
 import itertools as it
-from numba import jit#, prange
+from numba import jit  #, prange
 import numba
-from numpy.linalg import inv, eigh
+import matplotlib.pyplot as plt
+from scipy.optimize import bisect
+# from scipy.linalg import eigh
+from scipy.special import factorial as fact
+# from scipy.misc import derivative
 
 def get_1D_e_list(nmesh=500, t=0.5):
     """
@@ -20,12 +27,11 @@ def get_1D_e_list(nmesh=500, t=0.5):
     Output:
         e_list: list of e points
     """
-    import numpy as np
-    k_list = np.linspace(-np.pi,np.pi,nmesh)
+    k_list = np.linspace(-pi,pi,nmesh)
     e_list = 2.*t*np.cos(k_list)
     return e_list
 
-def get_semicircle_e_list(nmesh=500, d=1.0):
+def get_semicircle_e_list(nmesh=500, d=1.0, plot=False):
     """
     get semicircular DOS energy list
     Input:
@@ -34,36 +40,33 @@ def get_semicircle_e_list(nmesh=500, d=1.0):
     Output:
         e_list: list of e points
     """
-    import numpy as np
     # dos
-    dos = lambda e: 2./(np.pi*d**2) * np.sqrt(d**2-e**2)
+    dos = lambda e: 2./(pi*d**2) * sqrt(d**2-e**2)
     # cumulent dos
-    #cdos = lambda e: ( e/d**2*np.sqrt(d**2-e**2) + np.arctan(e/np.sqrt(d**2-e**2)) ) / (np.pi) + 0.5
-    cdos = lambda e: ( e/d**2*np.sqrt(d**2-e**2) + np.arcsin(e/np.sqrt(d**2)) ) / (np.pi) + 0.5
+    # cdos = lambda e: (( e/d**2*sqrt(d**2-e**2) + np.arctan(e/sqrt(d**2-e**2)) )
+    #                   / (pi) + 0.5)
+    cdos = lambda e: ( e/d**2*sqrt(d**2-e**2) + arcsin(e/sqrt(d**2)) ) / (pi) + 0.5
 
-    '''
-    import matplotlib.pyplot as plt
-    e_list = np.linspace(-d,d,100)
-    plt.plot(e_list,dos(e_list))
-    plt.plot(e_list,cdos(e_list))
-    plt.plot(e_list,np.linspace(0,1,100))
-    plt.show()
-    quit()
-    '''
+    if plot is True:
+        e_list = np.linspace(-d,d,100)
+        plt.plot(e_list,dos(e_list))
+        plt.plot(e_list,cdos(e_list))
+        plt.plot(e_list,np.linspace(0,1,100))
+        plt.show()
+        quit()
 
-    from scipy.optimize import bisect
 
     cdos_list = np.linspace(0,1,nmesh+1)
     e_list = [bisect(lambda x: cdos(x)-a, -d ,d) for a in cdos_list]
     e_list = np.asarray(e_list)
     e_list = (e_list[1:] + e_list[0:-1])/2
 
-    '''
-    plt.plot(e_list,cdos(e_list),'o')
-    plt.plot(e_list,cdos_list,'-')
-    plt.show()
-    quit()
-    '''
+    if plot is True:
+        plt.plot(e_list,cdos(e_list),'o')
+        plt.plot(e_list,cdos_list,'-')
+        plt.show()
+        quit()
+
     return e_list
 
 def get_flat_e_list(nmesh=500, d=1.0):
@@ -75,15 +78,14 @@ def get_flat_e_list(nmesh=500, d=1.0):
     Output:
         e_list: list of e points
     """
-    import numpy as np
     # dos
-    dos = lambda e: 1./(2*d) * (np.heaviside(e+d,0.5)*np.heaviside(-e+d,0.5))
+    dos = lambda e: 1./(2*d)*hside(e+d,0.5)*hside(-e+d,0.5)
     # cumulent dos
-    cdos = lambda e: 1./(2*d)*np.heaviside(d+e,0.5)*((-d+e+2*d*np.heaviside(d,0.5))*np.heaviside(-d-e,0.5)*np.heaviside(d-e,0.5)
-                                                    +np.heaviside(d,0.5)*(2*d+(-d+e)*np.heaviside(d-e,0.5))*np.heaviside(d+e,0.5))
+    cdos = lambda e: (1./(2*d)*hside(d+e,0.5)*
+                      ((-d+e+2*d*hside(d,0.5))*hside(-d-e,0.5)*hside(d-e,0.5)
+                       +hside(d,0.5)*(2*d+(-d+e)*hside(d-e,0.5))*hside(d+e,0.5)))
 
     #'''
-    #import matplotlib.pyplot as plt
     #e_list = np.linspace(-d,d,100)
     #plt.plot(e_list,dos(e_list))
     #plt.plot(e_list,cdos(e_list))
@@ -91,8 +93,6 @@ def get_flat_e_list(nmesh=500, d=1.0):
     #plt.show()
     #quit()
     #'''
-
-    from scipy.optimize import bisect
 
     cdos_list = np.linspace(0,1,nmesh+1)
     e_list = [bisect(lambda x: cdos(x)-a, -d ,d) for a in cdos_list]
@@ -108,7 +108,6 @@ def get_flat_e_list(nmesh=500, d=1.0):
     return e_list
 
 def funcMat(H, function, pr=False):
-    from scipy.linalg import eigh
     tiny = 1e-8 # use to regularize eigen problem for singular matrix
     H = H #+ np.eye(H.shape[0])*tiny
     N = H.shape[0]
@@ -144,7 +143,6 @@ def calc_expH(H):
     '''
     exp of matrix with cutoff
     '''
-    from scipy.linalg import eigh
     #print H
     evals, evecs = eigh(H)
     #func = np.exp(evals)
@@ -164,7 +162,6 @@ def calc_logH(H):
     '''
     log of matrix with cutoff
     '''
-    from scipy.linalg import eigh
     evals, evecs = eigh(H)
     #print evals
     #func = np.log(evals+0.0000001)
@@ -186,7 +183,7 @@ def make_trivial_matrix_basis(N, symmetric=False):
                 continue
         else:
             h[i,j] = 1
-        h_list.append(h/np.sqrt(np.trace(np.dot(h.conj().T,h))))
+        h_list.append(h/sqrt(np.trace(np.dot(h.conj().T,h))))
     return h_list
 
 
@@ -200,7 +197,7 @@ def make_trivial_matrix_basis_sc(N):
             h[i,j] = 1
         else:
             continue
-        h_list.append(h/np.sqrt(np.trace(np.dot(h.conj().T,h))))
+        h_list.append(h/sqrt(np.trace(np.dot(h.conj().T,h))))
     return h_list
 
 
@@ -232,13 +229,13 @@ def Hermitian_list(N):
             H=Z*1.0
             H[i,j]=1.0
             H[j,i]=1.0
-            H_list.append(H/np.sqrt(2.0))
-            tH_list.append(H/np.sqrt(2.0))
+            H_list.append(H/sqrt(2.0))
+            tH_list.append(H/sqrt(2.0))
             H=Z*1.0
             H[i,j]=1.0j
             H[j,i]=-1.0j
-            H_list.append(H/np.sqrt(2.0))
-            tH_list.append(np.transpose(H)/np.sqrt(2.0))
+            H_list.append(H/sqrt(2.0))
+            tH_list.append(np.transpose(H)/sqrt(2.0))
     #
     assert(len(H_list)==N**2)
     return H_list, tH_list
@@ -260,8 +257,8 @@ def Symmetry_list(N):
             H=Z*1.0
             H[i,j]=1.0
             H[j,i]=1.0
-            H_list.append(H/np.sqrt(2.0))
-            tH_list.append(H/np.sqrt(2.0))
+            H_list.append(H/sqrt(2.0))
+            tH_list.append(H/sqrt(2.0))
     #
     #print H_list
     assert(len(H_list)==N*(N+1)/2)
@@ -284,8 +281,8 @@ def Anti_symmetry_list(N):
             AS=Z*1.0
             AS[i,j]=1.0
             AS[j,i]=-1.0
-            AS_list.append(AS/np.sqrt(2.0))
-            tAS_list.append(AS/np.sqrt(2.0))
+            AS_list.append(AS/sqrt(2.0))
+            tAS_list.append(AS/sqrt(2.0))
     #
     #print AS_list
     assert(len(AS_list)==(N*(N+1)/2-N))
@@ -629,8 +626,6 @@ def set_blocks_not_Hermitian(S,B,V1,V2):
     return H
 
 def dF(A, H, function, d_function):
-    #from scipy.misc import derivative
-    from numpy.linalg import eigh
     evals, evecs = eigh(A)
     Hbar = np.dot(np.conj(evecs).T, np.dot( H, evecs) ) # transform H to A's basis
     #create Loewner matrix in A's basis
@@ -650,8 +645,6 @@ def dF(A, H, function, d_function):
     return deriv
 
 def dF_real(A, H, function, d_function):
-    #from scipy.misc import derivative
-    from numpy.linalg import eigh
     #tiny = 1e-8 # use to regularize eigen problem for singular matrix
     A = A #+ np.eye(H.shape[0])*tiny
 
@@ -692,7 +685,6 @@ def calc_Hqp(T,Lambda,R):
     return Hqp
 
 #def calc_nf(H,T):
-#    from numpy.linalg import eigh
 #    evals, evecs = eigh(H/T)
 #    func = calc_Fermi(evals)
 #    dm = np.zeros(H.shape)
@@ -700,7 +692,6 @@ def calc_Hqp(T,Lambda,R):
 #    return np.dot(evecs ,np.dot(dm, evecs.conj().T))
 #
 #def calc_nf0(H):
-#    from numpy.linalg import eigh
 #    evals, evecs = eigh(H)
 #    func = calc_Fermi0(evals)
 #    dm = np.zeros(H.shape)
@@ -726,7 +717,6 @@ def calc_nf0(H):
     return np.dot(evecs ,np.dot(dm, evecs.conj().T))
 
 def calc_C(H):
-    #from numpy.linalg import eigh
     assert(H.shape[0] == H.shape[1])
     #
     #print "H in calc_C"
@@ -736,7 +726,6 @@ def calc_C(H):
     return C
 
 def calc_C_T(H,T):
-    #from numpy.linalg import eigh
     assert(H.shape[0] == H.shape[1])
     #
     #print "H in calc_C"
@@ -746,7 +735,6 @@ def calc_C_T(H,T):
     return C
 
 def calc_C_hole(H):
-    #from numpy.linalg import eigh
     assert(H.shape[0] == H.shape[1])
     #
     #print "H in calc_C"
@@ -760,7 +748,7 @@ def denR(x):
     #return (x*((1.0+0.j)-x)+1e-12)**(-0.5)
 
 def denR_real(x):
-    #return 1./np.sqrt(x*((1.0)-x))
+    #return 1./sqrt(x*((1.0)-x))
     return (x*((1.0)-x))**(-0.5)
     #return (x*((1.0)-x)+1e-12)**(-0.5)
 
@@ -768,15 +756,15 @@ def denRm1(x):
     return (x*((1.0+0.j)-x))**(0.5)
 
 def denRm1_real(x):
-    return np.sqrt(x*((1.0)-x))#(x*((1.0)-x))**(0.5)
+    return sqrt(x*((1.0)-x))#(x*((1.0)-x))**(0.5)
 
 def ddenRm1(x):
     return ((0.5-x)/(x*((1.0+0.j)-x))**0.5)
     #return ((0.5-x)/(x*((1.0+0.j)-x)+1e-12)**0.5)
 
 def ddenRm1_real(x):
-    return ((0.5-x)/np.sqrt(x*((1.0)-x)))#(x*((1.0)-x))**0.5)
-    #return ((0.5-x)/np.sqrt(x*((1.0)-x)+1e-12))#(x*((1.0)-x))**0.5)
+    return ((0.5-x)/sqrt(x*((1.0)-x)))#(x*((1.0)-x))**0.5)
+    #return ((0.5-x)/sqrt(x*((1.0)-x)+1e-12))#(x*((1.0)-x))**0.5)
 
 #def calc_Fermi(x):
 #    """
@@ -1164,7 +1152,6 @@ def spherical_to_cubic(l, convention=''):
     T_ij: i index for cubic harmonic and j index for complex spherical harmonic.
 
     """
-    from cmath import sqrt
     if not convention in ('wien2k', ''):
         raise ValueError("Unknown convention: " + str(convention))
 
@@ -1620,7 +1607,6 @@ def three_j_symbol(jm1, jm2, jm3):
     three_j_sym : scalar
                   Three-j symbol.
     """
-    from scipy.special import factorial as fact
     j1, m1 = jm1
     j2, m2 = jm2
     j3, m3 = jm3
@@ -1634,9 +1620,9 @@ def three_j_symbol(jm1, jm2, jm3):
         return .0
 
     three_j_sym = -1.0 if (j1 - j2 - m3) % 2 else 1.0
-    three_j_sym *= np.sqrt(fact(j1 + j2 - j3) * fact(j1 - j2 + j3) * \
+    three_j_sym *= sqrt(fact(j1 + j2 - j3) * fact(j1 - j2 + j3) * \
             fact(-j1 + j2 + j3) / fact(j1 + j2 + j3 + 1))
-    three_j_sym *= np.sqrt(fact(j1 - m1) * fact(j1 + m1) * fact(j2 - m2) * \
+    three_j_sym *= sqrt(fact(j1 - m1) * fact(j1 + m1) * fact(j2 - m2) * \
             fact(j2 + m2) * fact(j3 - m3) * fact(j3 + m3))
 
     t_min = max(j2 - j3 - m1, j1 - j3 + m2, 0)
@@ -1749,8 +1735,8 @@ def L_op(component, orb_names, basis='spherical', T=None):
     """
     l = (len(orb_names)-1)/2.0
     L_melem_dict = {'z' : lambda m,mp: m if np.isclose(m,mp) else 0,
-                    '+' : lambda m,mp: np.sqrt(l*(l+1)-mp*(mp+1)) if np.isclose(m,mp+1) else 0,
-                    '-' : lambda m,mp: np.sqrt(l*(l+1)-mp*(mp-1)) if np.isclose(m,mp-1) else 0,
+                    '+' : lambda m,mp: sqrt(l*(l+1)-mp*(mp+1)) if np.isclose(m,mp+1) else 0,
+                    '-' : lambda m,mp: sqrt(l*(l+1)-mp*(mp-1)) if np.isclose(m,mp-1) else 0,
                     'x' : lambda m,mp: 0.5*(L_melem_dict['+'](m,mp) + L_melem_dict['-'](m,mp)),
                     'y' : lambda m,mp: -0.5j*(L_melem_dict['+'](m,mp) - L_melem_dict['-'](m,mp))}
     L_melem = L_melem_dict[component]
