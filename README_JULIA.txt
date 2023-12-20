@@ -1,14 +1,26 @@
-##set these environment variables before installing JuliaCall into your venv
-##ToDo replace the explicit path by piping which julia 
-export PYTHON_JULIAPKG_EXE="/mnt/sw/nix/store/fms6zspq4gnq3x8bps8i9wx4lhd6j8s3-julia-1.9.0/bin/julia"
-##ToDo replace the absolute path by the path relative to ghostGA basedir
-export PYTHON_JULIAPKG_PROJECT="/home/bkloss/projects/ghostGA/julia"
-
-##setup venv that uses site-packages
+###FIRST load your julia module (v1.9 is the CCQ one that is available with modules/2.2 --- juliaup is probably a better solution to be flexible regarding the version)
+##also setup a python venv, unless you already have one. e.g.:
 #virtualenv --system-site-packages .triqs
-#source .triqs/bin/activate
-#python3 -m pip install JuliaCall
+#source .triqs/bin/activate 
+###SECOND edit julia_init.sh with the correct absolute paths on your system and source it.
+#source init_julia.sh
+###THIRD initialize your julia project
+#cd ./julia/
+##have a look Project.toml required julia packages
+##start a Julia REPL and type
+#julia
+#using Pkg
+#Pkg.activate(".")
+#Pkg.add(X)
+##X here are the dependencies in the Project.toml
+#exit()
+###FOURTH install juliacall to your python venv
+##pip install juliacall
 
-##set these environment variables before setting up PythonCall in julia (maybe this works automatically upon import of juliacall?
-#ENV["JULIA_CONDAPKG_BACKEND"]="Null"
-#ENV["JULIA_PYTHONCALL_EXE"]=".triqs/bin/python"
+###This is it. Run examples/test_mps.py to check (takes a while).
+###Also make sure that the corect env_variables are set before running, otherwise executing the code will initialize their own conda environments and also fail.
+###You may want to set env_variables for multithreading (both Julia level and BLAS)
+###export JULIA_NUM_THREADS=4
+###export MKL_NUM_THREADS=4
+###this would be using 16 threads for example.
+
