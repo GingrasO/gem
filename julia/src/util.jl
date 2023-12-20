@@ -13,13 +13,14 @@ function  convert_schedule(schedule)::Vector{NamedTuple}
     
     for apair in schedule
         keys,values=apair
-        
+         
         #pyconvert(Vector{Any},values)
         @show typeof(values)
         @show typeof(keys)
         
         push!(param_vec,namedtuple(keys,values))
     end
+    @show param_vec
     return param_vec
 end
 

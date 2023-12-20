@@ -4,9 +4,10 @@ using ITensors
 using NamedTupleTools
 using Random
 using LinearAlgebra
+
 include("model.jl")
 include("util.jl")
-
+include("observer.jl")
 
 
 
@@ -61,7 +62,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     if !iszero(spin_pen)
         H=MPO(os_imp+os_bath+os_hyb+spin_pen*os_S2,sites)
     else
-        MPO(os_imp+os_bath+os_hyb,sites)
+        H=MPO(os_imp+os_bath+os_hyb,sites)
     end
     #TODO: verify whether <Eint> (quartic only) or <Eimp> to be returned
     Himp=MPO(os_imp,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
@@ -77,11 +78,14 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     Eold=nothing
     @show maxlinkdim(H)
     #run dmrg loop, terminate when tolerances are satisfied
+
+    obs = DemoObserver(1e-7)
     for (iteration,pars) in enumerate(dmrg_params)
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
         @show typeof(H)
-        E,psi=dmrg(H,psi; pars...)
+        E,psi=dmrg(H,psi; observer=obs,pars...)
+        @show obs
         GC.gc()
         Eimp=inner(psi',Himp,psi)
         S2val=inner(psi',S2,psi)
@@ -97,13 +101,13 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
             converged=check_convergence(E,Cuu,Cdd,Eold,oldCuu,oldCdd,tolerances)
         end
         if converged
-            return True, Eimp,Cuu,Cdd
+            return true, Eimp,Cuu,Cdd
         end
         oldCuu=deepcopy(Cuu)
         oldCdd=deepcopy(Cdd)
         Eold=deepcopy(E)
     end
-    return False, Eimp, Cuu, Cdd
+    return false, Eimp, Cuu, Cdd
 end
     #eventually implement logging via Observers, pass in an iteration id, so we can save separate HDF5 files for every iteration
     

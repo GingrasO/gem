@@ -1,9 +1,12 @@
 
 function get_H_imp(n::Int,Jup::AbstractMatrix,Jdn::AbstractMatrix,U::AbstractArray;perm=1:n)
     os=OpSum()
+    @show Jup
+    @show Jdn
     for i in 1:size(Jup,1)
         for j in i:size(Jup,2)
             if Jup[i,j]!=0.0
+		@show Jup[i,j], conj(Jup[j,i])
                 @assert Jup[i,j]==conj(Jup[j,i])
                 os+=Jup[i,j],"Cdagup",perm[i],"Cup",perm[j]
             end
