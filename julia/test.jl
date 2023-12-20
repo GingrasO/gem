@@ -1,6 +1,6 @@
 using ITensors
-using PyCall
-using PyPlot
+using PythonCall
+#using PyPlot
 using LinearAlgebra
 using MKL
 using Random
@@ -23,6 +23,7 @@ let
     J=0.4
 
     Utensor=triqsutils.U_matrix_slater(2,U_int=U,J_hund=J)#,full_Uijkl=true)
+    
     #Utensor=triqsutils.U_matrix_kanamori(Nimp,U_int=U,J_hund=J,full_Uijkl=true)
     #Umatrix,Upmatrix,=triqsutils.U_matrix_kanamori(3,U_int=U,J_hund=J)
     #n_orb=Nimp
@@ -36,6 +37,8 @@ let
     #@show reshape(Utensor, 5^4)
     #Utensor.=0.0
     #@show Utensor
+    Utensor=pyconvert(Array,Utensor)
+    
     Random.seed!(1234)
 
 
@@ -122,9 +125,9 @@ let
     oldCdd=nothing
     Eold=nothing
     for (i,D) in enumerate(Ddmrgs)
-        dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
-        #E,psi=dmrg(H,psi; dmrg_kwargs...)
-        E,psi=dmrg(H,psi,sws[i]; nsites=2,reverse_step=false,normalize=true)
+        dmrg_kwargs = (nsweeps=Nsweeps[i], maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1,)
+        E,psi=dmrg(H,psi; dmrg_kwargs...)
+        #E,psi=dmrg(H,psi,sws[i]; nsites=2,reverse_step=false,normalize=true)
         @show inner(psi',S2m,psi)
         Cuu = correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
         Cdd = correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]

@@ -16,12 +16,9 @@
 # Authors: [Benedikt Kloss] Olivier Gingras and Tsung-Han Lee
 
 import numpy as np
-import triqs.utility.mpi as mpi
-import forktps as ftps
-from forktps.solver_core import Bath, HInt
 from itertools import product as itp
 
-def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=True,spin_pen=0.0)
+def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=True,spin_pen=0.0):
     """
     Given the embedded Hamiltonian and parameters, run MPS and return density matrix.
         M               : Embedded Hamiltonian in a matrix of size (Norb+Nbath)x(Norb+Nbath), containing local hamiltonian,
@@ -34,8 +31,8 @@ def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=
 
     #assumes that import has happened before (when initializing MPS solver class)
     kwarg_names=["use_Sz","use_Ntot","spin_pen"]
-    kwarg_vals=[use_Sz,use_Ntot,spin_pen]
-    converged, Eint, Cuu,Cdd=Main.solve(Utensor,M,schedule,tolerances,[kwarg_names,kwarg_vals]
+    kwarg_vals=(use_Sz,use_Ntot,spin_pen)
+    converged, Eint, Cuu,Cdd=jl.solve(Utensor,M,schedule,tolerances,[kwarg_names,kwarg_vals]
            )
 
     return  Cuu,Cdd, Eint

@@ -14,13 +14,13 @@ let
     @show Threads.nthreads()
     @show ITensors.blas_get_num_threads()
     ITensors.enable_threaded_blocksparse()
-    Nimp=5
-    Nbath=3*Nimp
+    Nimp=3
+    Nbath=5*Nimp
     N=Nimp+Nbath
     U=3.0
     J=0.4
-    W=3.0
-    Utensor=triqsutils.U_matrix_slater(2,U_int=U,J_hund=J)#,full_Uijkl=true)
+    W=1.0
+    Utensor=triqsutils.U_matrix_slater(1,U_int=U,J_hund=J)#,full_Uijkl=true)
     #Utensor=triqsutils.U_matrix_kanamori(Nimp,U_int=U,J_hund=J,full_Uijkl=true)
     #Umatrix,Upmatrix,=triqsutils.U_matrix_kanamori(3,U_int=U,J_hund=J)
     #Utensor.=0.0
@@ -63,7 +63,7 @@ let
     push!(schedule,param_names=>(5,4096,1e-14,1e-10,1))
     push!(schedule,param_names=>(3,4096,1e-14,0.0,1))
     tolerances=Vector{Pair{Vector{String},Tuple}}()
-    push!(tolerances,["E","rho"]=>(1e-5,5e-3))
+    push!(tolerances,["E","rho"]=>(1e-7,5e-4))
     kwargs=Vector{Pair{Vector{String},Tuple}}()
     push!(kwargs,["use_Sz","use_Ntot","spin_pen"]=>(true,true,1.0))
     is_converged,Eimp,Gamma_up,Gamma_dn=solve(Utensor,

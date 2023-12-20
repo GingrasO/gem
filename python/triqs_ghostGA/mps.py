@@ -1,13 +1,23 @@
 import numpy as np
-import scipy.linalg as lg
-from scipy.optimize import minimize
-
+import os
 
 # from h5 import *
+###julia setup
+import juliacall
+from juliacall import Main as jl
+from juliacall import Pkg
+
+julia_project_dir=os.environ["PYTHON_JULIAPKG_PROJECT"]
+#from juliacall import Pkg
+Pkg.activate(julia_project_dir)
+include_str="include(\""+julia_project_dir+"src/driver.jl"+"\")"
+jl.seval(include_str)
 
 from itertools import product as itp
 import triqs_ghostGA
-from triqs_ghostGA.utils_mps import ConstructBath, setup_forkTPS, rotateBath, rotateDensityMatrix, rotateToTsungHanConvention
+from triqs_ghostGA.utils_mps import setup_MPS, rotateBath, rotateDensityMatrix, rotateToTsungHanConvention
+
+
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
@@ -20,21 +30,19 @@ class ITensorMPSSolver(object):
         self.schedule = []
         self.tolerances = []
 
-    def add_to_schedule(self,nsweeps=1,maxdim=1024,reverse_step=False,normalize=True, cutoff=1e-14,noise=0.0,outputlevel=1,nsites=2)
-        thesweep=    Dict(
+    def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
+        thesweep=    {
             "nsweeps":nsweeps,
-            "reverse_step":reverse_step,
-            "normalize":normalize,
+            "maxdim":maxdim,
             "cutoff":cutoff,
             "noise":noise,
-            "outputlevel"=outputlevel,
-            "nsites"=nsites)
-
+            "outputlevel":outputlevel
+            }
         self.schedule.append(
-        thesweep)
+        [tuple(thesweep.keys()),tuple(thesweep.values())])
         return thesweep
-    def make_schedule(self, input=False)
-        assert input=False
+    def make_schedule(self, input=False):
+        assert input==False
         if type(input)==bool and input==False:
             self.add_to_schedule(nsweeps=15,maxdim=32,cutoff=1e-10,noise=1e-5)
             self.add_to_schedule(nsweeps=15,maxdim=64,cutoff=1e-10,noise=1e-6)
@@ -52,11 +60,11 @@ class ITensorMPSSolver(object):
             assert False
         return
 
-    def make_kwargs(self,use_Sz=True,use_Ntot=True,spin_pen=0.0)
-        self.kwargs=[["use_Sz","use_Ntot","spin_pen"],(use_Sz,useNtot,spin_pen)]
+    def make_kwargs(self,use_Sz=True,use_Ntot=True,spin_pen=0.0):
+        self.kwargs=[[("use_Sz","use_Ntot","spin_pen"),(use_Sz,use_Ntot,spin_pen)]]
         return
-    def set_tolerances(tol_names=["E","rho"],tol_vals=[1e-5,5e-3])
-        self.tolerances=[tol_names,tol_vals]
+    def set_tolerances(self,tol_names=["E","rho"],tol_vals=(1e-5,5e-3)):
+        self.tolerances=[[tol_names,tol_vals]]
         return
         
     def build_Hemb(self, D, H1E, LAMBDA, V2E, spin_pen=0.0):
@@ -94,6 +102,8 @@ class ITensorMPSSolver(object):
         # Rotate the Bath and Hybridization for smaller entropy
         ## We can either assume that this just works out of the box, or assume the bath is diagonal?
         self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp)
+        self.M["up"]=0.5*(self.M["up"] + self.M["up"].T.conjugate())
+        self.M["dn"]=0.5*(self.M["dn"] + self.M["dn"].T.conjugate())
         #print('v=')
         #print(self.v)
 
@@ -108,14 +118,14 @@ class ITensorMPSSolver(object):
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
         self.converged=False
-        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= Main.solve(self.Utensor,self.M, self.schedule,self.tolerances,)
+        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs)
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')
         #print(self.v)
 
     def calc_density_matrix(self):
-        self.singleP = rotateDensityMatrix(singleP_rot_up,single_P_rod_dn, self.v)
+        self.singleP = rotateDensityMatrix(self.singleP_rot_up,self.singleP_rot_dn, self.v)
         #print(self.singleP)
         ##Assumes this one is the same now
         self.singleP = rotateToTsungHanConvention(self.singleP, self.nimp//2, self.nbath//self.nimp)
