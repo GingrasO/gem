@@ -69,12 +69,18 @@ class test_lattice_solver(unittest.TestCase):
         Utensor[1,1,0,0] = U
 
         # test ForkTPS solver
-        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ftps', 'maxM': 300})
-        grisb.run(itmax=2, mix=0.5, tol=5e-2, beta=500, silence=True, spin_pen=0.05)
+        ed_params = {"solver": "ftps", "maxM": 300}
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+                      Lambda=Lambda0, ed_params=ed_params)
+        grisb.run(itmax=2, mix=0.5, tol=5e-2, beta=500,
+                  silence=True, spin_pen=0.05)
 
         # test CI solver
-        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ci', 'use_Sz': True, 'use_Ntot': True})
-        grisb.run(itmax=2, mix=0.5, tol=5e-2, beta=500, silence=True, spin_pen=0.05)
+        ed_params = {"solver": "ci", "use_Sz": True, "use_Ntot": True}}
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+                      Lambda=Lambda0, ed_params=ed_params)
+        grisb.run(itmax=2, mix=0.5, tol=5e-2, beta=500,
+                  silence=True, spin_pen=0.05)
 
 if __name__ == '__main__':
     unittest.main()
