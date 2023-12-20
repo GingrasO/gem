@@ -8,9 +8,10 @@ from juliacall import Main as jl
 from juliacall import Pkg
 
 julia_project_dir=os.environ["PYTHON_JULIAPKG_PROJECT"]
+print(julia_project_dir)
 #from juliacall import Pkg
 Pkg.activate(julia_project_dir)
-include_str="include(\""+julia_project_dir+"src/driver.jl"+"\")"
+include_str="include(\""+julia_project_dir+"/src/driver.jl"+"\")"
 jl.seval(include_str)
 
 from itertools import product as itp
@@ -111,14 +112,14 @@ class ITensorMPSSolver(object):
         #print(self.M['up'])
         #print()
 
-    def solve_Hemb(self, num_eig=1, verbose=1, ):
+    def solve_Hemb(self, num_eig=1, verbose=1, outfile="data"):
         # Setting up some parameters for ForkTPS
         #maxM = 300 # Maximum dimension bond for DMRG
         
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
         self.converged=False
-        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs)
+        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs,outfile="data")
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')
