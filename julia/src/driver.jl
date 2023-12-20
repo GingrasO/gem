@@ -4,29 +4,30 @@ using ITensors
 using NamedTupleTools
 using Random
 using LinearAlgebra
-
+using Observers
+using ITensors.HDF5
 include("model.jl")
 include("util.jl")
 include("observer.jl")
 
 
-
-function solve(Utensor,H1E,schedule,tolerances,kwargs)
+function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     # kwargs
     #   sweep schedule as a list of Dictionaries or zipped key value pairs
     #   flags: permute sites, diagonalize_bath, min_iters etc.
     #   conserve_qns=true
-    #   
+    #
+    #outfile="data"
     dmrg_params=convert_schedule(schedule)
     kwargs=convert_schedule(kwargs)[]
     tolerances=convert_schedule(tolerances)[]
     conserve_sz=get(kwargs, :use_Sz, true)
     conserve_N=get(kwargs, :use_Ntot,true)
     spin_pen=get(kwargs,:spin_pen,0.0)
-    @show typeof(tolerances)
-    @show typeof(kwargs)
-    @show typeof(dmrg_params[1])
-    @show dmrg_params[1]
+    #@show typeof(tolerances)
+    #@show typeof(kwargs)
+    #@show typeof(dmrg_params[1])
+    #@show dmrg_params[1]
     
     #extract the relevant quantities
 
@@ -78,14 +79,25 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs)
     Eold=nothing
     @show maxlinkdim(H)
     #run dmrg loop, terminate when tolerances are satisfied
+    internal_obs = Observer(
+        "sweepnumber"=>get_total_sweep,
+        "maxdim"=>get_maxdim,
+        "energy"=>get_energy,
+        "corr_dn"=>get_corr_dn,
+        "corr_up"=>get_corr_up,
+    )
 
-    obs = DemoObserver(1e-7)
+    #@show internal_obs
+    obs = MyDMRGObserver(0,internal_obs,perm)
+    #update!(obs.the_observer;nsweep=1,psi=psi)  #energy_tol,last_energy 
+    #@show obs.the_observer
     for (iteration,pars) in enumerate(dmrg_params)
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
-        @show typeof(H)
+        #@show typeof(H)
         E,psi=dmrg(H,psi; observer=obs,pars...)
-        @show obs
+        #@show obs
+        savedata(outfile,obs.the_observer)
         GC.gc()
         Eimp=inner(psi',Himp,psi)
         S2val=inner(psi',S2,psi)
