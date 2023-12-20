@@ -119,7 +119,7 @@ class ITensorMPSSolver(object):
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
         self.converged=False
-        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs,outfile="data")
+        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')

@@ -1,11 +1,12 @@
-using MKL
 using PythonCall
+using MKL
 using ITensors
 using NamedTupleTools
 using Random
 using LinearAlgebra
 using Observers
 using ITensors.HDF5
+using DataFrames
 include("model.jl")
 include("util.jl")
 include("observer.jl")
@@ -18,6 +19,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     #   conserve_qns=true
     #
     #outfile="data"
+    @show outfile
     dmrg_params=convert_schedule(schedule)
     kwargs=convert_schedule(kwargs)[]
     tolerances=convert_schedule(tolerances)[]

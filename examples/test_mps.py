@@ -189,7 +189,7 @@ if __name__ == "__main__":
     solver.set_tolerances(("E","rho"),(1e-5,5e-3))
     solver.build_Hemb(D, eloc, Lambda_c, Utensor)
 
-    solver.solve_Hemb(outfile="test_data")  ###it seems that passing the filename as a keyword arg is not working properly yet
+    solver.solve_Hemb(outfile="test_data")  #CHECK: is passing the filename as a keyword arg working properly?
     denMat_ftps = solver.calc_density_matrix()
     print('denMat_mps=')
     print(denMat_ftps)
