@@ -182,7 +182,11 @@ class Grisb(object):
             self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
         elif ed_params["solver"] == 'ftps':
             self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
+        elif ed_params["solver"] == 'mps':
+            self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
+            
         else:
+            
             raise ValueError("impurity solver are supported")
 
     def build_h1e(self,mu):
@@ -222,6 +226,15 @@ class Grisb(object):
             self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
             self.denMat = self.edsolver.calc_density_matrix()
             self.E2loc = self.edsolver.compute_E2loc()
+        elif type(self.edsolver) == ITensorMPSSolver:
+            self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
+            self.edsolver.schedule=[] 
+            self.edsolver.make_schedule()
+            self.edsolver.set_tolerances(["Etol","rhotol"],[1e-5,5e-3])
+            self.edsolver.make_kwargs(use_Ntot=True,use_Sz=True,spin_pen=spin_pen)
+            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
+            self.denMat = self.edsolver.calc_density_matrix()
+            self.E2loc = self.edsolver.compute_E2loc()
         else:
             raise ValueError("only Full ED, CI, and HCI are supported")
         #print(self.denMat)
@@ -230,7 +243,10 @@ class Grisb(object):
     def compute_energy(self,beta=200.,mu=0.0):
         """ Compute total energy, kinetic energy, and potential energy
         """
+
+        ###FIXME: Understand how the partitioning here is meant?
         #self.ekin = [np.sum(self.R.dot( self.eks[x] ).dot( self.R.conj().T )*self.rhok_list[x].T ) for x in range(len(self.rhok_list))]
+
         #self.ekin = sum(self.ekin)/float(len(self.rhok_list))
         self.ekin = sum([np.sum( ( np.dot(self.R, np.dot(x, self.R.conj().T )) ) * \
                     calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
