@@ -23,35 +23,8 @@ make test
 make install
 ```
 
-### Merging triqs_ghostGA skeleton updates ###
+### References ###
 
-You can merge future changes to the triqs_ghostGA skeleton into your project with the following commands
-
-```bash
-git remote update
-git merge triqs_ghostGA_remote/python_only -X ours -m "Merge latest triqs_ghostGA skeleton changes"
-```
-
-If you should encounter any conflicts resolve them and `git commit`.
-Finally we repeat the replace and rename command from the initial setup.
-
-```bash
-./share/replace_and_rename.py appname
-git commit --amend
-```
-
-Now you can compare against the previous commit with: 
-```bash
-git diff prev_git_hash
-````
-
-### Optional ###
+[^1]: N. Lanat\`a, T.-H. Lee, Y.-X. Yao, and V. Dobrosavljevi\'c, Emergent Bloch excitations in Mott matter,
+Phys. Rev. B 96, 195126 (2017).
 ----------------
-
-* Add your email address to the bottom section of `Jenkinsfile` for Jenkins CI notification emails
-```
-End of build log:
-\${BUILD_LOG,maxLines=60}
-    """,
-    to: 'user@domain.org',
-```

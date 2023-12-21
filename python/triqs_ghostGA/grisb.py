@@ -1,21 +1,21 @@
 ###############################################
 # ghost-RISB/GA algorithm
-# Author: Tsung-Han Lee 
+# Author: Tsung-Han Lee
 # Email:  henhans74716@gmail.com
 ###############################################
 import scipy
 from scipy.linalg import sqrtm
 import h5py
-import numpy
+import numpy as np
 import numba
 from triqs_ghostGA.ci import *
 from triqs_ghostGA.ftps import *
-from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination\
-     , Hermitian_list, get_blocks, funcMat, calc_nf, dF
+from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination, \
+     Hermitian_list, get_blocks, funcMat, calc_nf, dF
 from triqs_ghostGA.DIIS import *
 
 def calc_rhoks(R, Lambda, eks, T):
-    return [calc_nf( numpy.dot(R, numpy.dot(x, R.conj().T ) ) + Lambda ,T).T for x in eks]
+    return [calc_nf( np.dot(R, np.dot(x, R.conj().T ) ) + Lambda ,T).T for x in eks]
 
 def calc_Delta_p(rhok_list):
     return sum(rhok_list)/len(rhok_list)
@@ -23,24 +23,24 @@ def calc_Delta_p(rhok_list):
 def calc_D(R, Lambda, Delta_p, eks, rhoks):
     """ Compute D matrix
     """
-    Left=[numpy.dot( numpy.dot(eks[x], R.conj().T ), rhoks[x].T ) for x in range(len(rhoks))]
+    Left=[np.dot( np.dot(eks[x], R.conj().T ), rhoks[x].T ) for x in range(len(rhoks))]
     Left=sum(Left)/float(len(rhoks))
     Right=funcMat(Delta_p, denR)
-    return numpy.dot(Right,numpy.transpose(Left))
+    return np.dot(Right,np.transpose(Left))
 
 def calc_Lambda_c(R, Lambda, Delta_p, D, H_list):
     """ Compute Lambda_c matrix
     """
     no = Lambda.shape[0]
     l=inverse_realHcombination(Lambda,H_list)
-    lc=numpy.copy(l)*0.0
-    MM=numpy.dot(D,numpy.transpose(R))
+    lc=np.copy(l)*0.0
+    MM=np.dot(D,np.transpose(R))
     for k in range(len(H_list)):
         AA=Delta_p
-        HH=H_list[k].T 
+        HH=H_list[k].T
         derivative=dF(AA,HH, denRm1, ddenRm1)
-        tt=numpy.trace(numpy.dot(MM,derivative))
-        lc[k]=-l[k]-(tt+numpy.conjugate(tt)).real
+        tt=np.trace(np.dot(MM,derivative))
+        lc[k]=-l[k]-(tt+np.conjugate(tt)).real
     Lambda_c=realHcombination(lc,H_list)
     return Lambda_c
 
@@ -49,14 +49,14 @@ def calc_Lambda(R, Lambda_c, Delta_p, D, H_list):
     """
     no = Lambda_c.shape[0]
     lc=inverse_realHcombination(Lambda_c,H_list)
-    l=numpy.copy(lc)*0.0
-    MM=numpy.dot(D,numpy.transpose(R))
+    l=np.copy(lc)*0.0
+    MM=np.dot(D,np.transpose(R))
     for k in range(len(H_list)):
         AA=Delta_p
-        HH=H_list[k].T 
+        HH=H_list[k].T
         derivative=dF(AA,HH, denRm1, ddenRm1)
-        tt=numpy.trace(numpy.dot(MM,derivative))
-        l[k]=-lc[k]-(tt+numpy.conjugate(tt)).real
+        tt=np.trace(np.dot(MM,derivative))
+        l[k]=-lc[k]-(tt+np.conjugate(tt)).real
     Lambda=realHcombination(l,H_list)
     return Lambda
 
@@ -65,10 +65,10 @@ def cost_function(x, *args):
     '''
     R, ffdagger, eks, Hspin_list, beta = args
     Lambda_spin = realHcombination(x, Hspin_list)
-    Lambda = numpy.kron(Lambda_spin,numpy.eye(2))
+    Lambda = np.kron(Lambda_spin,np.eye(2))
     rhok_list=calc_rhoks(R, Lambda, eks, 1./beta)
     Delta_p=calc_Delta_p(rhok_list)
-    diff = numpy.linalg.norm(Delta_p[::2,::2]-ffdagger.T[::2,::2])
+    diff = np.linalg.norm(Delta_p[::2,::2]-ffdagger.T[::2,::2])
     #diff = inverse_realHcombination(Delta_p[::2,::2]-ffdagger.T[::2,::2], Hspin_list)
     #print('diff=',diff)
     return diff
@@ -84,7 +84,7 @@ def find_Lambda(Lambda0, R, ffdagger, eks, Hspin_list, beta):
     if ( result.success==False ):
         print("   Minimize mesage ::",result.message)
     print("   Minimize :: Cost function after convergence =",result.fun)
-    Lambda = numpy.kron(realHcombination(result.x, Hspin_list),numpy.eye(2))
+    Lambda = np.kron(realHcombination(result.x, Hspin_list),np.eye(2))
     return Lambda
 
 def svd_truncate_R(R, eps=0.5):
@@ -116,19 +116,19 @@ class Grisb(object):
     :type ntot: int
 
     :param eks: Momentum distribution.
-    :type eks: numpy.ndarray
+    :type eks: np.ndarray
 
     :param eloc: Local one-body Hamtilonian.
-    :type eloc: numpy.ndarray
+    :type eloc: np.ndarray
 
     :param Utensor: Local two-obdy interaction.
-    :type Utensor: numpy.ndarray
+    :type Utensor: np.ndarray
 
     :param R: R matrix.
-    :type R: numpy.ndarray
+    :type R: np.ndarray
 
     :param Lambda: Lambda matrix.
-    :type Lambda: numpy.ndarray
+    :type Lambda: np.ndarray
 
     :param ed_params: Exact diagonalization solver parameters.
     :type ed_params: dic
@@ -151,14 +151,14 @@ class Grisb(object):
         self.spin_sym = spin_sym
         # initialize R and Lambda
         if R is None:
-            self.R = numpy.kron(numpy.ones((nbath//2,nimp//2)), numpy.eye(2))*0.5
+            self.R = np.kron(np.ones((nbath//2,nimp//2)), np.eye(2))*0.5
         else:
             if R.shape != (nbath,nimp):
                 raise ValueError("R has inconsistent shape. Should be (nbath,nimp)")
             self.R = R
         if Lambda is None:
-            #self.Lambda = numpy.kron(numpy.random.rand(nbath//2,nbath//2)+1j*numpy.random.rand(nbath//2,nbath//2), numpy.eye(2))
-            self.Lambda = numpy.zeros((nbath,nbath))
+            #self.Lambda = np.kron(np.random.rand(nbath//2,nbath//2)+1j*np.random.rand(nbath//2,nbath//2), np.eye(2))
+            self.Lambda = np.zeros((nbath,nbath))
             self.Lambda[0,0] = 1.0
             self.Lambda[1,1] = 1.0
             self.Lambda[2,2] =-1.0
@@ -243,11 +243,13 @@ class Grisb(object):
     def compute_energy(self,beta=200.,mu=0.0):
         """ Compute total energy, kinetic energy, and potential energy
         """
+
         ###FIXME: Understand how the partitioning here is meant?
-        #self.ekin = [numpy.sum(self.R.dot( self.eks[x] ).dot( self.R.conj().T )*self.rhok_list[x].T ) for x in range(len(self.rhok_list))]
+        #self.ekin = [np.sum(self.R.dot( self.eks[x] ).dot( self.R.conj().T )*self.rhok_list[x].T ) for x in range(len(self.rhok_list))]
+
         #self.ekin = sum(self.ekin)/float(len(self.rhok_list))
-        self.ekin = sum([numpy.sum( ( numpy.dot(self.R, numpy.dot(x, self.R.conj().T )) ) * \
-                    calc_nf( numpy.dot(self.R, numpy.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
+        self.ekin = sum([np.sum( ( np.dot(self.R, np.dot(x, self.R.conj().T )) ) * \
+                    calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
         self.epot = self.E2loc + np.trace(self.eloc.dot(self.denMat[:self.nimp,:self.nimp].T))
         self.etot = self.ekin + self.epot - mu*self.nfill
 
@@ -256,19 +258,19 @@ class Grisb(object):
 
         :param itmax: Maxiumum iteraction for self-consistency.
         :type itmax: int
-    
+
         :param tol: Tolerence for convergence
         :type tol: float
-    
+
         :param beta: Inverse temperature (equivalent to smearing temperature).
         :type beta: float
 
         :param silence: Silence the printing.
         :type silence: bool
- 
+
         :param spin_pen: Penalty for S2 conservation.
         :type spin_pen: float
-    
+
         :param silence: Orbital index for computing double occupancy.
         :type idx: int
 
@@ -305,20 +307,20 @@ class Grisb(object):
             #Update R and Update Lambda
             cdaggerf = self.denMat[:self.nimp,self.nimp:]
             ffdagger = self.denMat[self.nimp:,self.nimp:]
-            ffdagger = (numpy.eye(self.nbath,dtype=numpy.complex128) - ffdagger).T
+            ffdagger = (np.eye(self.nbath,dtype=np.complex128) - ffdagger).T
             #if not silence:
-            print("norm(ffdagger.T-Delta_p)=", numpy.linalg.norm(ffdagger.T-self.Delta_p))
+            print("norm(ffdagger.T-Delta_p)=", np.linalg.norm(ffdagger.T-self.Delta_p))
             self.Delta_p = ffdagger.T
-            R_new = numpy.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
+            R_new = np.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
             if not self.soc:
-                R_new = numpy.kron(R_new[::2,::2],numpy.eye(2))# symmetrize
+                R_new = np.kron(R_new[::2,::2],np.eye(2))# symmetrize
             R_new = svd_truncate_R(R_new)
             #Lambda_new = find_Lambda(self.Lambda, R_new, ffdagger, self.eks, self.Hspin_list, beta)
             Lambda_new = calc_Lambda(R_new, self.Lambda_c, self.Delta_p, self.D, self.Hfull_list)
             if not self.soc:
-                Lambda_new = numpy.kron(Lambda_new[::2,::2],numpy.eye(2)) # symmetryize
-            diff_R = numpy.abs(self.R-R_new).max()
-            diff_Lambda = numpy.abs(self.Lambda-Lambda_new).max()
+                Lambda_new = np.kron(Lambda_new[::2,::2],np.eye(2)) # symmetryize
+            diff_R = np.abs(self.R-R_new).max()
+            diff_Lambda = np.abs(self.Lambda-Lambda_new).max()
             self.diff = max(diff_R,diff_Lambda)
             if diis and ( it >= numNonDIIS ):
                 error = Lambda_new - self.Lambda
@@ -330,10 +332,10 @@ class Grisb(object):
                 self.R = R_new#RDIIS.Solve()
                 self.Lambda = LDIIS.Solve()
             else:
-                self.R = (1.-mix)*numpy.copy(self.R) + mix*R_new
-                self.Lambda = (1.-mix)*numpy.copy(self.Lambda) + mix*Lambda_new
+                self.R = (1.-mix)*np.copy(self.R) + mix*R_new
+                self.Lambda = (1.-mix)*np.copy(self.Lambda) + mix*Lambda_new
 #           Try fix a gague that R is non-zero only on the upper left Experiment!
-#            tmp = numpy.zeros(self.R.shape,dtype=self.R.dtype)
+#            tmp = np.zeros(self.R.shape,dtype=self.R.dtype)
 #            tmp[:self.nimp,:self.nimp] = sqrtm(self.R.conj().T.dot(self.R)[:self.nimp,:self.nimp])
 #            self.R = tmp
             # check point
@@ -362,7 +364,7 @@ class Grisb(object):
                 print("--------------------- ghost-RISB converged with diff=%g ---------------------"%(self.diff))
                 print("density matrix=")
                 print(self.denMat)
-                self.nfill = numpy.trace(self.denMat[:self.nimp,:self.nimp])
+                self.nfill = np.trace(self.denMat[:self.nimp,:self.nimp])
                 self.docc = []
                 for idx in range(0,self.nimp,2):
                     self.docc.append(self.edsolver.calc_double_occ(idx))
@@ -374,7 +376,7 @@ class Grisb(object):
         #self.mu_tmp = mu
         nfix, itmax, mix, tol, beta, silence, spin_pen, sz_pen, idx, num_eig, ed_verbose, diis = args
         self.run(mu, itmax, mix, tol, beta, silence, spin_pen, sz_pen, idx, num_eig, ed_verbose, diis)
-        diff = nfix - self.nfill 
+        diff = nfix - self.nfill
         print('nfix-nfill=', diff, 'nfill=',self.nfill)
         return diff
 
@@ -393,7 +395,7 @@ class Grisb(object):
             print('root solver for mu converged? ',sols.converged)
             mu = sols.root
             print('mu=',mu)
-            return mu 
+            return mu
 
     def compute_Gf_Sig(self, mu, ek_path, oms, eta):
         self.oms = oms
@@ -403,13 +405,13 @@ class Grisb(object):
     @staticmethod
     #@numba.jit(nopython=True)
     def _compute_Gf_Sig(mu, ek_path, oms, eta, R, Lambda, eloc, nbath, nimp):
-        Gf = np.zeros((ek_path.shape[0],oms.shape[0],nimp,nimp),dtype=numpy.complex128)#numba.complex128)
-        Sig = np.zeros((oms.shape[0],nimp,nimp),dtype=numpy.complex128)#numba.complex128)
+        Gf = np.zeros((ek_path.shape[0],oms.shape[0],nimp,nimp),dtype=np.complex128)#numba.complex128)
+        Sig = np.zeros((oms.shape[0],nimp,nimp),dtype=np.complex128)#numba.complex128)
         for ik, ek in enumerate(ek_path):
             for iom, om in enumerate(oms):
-                Gf[ik,iom,:,:] = R.conj().T.dot( numpy.linalg.inv( (om+1j*eta)*np.eye(nbath)
+                Gf[ik,iom,:,:] = R.conj().T.dot( np.linalg.inv( (om+1j*eta)*np.eye(nbath)
                                   - R.dot(ek).dot(R.conj().T) - Lambda ) ).dot(R)
                 if ik == 0:
-                    Sig[iom,:,:] = (om + 1j*eta + mu)*np.eye(nimp) - ek - eloc - numpy.linalg.inv(Gf[ik,iom]) #om + 1j*eta - ek - numpy.linalg.inv(Gf[ik,iom])
+                    Sig[iom,:,:] = (om + 1j*eta + mu)*np.eye(nimp) - ek - eloc - np.linalg.inv(Gf[ik,iom]) #om + 1j*eta - ek - np.linalg.inv(Gf[ik,iom])
         return Gf, Sig
 

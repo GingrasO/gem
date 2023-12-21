@@ -1,7 +1,7 @@
 ###########################################
 #      utilities for grisb
 #      Author: Tsung-Han Lee
-#      email: henhans74716@gmail.com  
+#      email: henhans74716@gmail.com
 ###########################################
 import numpy as np
 import h5py
@@ -16,7 +16,7 @@ def get_1D_e_list(nmesh=500, t=0.5):
     get 1D DOS energy list
     Input:
         nmesh: number of e points
-        d: hlaf-bandwidth
+        d: half-bandwidth
     Output:
         e_list: list of e points
     """
@@ -30,7 +30,7 @@ def get_semicircle_e_list(nmesh=500, d=1.0):
     get semicircular DOS energy list
     Input:
         nmesh: number of e points
-        d: hlaf-bandwidth
+        d: half-bandwidth
     Output:
         e_list: list of e points
     """
@@ -41,8 +41,8 @@ def get_semicircle_e_list(nmesh=500, d=1.0):
     #cdos = lambda e: ( e/d**2*np.sqrt(d**2-e**2) + np.arctan(e/np.sqrt(d**2-e**2)) ) / (np.pi) + 0.5
     cdos = lambda e: ( e/d**2*np.sqrt(d**2-e**2) + np.arcsin(e/np.sqrt(d**2)) ) / (np.pi) + 0.5
 
-    '''    
-    import matplotlib.pyplot as plt    
+    '''
+    import matplotlib.pyplot as plt
     e_list = np.linspace(-d,d,100)
     plt.plot(e_list,dos(e_list))
     plt.plot(e_list,cdos(e_list))
@@ -50,9 +50,9 @@ def get_semicircle_e_list(nmesh=500, d=1.0):
     plt.show()
     quit()
     '''
- 
+
     from scipy.optimize import bisect
-    
+
     cdos_list = np.linspace(0,1,nmesh+1)
     e_list = [bisect(lambda x: cdos(x)-a, -d ,d) for a in cdos_list]
     e_list = np.asarray(e_list)
@@ -71,7 +71,7 @@ def get_flat_e_list(nmesh=500, d=1.0):
     get flat DOS energy list
     Input:
         nmesh: number of e points
-        d: hlaf-bandwidth
+        d: half-bandwidth
     Output:
         e_list: list of e points
     """
@@ -82,8 +82,8 @@ def get_flat_e_list(nmesh=500, d=1.0):
     cdos = lambda e: 1./(2*d)*np.heaviside(d+e,0.5)*((-d+e+2*d*np.heaviside(d,0.5))*np.heaviside(-d-e,0.5)*np.heaviside(d-e,0.5)
                                                     +np.heaviside(d,0.5)*(2*d+(-d+e)*np.heaviside(d-e,0.5))*np.heaviside(d+e,0.5))
 
-    #'''    
-    #import matplotlib.pyplot as plt    
+    #'''
+    #import matplotlib.pyplot as plt
     #e_list = np.linspace(-d,d,100)
     #plt.plot(e_list,dos(e_list))
     #plt.plot(e_list,cdos(e_list))
@@ -91,9 +91,9 @@ def get_flat_e_list(nmesh=500, d=1.0):
     #plt.show()
     #quit()
     #'''
- 
+
     from scipy.optimize import bisect
-    
+
     cdos_list = np.linspace(0,1,nmesh+1)
     e_list = [bisect(lambda x: cdos(x)-a, -d ,d) for a in cdos_list]
     e_list = np.asarray(e_list)
@@ -115,7 +115,7 @@ def funcMat(H, function, pr=False):
     #print np.max(H.conj().T-H)
     assert(H.shape[0] == H.shape[1])
     #assert(np.allclose(H.conj().T,H,rtol=1e-08, atol=1e-08))
-    
+
     if np.max(abs(H.conj().T-H)) > 1e-8:
         print('max(abs(H.conj().T-H))=',np.max(abs(H.conj().T-H)))
         raise
@@ -204,7 +204,7 @@ def make_trivial_matrix_basis_sc(N):
     return h_list
 
 
-def map_to_herm_matrix(X, sp_basis_herm): 
+def map_to_herm_matrix(X, sp_basis_herm):
     return np.sum([x*h for x,h in zip(X, sp_basis_herm)], axis=0)
 
 def map_to_matrix(X,sp_basis):
@@ -213,7 +213,7 @@ def map_to_matrix(X,sp_basis):
 def map_to_herm_vector(X, sp_basis_herm):
     return [np.trace(np.dot(np.matrix(h).getH(), X))/np.trace(np.dot(np.matrix(h).getH(), h)) for h in sp_basis_herm]
 
-def map_to_vector(X, sp_basis): 
+def map_to_vector(X, sp_basis):
     return [np.trace(np.dot(np.matrix(h).getH(), X))/np.trace(np.dot(np.matrix(h).getH(), h)) for h in sp_basis]
 
 def Hermitian_list(N):
@@ -492,7 +492,7 @@ def build_qpH(ek, R, Lambda):
 #    no = ek.shape[0]
 #    Lambdabdg = np.copy(qpHbdg)
 #    qpHbdg[:no,:no] = ek
-#    qpHbdg[no:,no:] = -ek.conj()       
+#    qpHbdg[no:,no:] = -ek.conj()
 #    return qpHbdg
 
 def set_R_BdG(R, Q):
@@ -502,7 +502,7 @@ def set_R_BdG(R, Q):
     R_BdG[no:,no:] = -R.conj()
     R_BdG[:no,no:] = -Q.conj()
     R_BdG[no:,:no] = Q
-    return R_BdG    
+    return R_BdG
 
 def set_Lambda_BdG(Lambda, Lambdap):
     no = Lambda.shape[0]
@@ -510,7 +510,7 @@ def set_Lambda_BdG(Lambda, Lambdap):
     Lambda_BdG[:no,:no] = Lambda
     Lambda_BdG[no:,no:] = -Lambda.conj()
     Lambda_BdG[:no,no:] = Lambdap
-    Lambda_BdG[no:,:no] = -Lambdap.conj()     
+    Lambda_BdG[no:,:no] = -Lambdap.conj()
     return Lambda_BdG
 
 def updn_to_spinful_mat(Mup,Mdn):
@@ -523,14 +523,14 @@ def duplicate_in_spin_space(A):
     """
     Take  matrix acting in single-particle spinless space and
     duplicate it to act in spin space, i.e construct :math:`\tilde{A}` such that:
-    
+
     .. math::
                \tilde{A}_{2i, 2j} = \tilde{A}_{2i+1,2j+1} = A_{ij}
-    
+
     Parameters
     ----------
     A : NxN matrix
-    
+
     Returns
     -------
     At : 2Nx2N matrix
@@ -557,11 +557,11 @@ def enlarge_in_spin_space(A):
     """
     Take matrix acting in single-particle spinless space and
     enlarge it to act in spin space up and down separately.
-    
+
     Parameters
     ----------
     A : NxN matrix
-    
+
     Returns
     -------
     At : 2 2Nx2N matrices corresponds to spin up and sown
@@ -665,13 +665,13 @@ def dF_real(A, H, function, d_function):
     for i in range(loewm.shape[0]):
         for j in range(loewm.shape[1]):
             if i==j:
-                loewm[i,i] = d_function(evals[i]) 
+                loewm[i,i] = d_function(evals[i])
                 #loewm[i,i] = derivative(function, evals[i], dx=1e-12)
             if i!=j:
                 if evals[i] != evals[j]:
                     loewm[i,j]= ( ( function(evals[i]) - function(evals[j]) )/(evals[i]-evals[j]) )
                 else:
-                    loewm[i,j] = d_function(evals[i]) 
+                    loewm[i,j] = d_function(evals[i])
                     #loewm[i,j] = derivative(function, evals[i], dx=1e-12)
 
     # Perform the Schur product in A's basis then transform back to original basis.
@@ -780,13 +780,13 @@ def ddenRm1_real(x):
 
 #def calc_Fermi(x):
 #    """
-#    calculate the fermi function for a vector x. Sometimes smearing the fermi function can 
+#    calculate the fermi function for a vector x. Sometimes smearing the fermi function can
 #    lead to better convergence (but also lead to ficticious result if beta is too small).
 #    """
 #    f=[]
 #    for xx in x:
 #        # This one is used to stablize selective Mott, but would lead to suprious OSMT if temperature is too high.
-#        #f.append(1./(1+np.exp(500*xx))) 
+#        #f.append(1./(1+np.exp(500*xx)))
 #        # This one is important to get the correct phase diagram (especially for criyical t2/t1), but not stable in OSMP.
 #        if abs(xx)<500:
 #            f.append(1./(1+np.exp(xx)))
@@ -799,13 +799,13 @@ def ddenRm1_real(x):
 @jit(nopython=True)
 def calc_Fermi(x):
     """
-    calculate the fermi function for a vector x. Sometimes smearing the fermi function can 
+    calculate the fermi function for a vector x. Sometimes smearing the fermi function can
     lead to better convergence (but also lead to ficticious result if beta is too small).
     """
     f=[]
     for xx in x:
         # This one is used to stablize selective Mott, but would lead to suprious OSMT if temperature is too high.
-        #f.append(1./(1+np.exp(500*xx))) 
+        #f.append(1./(1+np.exp(500*xx)))
         # This one is important to get the correct phase diagram (especially for criyical t2/t1), but not stable in OSMP.
         if abs(xx)<500:
             f.append(1./(1+np.exp(xx)))
@@ -818,13 +818,13 @@ def calc_Fermi(x):
 #@jit(nopython=True)
 def calc_Fermi0(x):
     """
-    calculate the fermi function for a vector x. Sometimes smearing the fermi function can 
+    calculate the fermi function for a vector x. Sometimes smearing the fermi function can
     lead to better convergence (but also lead to ficticious result if beta is too small).
     """
     f=[]
     for xx in x:
         # This one is used to stablize selective Mott, but would lead to suprious OSMT if temperature is too high.
-        #f.append(1./(1+np.exp(300*xx))) 
+        #f.append(1./(1+np.exp(300*xx)))
         #f.append( np.exp(-300.*xx/2 - np.log(2) - np.log(np.cosh(300.*xx/2)) ) )
         # This one is important to get the correct phase diagram (especially for criyical t2/t1), but not stable in OSMP.
         if abs(xx)<1.e-9:
@@ -832,30 +832,30 @@ def calc_Fermi0(x):
             f.append(0.5)
         elif xx<-1e-9:
             f.append(1)
-        elif xx> 1e-9: 
+        elif xx> 1e-9:
             f.append(0)
         #if xx <1.e-12:
         #    f.append(1)
-        #elif xx>= 1.e-12: 
+        #elif xx>= 1.e-12:
         #    f.append(0)
     return np.array(f)
 
 def calc_hole_Fermi0(x):
     """
-    calculate the fermi function for a vector x. Sometimes smearing the fermi function can 
+    calculate the fermi function for a vector x. Sometimes smearing the fermi function can
     lead to better convergence (but also lead to ficticious result if beta is too small).
     """
     f=[]
     for xx in x:
         # This one is used to stablize selective Mott, but would lead to suprious OSMT if temperature is too high.
-        #f.append(1./(1+np.exp(500*xx))) 
+        #f.append(1./(1+np.exp(500*xx)))
         # This one is important to get the correct phase diagram (especially for criyical t2/t1), but not stable in OSMP.
         if abs(xx)<1.e-12:
             #f.append(1./(1+np.exp(500*xx)))
             f.append(0.5)
         elif xx< -1.e-12:
             f.append(0)
-        elif xx> 1.e-12: 
+        elif xx> 1.e-12:
             f.append(1)
     return np.array(f)
 
@@ -1056,7 +1056,7 @@ def parse_hopping_from_wannier90_hr_dat(filename):
     degs = []
     for R, hmn in ham_r.items():
         #print('R=',R)
-        Rs.append(R) 
+        Rs.append(R)
         hmns.append(hmn["h"])
         degs.append(hmn["deg"])
     return np.array(Rs), np.array(hmns), np.array(degs)
@@ -1116,7 +1116,7 @@ def GetUMatrix(U, J, norb2, l, isrel=False, utrans=False):
         print( 'U_avg_cubic=', u_avg_cubic, 'J_avg_cubic=', j_avg_cubic )
     else:
         #print( 'relativeistic Coulomb interaction not implemented!!' )
-        #raise 
+        #raise
         Umat_spher = U_matrix_slater(l, radial_integrals=None, U_int=U, J_hund=J)
         Umat_spher = np.array(Umat_spher, dtype=np.complex128)
 
@@ -1125,7 +1125,7 @@ def GetUMatrix(U, J, norb2, l, isrel=False, utrans=False):
         Ufullmat[no:, no:, no:, no:] = Umat_spher  # dn, dn
         Ufullmat[:no, :no, no:, no:] = Umat_spher  # up, dn
         Ufullmat[no:, no:, :no, :no] = Umat_spher  # dn, up
-    
+
         if utrans is not None: Ufullmat = unitary_transform_coulomb_matrix(Ufullmat, utrans)
 
     return Ufullmat
@@ -1417,19 +1417,19 @@ def U_matrix_slater(l, radial_integrals=None, U_int=None, J_hund=None):
 
     # Check all necessary information is present and consistent
     if radial_integrals is None and (U_int is None and J_hund is None):
-        raise ValueError("U_matrix: provide either the radial_integrals" + 
+        raise ValueError("U_matrix: provide either the radial_integrals" +
                 " or U_int and J_hund.")
     if radial_integrals is None and (U_int is not None and J_hund is not None):
         radial_integrals = U_J_to_radial_integrals(l, U_int, J_hund)
     if radial_integrals is not None and \
             (U_int is not None and J_hund is not None):
         if len(radial_integrals) - 1 != l:
-            raise ValueError("U_matrix: inconsistency in l" + 
+            raise ValueError("U_matrix: inconsistency in l" +
                     " and number of radial_integrals provided.")
         if not np.allclose(radial_integrals,
                 U_J_to_radial_integrals(l, U_int, J_hund)):
-            print(" Warning: U_matrix: radial_integrals provided\n" + 
-            " do not match U_int and J_hund.\n" + 
+            print(" Warning: U_matrix: radial_integrals provided\n" +
+            " do not match U_int and J_hund.\n" +
             " Using radial_integrals to calculate U_matrix.")
 
     # Full interaction matrix
@@ -1548,7 +1548,7 @@ def radial_integrals_to_U_J(l, F):
         J_hund = F[1] * (1.0 + 0.625) / 14.0
     elif l == 3:
         J_hund = F[1] * (286.0 + 195.0 * 0.668 + 250.0 * 0.494) / 6435.0
-    else: raise ValueError("radial_integrals_to_U_J:" + 
+    else: raise ValueError("radial_integrals_to_U_J:" +
             " implemented only for l=2,3")
 
     return U_int, J_hund
