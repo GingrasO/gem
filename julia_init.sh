@@ -6,5 +6,5 @@ export PYTHON_JULIAPKG_EXE="/mnt/sw/nix/store/fms6zspq4gnq3x8bps8i9wx4lhd6j8s3-j
 export PYTHON_JULIAPKG_PROJECT="/mnt/home/bkloss/projects/ghostGA/julia"
 ##your python venv
 export "JULIA_CONDAPKG_BACKEND"="Null"
-export "JULIA_PYTHONCALL_EXE"="/mnt/home/bkloss/projects/.triqs/bin/python"
+export "JULIA_PYTHONCALL_EXE"="/mnt/home/bkloss/projects/ghostGA/.triqs/bin/python"
 source /mnt/home/bkloss/projects/ghostGA/.triqs/bin/activate
