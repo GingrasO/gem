@@ -26,22 +26,10 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     H1Edn=GGMPSSolver.PythonCall.pyconvert(Matrix,H1E["dn"])
     N=size(H1Eup,1)
     Nbath=N-Nimp
-    hbath_up=H1Eup[Nimp+1:end,Nimp+1:end]
-    hbath_dn=H1Edn[Nimp+1:end,Nimp+1:end]
-    hybs_up=H1Eup[1:Nimp,Nimp+1:end]
-    hybs_dn=H1Edn[1:Nimp,Nimp+1:end]
-    hloc_1e_up=H1Eup[1:Nimp,1:Nimp]
-    hloc_1e_dn=H1Edn[1:Nimp,1:Nimp]
-    
-    
-    ###diag and determine perm?
+    ###diag and determine perm? 
     perm=collect(1:N)
-    ##ToDo: Implement permutation either on julia side or python side ...
-    ##If implemented on python side, generalize the Hamiltonian constructors s.t. they accept siteinds for the impurity etc.
-    #create observables and Hamiltonians
-    os_bath=GGMPSSolver.get_H_bath(N,hbath_up,hbath_dn;bathoffset=Nimp,perm=perm)
-    os_hyb=GGMPSSolver.get_H_hyb(N,hybs_up,hybs_dn;perm=perm)
-    os_imp=GGMPSSolver.get_H_imp(N,hloc_1e_up,hloc_1e_dn,Utensor;perm=perm)
+    os_quadratic=GGMPSSolver.get_H_quadratic(N,H1Eup, H1Edn;perm=perm)
+    os_quartic=GGMPSSolver.get_H_quartic(N,Utensor;perm=perm)
     os_S2=GGMPSSolver.get_Ssquared(N)
        
     #make sites
@@ -49,12 +37,14 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     
     S2=MPO(os_S2,sites)
     if !iszero(spin_pen)
-        H=GGMPSSolver.ITensors.MPO(os_imp+os_bath+os_hyb+spin_pen*os_S2,sites)
+        H=GGMPSSolver.ITensors.MPO(os_quadratic + os_quartic + spin_pen*os_S2,sites)
     else
-        H=GGMPSSolver.ITensors.MPO(os_imp+os_bath+os_hyb,sites)
+        H=GGMPSSolver.ITensors.MPO(os_quadratic + os_quartic,sites)
     end
     #TODO: verify whether <Eint> (quartic only) or <Eimp> to be returned
-    Himp=GGMPSSolver.ITensors.MPO(os_imp,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
+    Hint=GGMPSSolver.ITensors.MPO(os_quartic,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
+    #Hint=GGMPSSolver.ITensors.MPO(os_int,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
+    
     @assert GGMPSSolver.compute_commutator(H,S2)<1e-3
     #make starting MPS
     ##potentially trigger different behaviour via kwarg
@@ -87,7 +77,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
         #@show obs
         savedata(outfile,obs.the_observer)
         GC.gc()
-        Eimp=GGMPSSolver.ITensors.inner(psi',Himp,psi)
+        Eint=GGMPSSolver.ITensors.inner(psi',Hint,psi)
         S2val=GGMPSSolver.ITensors.inner(psi',S2,psi)
         Cuu = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
         Cdd = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
@@ -101,13 +91,13 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
             converged=GGMPSSolver.check_convergence(E,Cuu,Cdd,Eold,oldCuu,oldCdd,tolerances)
         end
         if converged
-            return true, Eimp,Cuu,Cdd
+            return true, Eint,Cuu,Cdd
         end
         oldCuu=deepcopy(Cuu)
         oldCdd=deepcopy(Cdd)
         Eold=deepcopy(E)
     end
-    return false, Eimp, Cuu, Cdd
+    return false, Eint, Cuu, Cdd
 end
     #eventually implement logging via Observers, pass in an iteration id, so we can save separate HDF5 files for every iteration
     
