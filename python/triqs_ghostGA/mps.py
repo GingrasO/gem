@@ -11,8 +11,8 @@ julia_project_dir=os.environ["PYTHON_JULIAPKG_PROJECT"]
 print(julia_project_dir)
 #from juliacall import Pkg
 Pkg.activate(julia_project_dir)
+jl.seval("using GGMPSSolver")
 include_str="include(\""+julia_project_dir+"/src/driver.jl"+"\")"
-jl.seval(include_str)
 
 from itertools import product as itp
 import triqs_ghostGA

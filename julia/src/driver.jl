@@ -6,9 +6,9 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     #
     #outfile="data"
     @show outfile
-    dmrg_params=convert_schedule(schedule)
-    kwargs=convert_schedule(kwargs)[]
-    tolerances=convert_schedule(tolerances)[]
+    dmrg_params=GGMPSSolver.convert_schedule(schedule)
+    kwargs=GGMPSSolver.convert_schedule(kwargs)[]
+    tolerances=GGMPSSolver.convert_schedule(tolerances)[]
     conserve_sz=get(kwargs, :use_Sz, true)
     conserve_N=get(kwargs, :use_Ntot,true)
     spin_pen=get(kwargs,:spin_pen,0.0)
@@ -19,11 +19,11 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     
     #extract the relevant quantities
 
-    Utensor=pyconvert(Array,Utensor)
+    Utensor=GGMPSSolver.PythonCall.pyconvert(Array,Utensor)
     Nimp=size(Utensor,1)
     
-    H1Eup=pyconvert(Matrix,H1E["up"])
-    H1Edn=pyconvert(Matrix,H1E["dn"])
+    H1Eup=GGMPSSolver.PythonCall.pyconvert(Matrix,H1E["up"])
+    H1Edn=GGMPSSolver.PythonCall.pyconvert(Matrix,H1E["dn"])
     N=size(H1Eup,1)
     Nbath=N-Nimp
     hbath_up=H1Eup[Nimp+1:end,Nimp+1:end]
@@ -39,35 +39,35 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     ##ToDo: Implement permutation either on julia side or python side ...
     ##If implemented on python side, generalize the Hamiltonian constructors s.t. they accept siteinds for the impurity etc.
     #create observables and Hamiltonians
-    os_bath=get_H_bath(N,hbath_up,hbath_dn;bathoffset=Nimp,perm=perm)
-    os_hyb=get_H_hyb(N,hybs_up,hybs_dn;perm=perm)
-    os_imp=get_H_imp(N,hloc_1e_up,hloc_1e_dn,Utensor;perm=perm)
-    os_S2=get_Ssquared(N)
+    os_bath=GGMPSSolver.get_H_bath(N,hbath_up,hbath_dn;bathoffset=Nimp,perm=perm)
+    os_hyb=GGMPSSolver.get_H_hyb(N,hybs_up,hybs_dn;perm=perm)
+    os_imp=GGMPSSolver.get_H_imp(N,hloc_1e_up,hloc_1e_dn,Utensor;perm=perm)
+    os_S2=GGMPSSolver.get_Ssquared(N)
        
     #make sites
-    sites=siteinds("Electron", N; conserve_nf=conserve_N,conserve_sz=conserve_sz)
+    sites=GGMPSSolver.ITensors.siteinds("Electron", N; conserve_nf=conserve_N,conserve_sz=conserve_sz)
     
     S2=MPO(os_S2,sites)
     if !iszero(spin_pen)
-        H=MPO(os_imp+os_bath+os_hyb+spin_pen*os_S2,sites)
+        H=GGMPSSolver.ITensors.MPO(os_imp+os_bath+os_hyb+spin_pen*os_S2,sites)
     else
-        H=MPO(os_imp+os_bath+os_hyb,sites)
+        H=GGMPSSolver.ITensors.MPO(os_imp+os_bath+os_hyb,sites)
     end
     #TODO: verify whether <Eint> (quartic only) or <Eimp> to be returned
-    Himp=MPO(os_imp,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
-    @assert compute_commutator(H,S2)<1e-3
+    Himp=GGMPSSolver.ITensors.MPO(os_imp,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
+    @assert GGMPSSolver.compute_commutator(H,S2)<1e-3
     #make starting MPS
     ##potentially trigger different behaviour via kwarg
     ##assumes that the total system size is even, otherwise not half filled and zero mag
     @assert iseven(length(sites))
-    psi=MPS(sites,x -> isodd(x) ? "Up" : "Dn")
-    psi=psi+MPS(sites,x -> isodd(x) ? "Dn" : "Up")
+    psi=GGMPSSolver.ITensors.MPS(sites,x -> isodd(x) ? "Up" : "Dn")
+    psi=psi+GGMPSSolver.ITensors.MPS(sites,x -> isodd(x) ? "Dn" : "Up")
     oldCuu=nothing
     oldCdd=nothing
     Eold=nothing
-    @show maxlinkdim(H)
+    @show GGMPSSolver.ITensors.maxlinkdim(H)
     #run dmrg loop, terminate when tolerances are satisfied
-    internal_obs = Observer(
+    internal_obs = GGMPSSolver.Observers.Observer(
         "sweepnumber"=>get_total_sweep,
         "maxdim"=>get_maxdim,
         "energy"=>get_energy,
@@ -76,21 +76,21 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     )
 
     #@show internal_obs
-    obs = MyDMRGObserver(0,internal_obs,perm)
+    obs = GGMPSSolver.MyDMRGObserver(0,internal_obs,perm)
     #update!(obs.the_observer;nsweep=1,psi=psi)  #energy_tol,last_energy 
     #@show obs.the_observer
     for (iteration,pars) in enumerate(dmrg_params)
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
         #@show typeof(H)
-        E,psi=dmrg(H,psi; observer=obs,pars...)
+        E,psi=GGMPSSolver.ITensors.dmrg(H,psi; observer=obs,pars...)
         #@show obs
         savedata(outfile,obs.the_observer)
         GC.gc()
-        Eimp=inner(psi',Himp,psi)
-        S2val=inner(psi',S2,psi)
-        Cuu = correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
-        Cdd = correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
+        Eimp=GGMPSSolver.ITensors.inner(psi',Himp,psi)
+        S2val=GGMPSSolver.ITensors.inner(psi',S2,psi)
+        Cuu = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
+        Cdd = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
         GC.gc()
         converged=false
         if !isnothing(oldCuu)
@@ -98,7 +98,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
             @show maximum(abs.(oldCuu .- Cuu))
             @show maximum(abs.(oldCdd .- Cdd))
             @show S2val            
-            converged=check_convergence(E,Cuu,Cdd,Eold,oldCuu,oldCdd,tolerances)
+            converged=GGMPSSolver.check_convergence(E,Cuu,Cdd,Eold,oldCuu,oldCdd,tolerances)
         end
         if converged
             return true, Eimp,Cuu,Cdd

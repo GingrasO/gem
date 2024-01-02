@@ -10,6 +10,7 @@ using LinearAlgebra
 let
     ITensors.Strided.disable_threads()
     BLAS.set_num_threads(4)
+    @show BLAS.get_num_threads()
     @show Threads.nthreads()
     @show ITensors.blas_get_num_threads()
     ITensors.enable_threaded_blocksparse()

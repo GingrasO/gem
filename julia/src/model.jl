@@ -2,7 +2,7 @@
 function get_H_imp(n::Int,Jup::AbstractMatrix,Jdn::AbstractMatrix,U::AbstractArray;perm=1:n)
     os=OpSum()
     for i in 1:size(Jup,1)
-        for j in i:size(Jup,2)
+        for j in 1:size(Jup,2)
             if Jup[i,j]!=0.0
 		    #@show Jup[i,j], conj(Jup[j,i])
                 @assert Jup[i,j]==conj(Jup[j,i])
@@ -33,7 +33,7 @@ function get_H_imp(n::Int,J::AbstractMatrix,U::AbstractArray;perm=1:n)
     ###hopping
 
     for i in 1:size(J,1)
-        for j in i:size(J,2)
+        for j in 1:size(J,2)
             if J[i,j]!=0.0
                 @assert J[i,j]==conj(J[j,i])
                 #@show i,j,J[i,j]
@@ -114,8 +114,8 @@ function get_H_hyb(n,D;perm=1:n)
             if !iszero(D[i,j])
                 os+=D[i,j],"Cdagup",perm[i],"Cup",perm[bo+j]
                 os+=D[i,j],"Cdagdn",perm[i],"Cdn",perm[bo+j]
-                os+=conj(D[i,j]),"Cdagup",perm[bo+j],"Cup",perm[i]
-                os+=conj(D[i,j]),"Cdagdn",perm[bo+j],"Cdn",perm[i]
+                #os+=conj(D[i,j]),"Cdagup",perm[bo+j],"Cup",perm[i]
+                #os+=conj(D[i,j]),"Cdagdn",perm[bo+j],"Cdn",perm[i]
             end
         end
     end
