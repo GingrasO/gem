@@ -48,14 +48,6 @@ end
 return Cdd
 end
 
-function get_corr_dn(;psi,perm)
-if !isnothing(perm)
-    Cdd=correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
-else
-    Cdd=correlation_matrix(psi, "Cdagdn", "Cdn")
-end
-return Cdd
-end
 
 function get_energy(;energy)
     return energy
