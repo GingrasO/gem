@@ -10,4 +10,4 @@ export JULIA_PYTHONCALL_EXE="/mnt/home/bkloss/projects/ghostGA/.triqs/bin/python
 source /mnt/home/bkloss/projects/ghostGA/.triqs/bin/activate
 ###Threading layer defaults to sequential after sourcing these modules, so we set it to INTEL manually --- may be breaking things elsewhere!
 export MKL_THREADING_LAYER="INTEL"
-
+export PYTHON_JULIACALL_HANDLE_SIGNALS=yes

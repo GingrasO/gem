@@ -5,14 +5,28 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     #   conserve_qns=true
     #
     #outfile="data"
-    Utensor=GGMPSSolver.PythonCall.pyconvert(Array,Utensor)
-    Nimp=size(Utensor,1)
     
+    ## some checks and threading setup
+    @show outfile
+    @show GGMPSSolver.BLAS.get_num_threads()
+    @show GGMPSSolver.BLAS.get_config()
+    #@show GGMPSSolver.BLAS.set_num_threads(1)
+    @show GGMPSSolver.BLAS.get_num_threads()
+    @show Threads.nthreads()
+    println("before thread handling")
+    GGMPSSolver.ITensors.Strided.disable_threads()
+    GGMPSSolver.ITensors.enable_threaded_blocksparse()
+    println("after thread handling")
+    
+    ## convert python matrices/arrays
+    Utensor=GGMPSSolver.PythonCall.pyconvert(Array,Utensor)
     H1Eup=GGMPSSolver.PythonCall.pyconvert(Matrix,H1E["up"])
     H1Edn=GGMPSSolver.PythonCall.pyconvert(Matrix,H1E["dn"])
+    
+    ## extract keyword args/parameters
+    Nimp=size(Utensor,1)
     N=size(H1Eup,1)
     Nbath=N-Nimp
-    
     dmrg_params=GGMPSSolver.convert_schedule(schedule)
     kwargs=GGMPSSolver.convert_schedule(kwargs)[]
     tolerances=GGMPSSolver.convert_schedule(tolerances)[]
@@ -20,74 +34,42 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     conserve_N=get(kwargs, :use_Ntot,true)
     spin_pen=get(kwargs,:spin_pen,0.0)
  
-    perm=collect(1:N)
+    ## setup Hamiltonian
+    perm=collect(1:N)   ###ToDo: implement other arrangements
     os_quadratic=GGMPSSolver.get_H_quadratic(N,H1Eup, H1Edn;perm=perm)
     os_quartic=GGMPSSolver.get_H_quartic(N,Utensor;perm=perm)
     os_S2=GGMPSSolver.get_Ssquared(N)
 
-    @show outfile
-    @show GGMPSSolver.BLAS.get_num_threads()
-    @show GGMPSSolver.BLAS.get_config()
-    @show Threads.nthreads()
-    println("before thread handling")
-   
-    GGMPSSolver.ITensors.disable_threaded_blocksparse()
-    println("after thread handling")
-    #@show typeof(tolerances)
-    #@show typeof(kwargs)
-    #@show typeof(dmrg_params[1])
-    #@show dmrg_params[1]
-    
-    #extract the relevant quantities
-
-    
-    ###diag and determine perm? 
-    
-       
-    #make sites
-
-    println("A")
+    ## make sites
     sites=GGMPSSolver.ITensors.siteinds("Electron", N; conserve_nf=conserve_N,conserve_sz=conserve_sz)
-    
-    println("B")
-    S2=MPO(os_S2,sites)
 
-    println("C")
-    #spin_pen=0.0
-    #os=os_quadratic + os_quartic + spin*
+    ## make MPOs
+    S2=MPO(os_S2,sites)
     if !iszero(spin_pen)
         os=os_quadratic + os_quartic + spin_pen*os_S2
-        println("C11")
-        
-        H=GGMPSSolver.ITensors.MPO(os,sites)
+
     else
-        os=os_quadratic + os_quartic 
-        println("C12")
-        H=GGMPSSolver.ITensors.MPO(os,sites)
+        os=os_quadratic + os_quartic
+        
     end
-    #TODO: verify whether <Eint> (quartic only) or <Eimp> to be returned
-    println("C2")
+    H=GGMPSSolver.ITensors.MPO(os,sites)
     Hint=GGMPSSolver.ITensors.MPO(os_quartic,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
-    #Hint=GGMPSSolver.ITensors.MPO(os_int,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
-    
-    println("D")
     @assert GGMPSSolver.compute_commutator(H,S2)<1e-3
-   
-    println("E")
-   
-    #make starting MPS
-    ##potentially trigger different behaviour via kwarg
-    ##assumes that the total system size is even, otherwise not half filled and zero mag
+    @show GGMPSSolver.ITensors.maxlinkdim(H)
+    
+    ##make starting MPS
+    #potentially trigger different behaviour via kwarg
+    #assumes that the total system size is even, otherwise not half filled and zero mag
     @assert iseven(length(sites))
     psi=GGMPSSolver.ITensors.MPS(sites,x -> isodd(x) ? "Up" : "Dn")
     psi=psi+GGMPSSolver.ITensors.MPS(sites,x -> isodd(x) ? "Dn" : "Up")
     
-    println("F")
+    ## initialize quantities for which convergence is assessed
     oldCuu=nothing
     oldCdd=nothing
     Eold=nothing
-    @show GGMPSSolver.ITensors.maxlinkdim(H)
-    #run dmrg loop, terminate when tolerances are satisfied
+    
+    ## setup observers
     internal_obs = GGMPSSolver.Observers.Observer(
         "sweepnumber"=>get_total_sweep,
         "maxdim"=>get_maxdim,
@@ -95,20 +77,14 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
         "corr_dn"=>get_corr_dn,
         "corr_up"=>get_corr_up,
     )
-
-    #@show internal_obs
     obs = GGMPSSolver.MyDMRGObserver(0,internal_obs,perm)
-    #update!(obs.the_observer;nsweep=1,psi=psi)  #energy_tol,last_energy 
-    #@show obs.the_observer
-
-    GGMPSSolver.ITensors.Strided.disable_threads()
-    GGMPSSolver.ITensors.enable_threaded_blocksparse()
+    
+    ## run dmrg loop, terminate when tolerances are satisfied
     for (iteration,pars) in enumerate(dmrg_params)
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
         #@show typeof(H)
         E,psi=GGMPSSolver.ITensors.dmrg(H,psi; observer=obs,pars...)
-        #@show obs
         savedata(outfile,obs.the_observer)
         GC.gc()
         Eint=GGMPSSolver.ITensors.inner(psi',Hint,psi)
@@ -131,6 +107,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
         oldCdd=deepcopy(Cdd)
         Eold=deepcopy(E)
     end
+
     return false, Eint, Cuu, Cdd
 end
     #eventually implement logging via Observers, pass in an iteration id, so we can save separate HDF5 files for every iteration
