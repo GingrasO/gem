@@ -1,19 +1,13 @@
-using MKL
-using Random
 using PythonCall
 triqsutils=pyimport("triqs.operators.util")
 
-using GGMPSSolver
-using ITensors
-using LinearAlgebra
-
 let
-    ITensors.Strided.disable_threads()
-    BLAS.set_num_threads(4)
-    @show BLAS.get_num_threads()
+    GGMPSSolver.ITensors.Strided.disable_threads()
+    GGMPSSolver.BLAS.set_num_threads(4)
+    @show GGMPSSolver.BLAS.get_num_threads()
     @show Threads.nthreads()
-    @show ITensors.blas_get_num_threads()
-    ITensors.enable_threaded_blocksparse()
+    @show GGMPSSolver.ITensors.blas_get_num_threads()
+    GGMPSSolver.ITensors.enable_threaded_blocksparse()
     Nimp=3
     Nbath=3*Nimp
     N=Nimp+Nbath
@@ -24,25 +18,25 @@ let
     #Utensor=triqsutils.U_matrix_kanamori(Nimp,U_int=U,J_hund=J,full_Uijkl=true)
     #Umatrix,Upmatrix,=triqsutils.U_matrix_kanamori(3,U_int=U,J_hund=J)
     #Utensor.=0.0
-    Random.seed!(1234)
+    GGMPSSolver.Random.seed!(1234)
 
 
     J=GGMPSSolver.symmetrize(rand(Nimp,Nimp))	#symmetrize is from src/util.jl
     #J.=0.0
     U=Utensor
     
-    Gamma=diagm(sort( 2*W *(rand(Nbath).-0.5))) #start with diagonal bath
+    Gamma=GGMPSSolver.diagm(sort( 2*W *(rand(Nbath).-0.5))) #start with diagonal bath
     if iseven(length(Gamma))
         Gamma=sort(rand(div(Nbath,2))*W)
-        Gamma=diagm(vcat(-Gamma[end:-1:1],Gamma))
+        Gamma=GGMPSSolver.diagm(vcat(-Gamma[end:-1:1],Gamma))
     else
         Gamma=sort(rand(Int(floor(Nbath/2)))*W)
-        Gamma=diagm(vcat(-Gamma[end:-1:1],[0.0,],Gamma))
+        Gamma=GGMPSSolver.diagm(vcat(-Gamma[end:-1:1],[0.0,],Gamma))
     end
     #@show diag(Gamma)
-    Ds=rand(Nimp,Nbath)
+    Ds=GGMPSSolver.rand(Nimp,Nbath)
     ##perm: first bath sites with E<0, then imp, then bath sites with E>0
-    perm=GGMPSSolver.get_perm(Nimp,Nbath,diag(Gamma);mu=0.0)
+    perm=GGMPSSolver.get_perm(Nimp,Nbath,GGMPSSolver.diag(Gamma);mu=0.0)
     H1E_spinless=zeros(Float64,(N,N))
     H1E_spinless[1:Nimp,1:Nimp].=J
     H1E_spinless[1:Nimp,Nimp+1:end].=Ds
