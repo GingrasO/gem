@@ -172,9 +172,9 @@ class Grisb(object):
         # initialize single-particle basis
         self.Hspin_list,self.tHspin_list=Hermitian_list(nbath//2)
         self.Hfull_list,self.tHfull_list=Hermitian_list(nbath)
-        print('initial R matirx =')
+        print('initial R matrix =')
         print(self.R)
-        print('initial Lambda matirx =')
+        print('initial Lambda matrix =')
         print(self.Lambda)
 
     def initialize_edsolver(self, ed_params):
@@ -184,9 +184,9 @@ class Grisb(object):
             self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
         elif ed_params["solver"] == 'mps':
             self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
-            
+
         else:
-            
+
             raise ValueError("impurity solver are supported")
 
     def build_h1e(self,mu):
@@ -228,7 +228,7 @@ class Grisb(object):
             self.E2loc = self.edsolver.compute_E2loc()
         elif type(self.edsolver) == ITensorMPSSolver:
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-            self.edsolver.schedule=[] 
+            self.edsolver.schedule=[]
             self.edsolver.make_schedule()
             self.edsolver.set_tolerances(["Etol","rhotol"],[1e-5,5e-3])
             self.edsolver.make_kwargs(use_Ntot=True,use_Sz=True,spin_pen=spin_pen)

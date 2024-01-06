@@ -1,7 +1,7 @@
-from triqs.ghostGA.forktps import *
+from triqs_ghostGA.ftps import *
+from triqs_ghostGA.ci import *
 import numpy as np
 import h5py
-from ci import *
 
 np.set_printoptions(suppress=True, precision=6)
 
