@@ -3,6 +3,7 @@ compile_commands.json
 *.h5
 *.dat
 *.txt
+*.swp
 doc/_autosummary
 doc/cpp2rst_generated
 doc/sphinxext/
