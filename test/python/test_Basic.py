@@ -86,5 +86,29 @@ class test_lattice_solver(unittest.TestCase):
         print(grisb.docc)
         print(grisb.denMat)
 
+    def test_grisb_with_diis(self):
+        nimp, nbath, ntot = 2, 6, 8
+
+        e_list = get_semicircle_e_list(nmesh=5000)
+        eks = [np.kron(np.array([[1.0*e]], dtype=np.complex128), np.eye(2)) for e in e_list]
+        eks = np.array(eks)
+
+        R0 = np.kron(np.random.rand(nbath//2, nimp//2), np.eye(2))
+        Lambda0 = np.kron(np.diag([0.6, 0, -0.6]), np.eye(2))
+
+        U = 2.4
+        eloc = np.matrix([[-U/2, 0], [0, -U/2]])
+        Utensor = np.zeros((nimp, nimp, nimp, nimp))
+        Utensor[0, 0, 1, 1] = U
+        Utensor[1, 1, 0, 0] = U
+
+        ed_params = {"solver": "ci", "use_Sz": False, "use_Ntot": True}
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+                      Lambda=Lambda0, ed_params=ed_params)
+        grisb.run(itmax=5, mix=0.5, tol=5e-2, beta=500,
+                  silence=True, spin_pen=0.05, diis=True)
+        print(grisb.docc)
+        print(grisb.denMat)
+
 if __name__ == '__main__':
     unittest.main()
