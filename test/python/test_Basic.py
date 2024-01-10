@@ -12,6 +12,8 @@ from triqs.lattice.tight_binding import TBLattice
 from triqs.gf import *
 from triqs.lattice import *
 from triqs.operators import *
+from triqs_ghostGA.version import *
+
 
 class test_lattice_solver(unittest.TestCase):
 
@@ -109,6 +111,15 @@ class test_lattice_solver(unittest.TestCase):
                   silence=True, spin_pen=0.05, diis=True)
         print(grisb.docc)
         print(grisb.denMat)
+
+
+class test_version(unittest.TestCase):
+
+    # Print version and hash
+    def test_version_prints(self):
+        show_version()
+        show_git_hash()
+
 
 if __name__ == '__main__':
     unittest.main()
