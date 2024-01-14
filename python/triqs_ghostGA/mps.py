@@ -26,6 +26,7 @@ class ITensorMPSSolver(object):
     def __init__(self, ntot, nimp, nbath,params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
         """Constructor method
         """
+        self.type = "ITensorMPSSolver"
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath

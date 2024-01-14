@@ -8,9 +8,8 @@ from scipy.linalg import sqrtm
 import h5py
 import numpy as np
 import numba
-#from triqs_ghostGA.ci import *
-#from triqs_ghostGA.ftps import *
-from triqs_ghostGA.mps import *
+# from triqs_ghostGA.ci import *
+# from triqs_ghostGA.ftps import *
 from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination, \
      Hermitian_list, get_blocks, funcMat, calc_nf, dF
 from triqs_ghostGA.DIIS import *
@@ -44,8 +43,10 @@ class Grisb(object):
     :param Lambda: Lambda matrix.
     :type Lambda: np.ndarray
 
-    :param ed_params: Exact diagonalization solver parameters.
-    :type ed_params: dic
+    # :param ed_params: Exact diagonalization solver parameters.
+    # :type ed_params: dic
+    :param edsolver: Exact diagonalization solver. Should initialize prior.
+    :type edsolver: CI, FTPS or ITensorMPSSolver
 
     :param Hspin_list: Hermitian matrix basis in each spin block with spin symmetry.
     :type Hspin_list: list
@@ -54,7 +55,7 @@ class Grisb(object):
     :type Hfull_list: list
 
     """
-    def __init__(self, ntot, nimp, nbath, eks, eloc, Utensor, spin_sym=True, soc=False, R=None, Lambda=None, ed_params={'solver':'fed'}):
+    def __init__(self, ntot, nimp, nbath, eks, eloc, Utensor, spin_sym=True, soc=False, R=None, Lambda=None, edsolver=None):
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
@@ -81,9 +82,16 @@ class Grisb(object):
             if Lambda.shape != (nbath,nbath):
                 raise ValueError("Lambda has inconsistent shape. Should be (nbath,nbath)")
             self.Lambda = Lambda
+
+        if edsolver is None:
+            raise ValueError("Not edsolver was passed to the GRISB.")
+        else:
+            self.edsolver = edsolver
+
         # initialize edsolver
-        self.initialize_edsolver(ed_params)
+        #self.initialize_edsolver(ed_params)
         # initialize single-particle basis
+
         self.Hspin_list,self.tHspin_list=Hermitian_list(nbath//2)
         self.Hfull_list,self.tHfull_list=Hermitian_list(nbath)
         print('initial R matrix =')
@@ -91,19 +99,17 @@ class Grisb(object):
         print('initial Lambda matrix =')
         print(self.Lambda)
 
-    def initialize_edsolver(self, ed_params):
-        #if ed_params["solver"] == 'ci':
-         #   self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
-        #elif ed_params["solver"] == 'ftps':
-        #    self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
-        if ed_params["solver"] == 'mps':
-            mps_params=ed_params.copy()
-            del mps_params["solver"]
-            self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, params=mps_params)
+    # def initialize_edsolver(self, ed_params):
+    #     if ed_params["solver"] == 'ci':
+    #         self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
+    #     elif ed_params["solver"] == 'ftps':
+    #         self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
+    #     elif ed_params["solver"] == 'mps':
+    #         self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
 
-        else:
+    #     else:
 
-            raise ValueError("impurity solver are supported")
+    #         raise ValueError("impurity solver are supported")
 
     def build_h1e(self,mu):
         h1e = np.zeros((self.ntot,self.ntot), dtype=np.complex128)
@@ -128,37 +134,27 @@ class Grisb(object):
         #print('mu=',mu)
         #print('eloc=')
         #print(self.eloc)
-        """
-        if type(self.edsolver) == CI:
+        if self.edsolver.type == "CI":
             h1e = self.build_h1e(mu)
             #print('h1e=')
             #print(h1e)
             #print('spin_pen=',spin_pen)
             self.edsolver.build_Hemb(h1e, self.Utensor, spin_pen=spin_pen, sz_pen=sz_pen)
-            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
-            self.denMat = self.edsolver.calc_density_matrix()
-            self.E2loc = self.edsolver.compute_E2loc()
-        elif type(self.edsolver) == FTPS:
+            # self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
+            # self.denMat = self.edsolver.calc_density_matrix()
+            # self.E2loc = self.edsolver.compute_E2loc()
+        elif self.edsolver.type == "FTPS":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
-            self.denMat = self.edsolver.calc_density_matrix()
-            self.E2loc = self.edsolver.compute_E2loc()
-        """
-        if type(self.edsolver) == ITensorMPSSolver:
+        elif type(self.edsolver) == "ITensorMPSSolver":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
             self.edsolver.schedule=[]
             self.edsolver.make_schedule()
             self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
-            #self.edsolver.set_kwargs(use_Ntot=True,use_Sz=True,spin_pen=spin_pen)  #now performed at initialization
-            # for output the MPS solver uses kwarg outfile::String, will default to data[.h5]
-            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose) #to do: make iteration counter an object of the class so that we have access to it here
-
-            self.denMat = self.edsolver.calc_density_matrix()
-            self.E2loc = self.edsolver.compute_E2loc()
         else:
-            raise ValueError("only Full ED, CI, and HCI are supported")
-        #print(self.denMat)
-        #quit()
+            raise ValueError("only Full ED, CI, and HCI are supported")     #ToDo: Replace whole if-clause by edsolver.prolog(self) implemented by Solver(AbstractSolver)
+        self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
+        self.denMat = self.edsolver.calc_density_matrix()
+        self.E2loc = self.edsolver.compute_E2loc()
 
     def compute_energy(self,beta=200.,mu=0.0):
         """ Compute total energy, kinetic energy, and potential energy

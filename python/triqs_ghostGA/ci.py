@@ -214,6 +214,7 @@ class CI(object):
           dtype: dtype. data type of the Hamiltonian
         '''
         global is_ci_initialized
+        self.type = "CI"
         self.norb = norb # number of orbitals
         self.use_Ntot = use_Ntot # use Ntot symmetry
         self.use_Sz = use_Sz # use Sz symmtery

@@ -42,6 +42,8 @@ class test_lattice_solver(unittest.TestCase):
         pass
 
     def test_grisb_1o3_ftps_and_ci(self):
+        from triqs_ghostGA.ci import CI
+        from triqs_ghostGA.ftps import FTPS
         # 1 orbital with 2 spins, 3 bath per orbital, total 8
         nimp, nbath, ntot = 2, 6, 8
 
@@ -71,28 +73,37 @@ class test_lattice_solver(unittest.TestCase):
         Utensor[1,1,0,0] = U
 
         # test ForkTPS solver
-        ed_params = {"solver": "ftps", "maxM": 300}
+        # ed_params = {"solver": "ftps", "maxM": 300}
+        edsolver = FTPS(ntot, nimp, nbath, 300)
+        # grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+        #               Lambda=Lambda0, ed_params=ed_params)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
-                      Lambda=Lambda0, ed_params=ed_params)
+                      Lambda=Lambda0, edsolver=edsolver)
         grisb.run(itmax=1, mix=0.5, tol=5e-2, beta=500,
                   silence=True, spin_pen=0.05)
         print(grisb.docc)
         print(grisb.denMat)
 
         # test CI solver
-        ed_params = {"solver": "ci", "use_Sz": True, "use_Ntot": True}
+        # ed_params = {"solver": "ci", "use_Sz": True, "use_Ntot": True}
+        edsolver = CI(ntot, use_Ntot=True,
+                      use_Sz=True, dtype=np.complex128)
+        # grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+        #               Lambda=Lambda0, ed_params=ed_params)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
-                      Lambda=Lambda0, ed_params=ed_params)
+                      Lambda=Lambda0, edsolver=edsolver)
         grisb.run(itmax=1, mix=0.5, tol=5e-2, beta=500,
                   silence=True, spin_pen=0.05)
         print(grisb.docc)
         print(grisb.denMat)
 
     def test_grisb_with_diis(self):
+        from triqs_ghostGA.ci import CI
         nimp, nbath, ntot = 2, 6, 8
 
         e_list = get_semicircle_e_list(nmesh=5000)
-        eks = [np.kron(np.array([[1.0*e]], dtype=np.complex128), np.eye(2)) for e in e_list]
+        eks = [np.kron(np.array([[1.0*e]], dtype=np.complex128), np.eye(2))
+               for e in e_list]
         eks = np.array(eks)
 
         R0 = np.kron(np.random.rand(nbath//2, nimp//2), np.eye(2))
@@ -104,9 +115,13 @@ class test_lattice_solver(unittest.TestCase):
         Utensor[0, 0, 1, 1] = U
         Utensor[1, 1, 0, 0] = U
 
-        ed_params = {"solver": "ci", "use_Sz": False, "use_Ntot": True}
+        # ed_params = {"solver": "ci", "use_Sz": False, "use_Ntot": True}
+        edsolver = CI(ntot, use_Ntot=True, use_Sz=False,
+                      dtype=np.complex128)
+        # grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+        #               Lambda=Lambda0, ed_params=ed_params)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
-                      Lambda=Lambda0, ed_params=ed_params)
+                      Lambda=Lambda0, edsolver=edsolver)
         grisb.run(itmax=5, mix=0.5, tol=5e-2, beta=500,
                   silence=True, spin_pen=0.05, diis=True)
         print(grisb.docc)
