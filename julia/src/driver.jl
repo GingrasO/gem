@@ -54,7 +54,9 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     end
     H=GGMPSSolver.ITensors.MPO(os,sites)
     Hint=GGMPSSolver.ITensors.MPO(os_quartic,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
-    @assert GGMPSSolver.compute_commutator(H,S2)<1e-3
+    if !iszero(spin_pen)
+       @assert GGMPSSolver.compute_commutator(H,S2)<1e-3
+    end
     @show GGMPSSolver.ITensors.maxlinkdim(H)
     
     ##make starting MPS
