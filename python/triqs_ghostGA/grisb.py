@@ -8,8 +8,9 @@ from scipy.linalg import sqrtm
 import h5py
 import numpy as np
 import numba
-from triqs_ghostGA.ci import *
-from triqs_ghostGA.ftps import *
+#from triqs_ghostGA.ci import *
+#from triqs_ghostGA.ftps import *
+from triqs_ghostGA.mps import *
 from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination, \
      Hermitian_list, get_blocks, funcMat, calc_nf, dF
 from triqs_ghostGA.DIIS import *
@@ -91,12 +92,14 @@ class Grisb(object):
         print(self.Lambda)
 
     def initialize_edsolver(self, ed_params):
-        if ed_params["solver"] == 'ci':
-            self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
-        elif ed_params["solver"] == 'ftps':
-            self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
-        elif ed_params["solver"] == 'mps':
-            self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
+        #if ed_params["solver"] == 'ci':
+         #   self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
+        #elif ed_params["solver"] == 'ftps':
+        #    self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
+        if ed_params["solver"] == 'mps':
+            mps_params=ed_params.copy()
+            del mps_params["solver"]
+            self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, params=mps_params)
 
         else:
 
@@ -125,6 +128,7 @@ class Grisb(object):
         #print('mu=',mu)
         #print('eloc=')
         #print(self.eloc)
+        """
         if type(self.edsolver) == CI:
             h1e = self.build_h1e(mu)
             #print('h1e=')
@@ -139,13 +143,16 @@ class Grisb(object):
             self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
             self.denMat = self.edsolver.calc_density_matrix()
             self.E2loc = self.edsolver.compute_E2loc()
-        elif type(self.edsolver) == ITensorMPSSolver:
+        """
+        if type(self.edsolver) == ITensorMPSSolver:
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
             self.edsolver.schedule=[]
             self.edsolver.make_schedule()
-            self.edsolver.set_tolerances(["Etol","rhotol"],[1e-5,5e-3])
-            self.edsolver.make_kwargs(use_Ntot=True,use_Sz=True,spin_pen=spin_pen)
-            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
+            self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
+            #self.edsolver.set_kwargs(use_Ntot=True,use_Sz=True,spin_pen=spin_pen)  #now performed at initialization
+            # for output the MPS solver uses kwarg outfile::String, will default to data[.h5]
+            self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose) #to do: make iteration counter an object of the class so that we have access to it here
+
             self.denMat = self.edsolver.calc_density_matrix()
             self.E2loc = self.edsolver.compute_E2loc()
         else:
@@ -159,7 +166,6 @@ class Grisb(object):
 
         ###FIXME: Understand how the partitioning here is meant?
         #self.ekin = [np.sum(self.R.dot( self.eks[x] ).dot( self.R.conj().T )*self.rhok_list[x].T ) for x in range(len(self.rhok_list))]
-
         #self.ekin = sum(self.ekin)/float(len(self.rhok_list))
         self.ekin = sum([np.sum( ( np.dot(self.R, np.dot(x, self.R.conj().T )) ) * \
                     calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
