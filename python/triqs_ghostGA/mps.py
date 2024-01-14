@@ -11,6 +11,7 @@ julia_project_dir=os.environ["PYTHON_JULIAPKG_PROJECT"]
 print(julia_project_dir)
 #from juliacall import Pkg
 Pkg.activate(julia_project_dir)
+Pkg.instantiate()
 jl.seval("using GGMPSSolver")
 include_str="include(\""+julia_project_dir+"/src/driver.jl"+"\")"
 
@@ -22,13 +23,14 @@ from triqs_ghostGA.utils_mps import setup_MPS, rotateBath, rotateDensityMatrix, 
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath):
+    def __init__(self, ntot, nimp, nbath,params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
         """Constructor method
         """
         self.type = "ITensorMPSSolver"
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
+        self.set_kwargs(params) 
         self.schedule = []
         self.tolerances = []
 
@@ -62,9 +64,17 @@ class ITensorMPSSolver(object):
             assert False
         return
 
-    def make_kwargs(self,use_Sz=True,use_Ntot=True,spin_pen=0.0):
-        self.kwargs=[[("use_Sz","use_Ntot","spin_pen"),(use_Sz,use_Ntot,spin_pen)]]
+    def set_kwargs(self,kwargs={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
+        self.kwargs=[[tuple(kwargs.keys()),tuple(kwargs.values())]]
         return
+
+    def modify_kwargs(self, key,value):
+        #make dict out of key, value pairs
+        d=dict(zip(self.kwargs[0][0],self.kwargs[0][1]))
+        d[key]=value
+        self.set_kwargs(d)
+        return
+
     def set_tolerances(self,tol_names=["E","rho"],tol_vals=(1e-5,5e-3)):
         self.tolerances=[[tol_names,tol_vals]]
         return
@@ -94,6 +104,7 @@ class ITensorMPSSolver(object):
                  "dn": np.block([[self.E["dn"], self.W["dn"]],
                                  [self.W["dn"].T, self.B["dn"]]])}
         np.set_printoptions(precision=5, threshold=np.inf, linewidth=np.inf)
+        
         #print('M["up"] before rotating the bath:')
         #print(self.M["up"])
         #print()
@@ -112,6 +123,10 @@ class ITensorMPSSolver(object):
         #print("M['up'] after rotating to the basis in which the bath is diagonal:")
         #print(self.M['up'])
         #print()
+
+        ##modify the parameter for spin_pen
+        self.modify_kwargs("spin_pen",spin_pen)
+
 
     def solve_Hemb(self, num_eig=1, verbose=1, outfile="data"):
         # Setting up some parameters for ForkTPS

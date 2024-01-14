@@ -97,6 +97,16 @@ class test_lattice_solver(unittest.TestCase):
         print(grisb.docc)
         print(grisb.denMat)
 
+        # test julia MPS solver
+        from triqs_ghostGA.mps import ITensorMPSSolver as MPS
+        edsolver = MPS(ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.05})
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
+                      Lambda=Lambda0, edsolver=edsolver)
+        grisb.run(itmax=1, mix=0.5, tol=5e-2, beta=500,
+                  silence=True, spin_pen=0.05)
+        print(grisb.docc)
+        print(grisb.denMat)
+
     def test_grisb_with_diis(self):
         from triqs_ghostGA.ci import CI
         nimp, nbath, ntot = 2, 6, 8

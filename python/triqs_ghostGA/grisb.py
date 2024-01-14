@@ -145,25 +145,16 @@ class Grisb(object):
             # self.E2loc = self.edsolver.compute_E2loc()
         elif self.edsolver.type == "FTPS":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-            # self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
-            # self.denMat = self.edsolver.calc_density_matrix()
-            # self.E2loc = self.edsolver.compute_E2loc()
         elif self.edsolver.type == "ITensorMPSSolver":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
             self.edsolver.schedule=[]
             self.edsolver.make_schedule()
-            self.edsolver.set_tolerances(["Etol","rhotol"],[1e-5,5e-3])
-            self.edsolver.make_kwargs(use_Ntot=True,use_Sz=True,spin_pen=spin_pen)
-            # self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
-            # self.denMat = self.edsolver.calc_density_matrix()
-            # self.E2loc = self.edsolver.compute_E2loc()
+            self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
         else:
-            raise ValueError("only Full ED, CI, and HCI are supported")
+            raise ValueError("only Full ED, CI, and HCI are supported")     #ToDo: Replace whole if-clause by edsolver.prolog(self) implemented by Solver(AbstractSolver)
         self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
         self.denMat = self.edsolver.calc_density_matrix()
         self.E2loc = self.edsolver.compute_E2loc()
-        #print(self.denMat)
-        #quit()
 
     def compute_energy(self,beta=200.,mu=0.0):
         """ Compute total energy, kinetic energy, and potential energy
@@ -171,7 +162,6 @@ class Grisb(object):
 
         ###FIXME: Understand how the partitioning here is meant?
         #self.ekin = [np.sum(self.R.dot( self.eks[x] ).dot( self.R.conj().T )*self.rhok_list[x].T ) for x in range(len(self.rhok_list))]
-
         #self.ekin = sum(self.ekin)/float(len(self.rhok_list))
         self.ekin = sum([np.sum( ( np.dot(self.R, np.dot(x, self.R.conj().T )) ) * \
                     calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
