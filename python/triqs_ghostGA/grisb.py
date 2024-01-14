@@ -145,7 +145,7 @@ class Grisb(object):
             # self.E2loc = self.edsolver.compute_E2loc()
         elif self.edsolver.type == "FTPS":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-        elif type(self.edsolver) == "ITensorMPSSolver":
+        elif self.edsolver.type == "ITensorMPSSolver":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
             self.edsolver.schedule=[]
             self.edsolver.make_schedule()
