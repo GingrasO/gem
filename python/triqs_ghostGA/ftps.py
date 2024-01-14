@@ -20,6 +20,7 @@ class FTPS(object):
     def __init__(self, ntot, nimp, nbath, maxM=200):
         """Constructor method
         """
+        self.type = "FTPS"
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
