@@ -41,7 +41,7 @@ def countSetBits(n):
 #    self.use_sz = use_sz
 #    self.thermal = thermal
 #    print 'initialize the Hilbert space for %g orbitals using Ntot (%s), Sz (%s), and thermal (%s)'%(self.norb, self.use_ntot, self.use_sz, self.thermal)
-#  
+#
 #  def create_basis(self, N, Sz):
 #    '''
 #    Create many-body basis.
@@ -99,7 +99,7 @@ def table_es_sc(nstate,spinz,dtype=np.int64):
     for bs in tmp:
         print(bs, strb.format(bs) )
         # Get all even bits of x
-        even_bits = bs & 0xAAAAAAAA 
+        even_bits = bs & 0xAAAAAAAA
         # Get all odd bits of x
         odd_bits = bs & 0x55555555
         nup = countSetBits(even_bits)
@@ -157,7 +157,7 @@ def single_and_double_determinants(norb, determinant, use_Sz=False):
         result_sz = []
         for bs in result:
             # Get all even bits of x
-            even_bits = bs & 0xAAAAAAAA 
+            even_bits = bs & 0xAAAAAAAA
             # Get all odd bits of x
             odd_bits = bs & 0x55555555
             nup = countSetBits(even_bits)
@@ -173,8 +173,8 @@ def single_and_double_determinants(norb, determinant, use_Sz=False):
     return result
 
 def build_no_trial_states(norb, nimp, nelc):
-    """ Natural orbital convention as (nimp|empty|inter|filled) for example 
-        1-orbital impurity        
+    """ Natural orbital convention as (nimp|empty|inter|filled) for example
+        1-orbital impurity
         (01|00000|01|11111)
         (10|00000|10|11111)
 
@@ -205,23 +205,23 @@ def build_no_trial_states(norb, nimp, nelc):
     result = np.array(result)
     return result
 
-if __name__ == "__main__":
-  #basis = basis(2, True, True, False)
-  #print(table_ep(4,2))
-  #print(table_es(4,2,0))
-  #print(table_es_sc(6,-2))
-  #basis.create_basis()
-
-  #Test postHF CISD basis
-  norb = 20
-  #print(len(table_ep(norb,norb//2)), table_ep(norb,norb//2))
-  #strb = '{0:0'+str(norb)+'b}'
-  reference_determinant = int(2**(norb//2) - 1) # reference determinant, lowest nEle orbitals filled
-  #basis = np.array([reference_determinant])
-  basis = single_and_double_determinants(norb, reference_determinant)
-  #print (len(basis), basis)
-  #basis = single_and_double_determinants(norb, reference_determinant, use_Sz=True)
-  #print (len(basis), basis)
-
-  #Test generate natural orbital
-  #build_no_trial_states(24, 4, 12)
+# if __name__ == "__main__":
+#   #basis = basis(2, True, True, False)
+#   #print(table_ep(4,2))
+#   #print(table_es(4,2,0))
+#   #print(table_es_sc(6,-2))
+#   #basis.create_basis()
+#
+#   #Test postHF CISD basis
+#   norb = 20
+#   #print(len(table_ep(norb,norb//2)), table_ep(norb,norb//2))
+#   #strb = '{0:0'+str(norb)+'b}'
+#   reference_determinant = int(2**(norb//2) - 1) # reference determinant, lowest nEle orbitals filled
+#   #basis = np.array([reference_determinant])
+#   basis = single_and_double_determinants(norb, reference_determinant)
+#   #print (len(basis), basis)
+#   #basis = single_and_double_determinants(norb, reference_determinant, use_Sz=True)
+#   #print (len(basis), basis)
+#
+#   #Test generate natural orbital
+#   #build_no_trial_states(24, 4, 12)
