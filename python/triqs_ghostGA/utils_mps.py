@@ -86,7 +86,7 @@ def rotateDensityMatrix(singlePup,singlePdn, v):
     v_dn = v["dn"]
 
     single_up = v_up @ single_up @ np.linalg.inv(v_up)  ##inv is the wrong thing to do here! it's a unitary rotation after all
-    single_dn = v_dn @ single_up @ np.linalg.inv(v_dn)
+    single_dn = v_dn @ single_dn @ np.linalg.inv(v_dn)
 
     return np.block([[single_up,np.zeros(single_up.shape)],[np.zeros(single_up.shape),single_dn]])
 

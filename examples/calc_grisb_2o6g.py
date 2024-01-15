@@ -15,7 +15,7 @@ class TestGrisb(unittest.TestCase):
         ntot = 16
         nimp = 4
         nbath= 12
-
+        
         # construct ek with semicircular DOS 
         e_list = get_semicircle_e_list(nmesh=5000) 
         eks = []
@@ -25,6 +25,7 @@ class TestGrisb(unittest.TestCase):
             tmp = np.kron(tmp,np.eye(2))
             eks.append(tmp)
         eks = np.array(eks)
+        np.random.seed(1234)
         R0 = np.random.rand(nbath//2,nimp//2)
         R0 = np.kron(R0,np.eye(2))
         Lambda0 = np.zeros((nbath//2,nbath//2))
@@ -49,9 +50,11 @@ class TestGrisb(unittest.TestCase):
         eloc[1,3] = 0.0
         eloc[3,1] = 0.0
         Utensor = U_matrix_kanamori(2, U, J)
-
-        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, ed_params={"solver":'ci', 'use_Sz': True, 'use_Ntot': True})
-        grisb.run(itmax=1000, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.05)
+        #print(Utensor.shape)
+        from triqs_ghostGA.ci import CI
+        edsolver=CI(ntot, use_Ntot=True, use_Sz=True, dtype=np.complex128)
+        grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=edsolver)
+        grisb.run(itmax=1, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.00)
 
         docc0 = grisb.docc[0]
         docc1 = grisb.docc[1]
