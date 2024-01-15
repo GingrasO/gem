@@ -88,10 +88,7 @@ class Grisb(object):
         else:
             self.edsolver = edsolver
 
-        # initialize edsolver
-        #self.initialize_edsolver(ed_params)
         # initialize single-particle basis
-
         self.Hspin_list,self.tHspin_list=Hermitian_list(nbath//2)
         self.Hfull_list,self.tHfull_list=Hermitian_list(nbath)
         print('initial R matrix =')
@@ -99,19 +96,8 @@ class Grisb(object):
         print('initial Lambda matrix =')
         print(self.Lambda)
 
-    # def initialize_edsolver(self, ed_params):
-    #     if ed_params["solver"] == 'ci':
-    #         self.edsolver = CI(self.ntot, use_Ntot=ed_params["use_Ntot"], use_Sz=ed_params["use_Sz"], dtype=np.complex128)
-    #     elif ed_params["solver"] == 'ftps':
-    #         self.edsolver = FTPS(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
-    #     elif ed_params["solver"] == 'mps':
-    #         self.edsolver = ITensorMPSSolver(self.ntot, self.nimp, self.nbath, ed_params["maxM"])
-
-    #     else:
-
-    #         raise ValueError("impurity solver are supported")
-
     def build_h1e(self,mu):
+        # TODO: Move to the CI solver?
         h1e = np.zeros((self.ntot,self.ntot), dtype=np.complex128)
         h1e[:self.nimp,:self.nimp] = self.eloc - mu*np.eye(self.nimp)
         h1e[:self.nimp,self.nimp:] = self.D.T
@@ -140,9 +126,6 @@ class Grisb(object):
             #print(h1e)
             #print('spin_pen=',spin_pen)
             self.edsolver.build_Hemb(h1e, self.Utensor, spin_pen=spin_pen, sz_pen=sz_pen)
-            # self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
-            # self.denMat = self.edsolver.calc_density_matrix()
-            # self.E2loc = self.edsolver.compute_E2loc()
         elif self.edsolver.type == "FTPS":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
         elif self.edsolver.type == "ITensorMPSSolver":
@@ -151,7 +134,9 @@ class Grisb(object):
             self.edsolver.make_schedule()
             self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
         else:
-            raise ValueError("only Full ED, CI, and HCI are supported")     #ToDo: Replace whole if-clause by edsolver.prolog(self) implemented by Solver(AbstractSolver)
+            raise ValueError("only Full ED, CI, and HCI are supported")
+            # TODO: Replace whole if-clause by edsolver.prolog(self) implemented by
+            # Solver(AbstractSolver)
         self.edsolver.solve_Hemb(num_eig=num_eig, verbose=ed_verbose )
         self.denMat = self.edsolver.calc_density_matrix()
         self.E2loc = self.edsolver.compute_E2loc()
@@ -286,8 +271,7 @@ class Grisb(object):
                 print("double occupancy=", self.docc)
                 break
 
-    def func_mu(self, x, *args):
-        mu = x
+    def func_mu(self, mu, *args):
         #self.mu_tmp = mu
         nfix, itmax, mix, tol, beta, silence, spin_pen, sz_pen, idx, num_eig, ed_verbose, diis = args
         self.run(mu, itmax, mix, tol, beta, silence, spin_pen, sz_pen, idx, num_eig, ed_verbose, diis)

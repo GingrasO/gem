@@ -11,3 +11,5 @@ build/
 CMakeFiles
 __pycache__/
 *.coverage
+julia/pyjuliapkg/
+julia_init_*.sh

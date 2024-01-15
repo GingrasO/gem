@@ -1451,6 +1451,8 @@ def U_matrix_kanamori(n_orb, U_int, J_hund):
                The four-index interaction matrix in the chosen basis.
     """
 
+    # TODO: Use the native TRIQS function.
+
     U_matrix = np.zeros((n_orb, n_orb, n_orb, n_orb), dtype=np.float64)
     m_range = range(n_orb)
     for m, mp in it.product(m_range, m_range):
