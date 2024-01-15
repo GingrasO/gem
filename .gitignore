@@ -12,4 +12,4 @@ CMakeFiles
 __pycache__/
 *.coverage
 julia/pyjuliapkg/
-julia_init.sh
+julia_init_*.sh
