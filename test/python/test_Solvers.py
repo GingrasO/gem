@@ -169,7 +169,7 @@ class test_hemb_solver_2o6(unittest.TestCase):
 
     def test_grisb_ci(self):
 
-        Utensor = U_matrix_kanamori(2, self.U, self.J)
+        Utensor = U_matrix_kanamori(self.nimp//2, self.U, self.J)
         nimp, nbath, ntot = self.nimp, self.nbath, self.ntot
         eks, eloc = self.eks, self.eloc
         R0, Lambda0 = self.R0, self.Lambda0
