@@ -59,7 +59,7 @@ jobs:
         python3-scipy
         python3-sphinx
         python3-nbsphinx
-        python3-h5py
+        python3-h5py &&
         pip3 install -r requirements.txt
 
     - name: Install homebrew dependencies
