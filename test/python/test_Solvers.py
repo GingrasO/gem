@@ -197,7 +197,6 @@ class test_hemb_solver_2o6(unittest.TestCase):
 
         from triqs_ghostGA.mps import ITensorMPSSolver
         solver = ITensorMPSSolver(ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.05})
-        print(solver.type)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=solver)
         grisb.run(itmax=1, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.05)
 
