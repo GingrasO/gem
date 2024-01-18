@@ -70,6 +70,8 @@ jobs:
         alias python=python3
         pip3.9 install mako numpy scipy mpi4py
         pip3.9 install -r requirements.txt
+        which python                # Still does not find the right one...
+        python --version
 
     - name: add clang cxxflags
       if: ${{ contains(matrix.cxx, 'clang') }}
