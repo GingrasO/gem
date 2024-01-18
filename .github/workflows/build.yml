@@ -65,10 +65,10 @@ jobs:
     - name: Install homebrew dependencies
       if: matrix.os == 'macos-12'
       run: |
-        brew install gcc@12 llvm boost fftw hdf5 open-mpi openblas python@3.11
-        alias python=python3.11
-        pip3.11 install mako numpy scipy mpi4py
-        pip3.11 install -r requirements.txt
+        brew install gcc@12 llvm boost fftw hdf5 open-mpi openblas python@3.9
+        alias python=python3.9
+        pip3.9 install mako numpy scipy mpi4py
+        pip3.9 install -r requirements.txt
 
     - name: add clang cxxflags
       if: ${{ contains(matrix.cxx, 'clang') }}
