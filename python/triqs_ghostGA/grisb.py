@@ -8,8 +8,6 @@ from scipy.linalg import sqrtm
 import h5py
 import numpy as np
 import numba
-# from triqs_ghostGA.ci import *
-# from triqs_ghostGA.ftps import *
 from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination, \
      Hermitian_list, get_blocks, funcMat, calc_nf, dF
 from triqs_ghostGA.DIIS import *
