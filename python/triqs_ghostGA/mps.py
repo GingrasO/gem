@@ -81,28 +81,29 @@ class ITensorMPSSolver(object):
         
     def build_Hemb(self, D, H1E, LAMBDA, V2E, spin_pen=0.0):
         # Local Hamiltonian
-        self.E = {"up": np.zeros((self.nimp//2, self.nimp//2)),
-                  "dn": np.zeros((self.nimp//2, self.nimp//2))}
+        dtype=np.complex_
+        self.E = {"up": np.zeros((self.nimp//2, self.nimp//2),dtype=np.complex_),
+                  "dn": np.zeros((self.nimp//2, self.nimp//2),dtype=np.complex_)}
         self.E["up"] = H1E[::2,::2]
         self.E["dn"] = H1E[1::2,1::2]
 
         # Hybridization matrix
-        self.W = {"up": np.zeros((self.nimp//2, self.nbath//2)),
-                  "dn": np.zeros((self.nimp//2, self.nbath//2))}
+        self.W = {"up": np.zeros((self.nimp//2, self.nbath//2),dtype=np.complex_),
+                  "dn": np.zeros((self.nimp//2, self.nbath//2),dtype=np.complex_)}
         self.W["up"][:,:] = D[::2,::2].conj().T
         self.W["dn"][:,:] = D[1::2,1::2].conj().T
         
         # Bath parameters
-        self.B = {"up": np.zeros((self.nbath//2, self.nbath//2)),
-                  "dn": np.zeros((self.nbath//2, self.nbath//2))}
+        self.B = {"up": np.zeros((self.nbath//2, self.nbath//2),dtype=np.complex_),
+                  "dn": np.zeros((self.nbath//2, self.nbath//2),dtype=np.complex_)}
         self.B["up"][:,:] = -LAMBDA[::2,::2]
         self.B["dn"][:,:] = -LAMBDA[1::2,1::2]
 
         # Set up the M matrix which has all local Ham, hybridization and bath
         self.M = {"up": np.block([[self.E["up"], self.W["up"]],
-                                 [self.W["up"].T, self.B["up"]]]),
+                                 [self.W["up"].T.conjugate(), self.B["up"]]]),
                  "dn": np.block([[self.E["dn"], self.W["dn"]],
-                                 [self.W["dn"].T, self.B["dn"]]])}
+                                 [self.W["dn"].T.conjugate(), self.B["dn"]]])}
         np.set_printoptions(precision=5, threshold=np.inf, linewidth=np.inf)
         
         #print('M["up"] before rotating the bath:')
