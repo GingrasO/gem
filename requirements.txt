@@ -1,7 +1,7 @@
 # Required python packages for this application (these should also be added to Dockerfile for Jenkins)
-numpy
 numba
+numpy
 pytest
 scipy
 primme
-h5py
+juliacall --no-binary=juliacall

@@ -23,14 +23,14 @@ from triqs_ghostGA.utils_mps import setup_MPS, rotateBath, rotateDensityMatrix, 
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath,params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
+    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
         """Constructor method
         """
         self.type = "ITensorMPSSolver"
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
-        self.set_kwargs(params) 
+        self.set_kwargs(params)
         self.schedule = []
         self.tolerances = []
 
@@ -78,7 +78,7 @@ class ITensorMPSSolver(object):
     def set_tolerances(self,tol_names=["E","rho"],tol_vals=(1e-5,5e-3)):
         self.tolerances=[[tol_names,tol_vals]]
         return
-        
+
     def build_Hemb(self, D, H1E, LAMBDA, V2E, spin_pen=0.0):
         # Local Hamiltonian
         dtype=np.complex_
@@ -92,7 +92,7 @@ class ITensorMPSSolver(object):
                   "dn": np.zeros((self.nimp//2, self.nbath//2),dtype=np.complex_)}
         self.W["up"][:,:] = D[::2,::2].conj().T
         self.W["dn"][:,:] = D[1::2,1::2].conj().T
-        
+
         # Bath parameters
         self.B = {"up": np.zeros((self.nbath//2, self.nbath//2),dtype=np.complex_),
                   "dn": np.zeros((self.nbath//2, self.nbath//2),dtype=np.complex_)}
@@ -105,7 +105,7 @@ class ITensorMPSSolver(object):
                  "dn": np.block([[self.E["dn"], self.W["dn"]],
                                  [self.W["dn"].T.conjugate(), self.B["dn"]]])}
         np.set_printoptions(precision=5, threshold=np.inf, linewidth=np.inf)
-        
+
         #print('M["up"] before rotating the bath:')
         #print(self.M["up"])
         #print()
@@ -132,7 +132,7 @@ class ITensorMPSSolver(object):
     def solve_Hemb(self, num_eig=1, verbose=1, outfile="data"):
         # Setting up some parameters for ForkTPS
         #maxM = 300 # Maximum dimension bond for DMRG
-        
+
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
         self.converged=False
@@ -147,16 +147,16 @@ class ITensorMPSSolver(object):
         #print(self.singleP)
         ##Assumes this one is the same now
         self.singleP = rotateToTsungHanConvention(self.singleP, self.nimp//2, self.nbath//self.nimp)
-       
+
         self.dm = self.singleP
         return self.dm
 
     def calc_double_occ(self,idx):
         print('warning: double occupancy not implement!')
         return 0.25
- 
+
     def compute_E2loc(self):
         #eone = 2*numpy.einsum('ij,ij',self.h1,self.dm[::2,::2])
         #etwo = self.e0 - eone
         return self.EHint
-    
+
