@@ -1,7 +1,7 @@
-from qepack.grisb import *
+from triqs_ghostGA.grisb import *
 
 def calc_rhoks(R, Lambda, eks, T, mu):
-    return [calc_nf( numpy.dot(R, numpy.dot(x , R.conj().T ) ) + Lambda - mu*np.eye(Lambda.shape[0]), T).T for x in eks]
+    return [calc_nf( np.dot(R, np.dot(x , R.conj().T ) ) + Lambda - mu*np.eye(Lambda.shape[0]), T).T for x in eks]
 
 def calc_Delta_p(rhok_list):
     return sum(rhok_list)/len(rhok_list)
@@ -9,24 +9,24 @@ def calc_Delta_p(rhok_list):
 def calc_D(R, Lambda, Delta_p, eks, rhoks):
     """ Compute D matrix
     """
-    Left=[numpy.dot( numpy.dot(eks[x], R.conj().T ), rhoks[x].T ) for x in range(len(rhoks))]
+    Left=[np.dot( np.dot(eks[x], R.conj().T ), rhoks[x].T ) for x in range(len(rhoks))]
     Left=sum(Left)/float(len(rhoks))
     Right=funcMat(Delta_p, denR)
-    return numpy.dot(Right,numpy.transpose(Left))
+    return np.dot(Right,np.transpose(Left))
 
 def calc_Lambda_c(R, Lambda, Delta_p, D, H_list):
     """ Compute Lambda_c matrix
     """
     no = Lambda.shape[0]
     l=inverse_realHcombination(Lambda,H_list)
-    lc=numpy.copy(l)*0.0
-    MM=numpy.dot(D,numpy.transpose(R))
+    lc=np.copy(l)*0.0
+    MM=np.dot(D,np.transpose(R))
     for k in range(len(H_list)):
         AA=Delta_p
         HH=H_list[k].T 
         derivative=dF(AA,HH, denRm1, ddenRm1)
-        tt=numpy.trace(numpy.dot(MM,derivative))
-        lc[k]=-l[k]-(tt+numpy.conjugate(tt)).real
+        tt=np.trace(np.dot(MM,derivative))
+        lc[k]=-l[k]-(tt+np.conjugate(tt)).real
     Lambda_c=realHcombination(lc,H_list)
     return Lambda_c
 
@@ -35,14 +35,14 @@ def calc_Lambda(R, Lambda_c, Delta_p, D, H_list):
     """
     no = Lambda_c.shape[0]
     lc=inverse_realHcombination(Lambda_c,H_list)
-    l=numpy.copy(lc)*0.0
-    MM=numpy.dot(D,numpy.transpose(R))
+    l=np.copy(lc)*0.0
+    MM=np.dot(D,np.transpose(R))
     for k in range(len(H_list)):
         AA=Delta_p
         HH=H_list[k].T 
         derivative=dF(AA,HH, denRm1, ddenRm1)
-        tt=numpy.trace(numpy.dot(MM,derivative))
-        l[k]=-lc[k]-(tt+numpy.conjugate(tt)).real
+        tt=np.trace(np.dot(MM,derivative))
+        l[k]=-lc[k]-(tt+np.conjugate(tt)).real
     Lambda=realHcombination(l,H_list)
     return Lambda
 
@@ -78,19 +78,19 @@ class Grisb_muqp(Grisb):
     :type ntot: int
 
     :param eks: Momentum distribution.
-    :type eks: numpy.ndarray
+    :type eks: np.ndarray
 
     :param eloc: Local one-body Hamtilonian.
-    :type eloc: numpy.ndarray
+    :type eloc: np.ndarray
 
     :param Utensor: Local two-obdy interaction.
-    :type Utensor: numpy.ndarray
+    :type Utensor: np.ndarray
 
     :param R: R matrix.
-    :type R: numpy.ndarray
+    :type R: np.ndarray
 
     :param Lambda: Lambda matrix.
-    :type Lambda: numpy.ndarray
+    :type Lambda: np.ndarray
 
     :param ed_params: Exact diagonalization solver parameters.
     :type ed_params: dic
@@ -105,8 +105,8 @@ class Grisb_muqp(Grisb):
     def compute_energy(self,beta=200.,mu=0.0):
         """ Compute total energy, kinetic energy, and potential energy
         """
-        self.ekin = sum([numpy.sum( ( numpy.dot(self.R, numpy.dot(x, self.R.conj().T )) ) * \
-                    calc_nf( numpy.dot(self.R, numpy.dot(x, self.R.conj().T) ) + self.Lambda - mu*np.eye(self.Lambda.shape[0]), 1./beta).T ) for x in self.eks] )/float(len(self.eks))
+        self.ekin = sum([np.sum( ( np.dot(self.R, np.dot(x, self.R.conj().T )) ) * \
+                    calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda - mu*np.eye(self.Lambda.shape[0]), 1./beta).T ) for x in self.eks] )/float(len(self.eks))
         self.epot = self.E2loc + np.trace(self.eloc.dot(self.denMat[:self.nimp,:self.nimp].T))
         self.etot = self.ekin + self.epot - mu*self.nfill
 
@@ -168,18 +168,18 @@ class Grisb_muqp(Grisb):
             #Update R and Update Lambda
             cdaggerf = self.denMat[:self.nimp,self.nimp:]
             ffdagger = self.denMat[self.nimp:,self.nimp:]
-            ffdagger = (numpy.eye(self.nbath,dtype=numpy.complex128) - ffdagger).T
+            ffdagger = (np.eye(self.nbath,dtype=np.complex128) - ffdagger).T
             if not silence:
-                print("norm(ffdagger.T-Delta_p)=", numpy.linalg.norm(ffdagger.T-self.Delta_p))
+                print("norm(ffdagger.T-Delta_p)=", np.linalg.norm(ffdagger.T-self.Delta_p))
             self.Delta_p = ffdagger.T
-            R_new = numpy.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
+            R_new = np.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
             if self.spin_sym:
-                R_new = numpy.kron(R_new[::2,::2],numpy.eye(2))# symmetrize
+                R_new = np.kron(R_new[::2,::2],np.eye(2))# symmetrize
             Lambda_new = calc_Lambda(R_new, self.Lambda_c, self.Delta_p, self.D, self.Hfull_list)
             if self.spin_sym:
-                Lambda_new = numpy.kron(Lambda_new[::2,::2],numpy.eye(2)) # symmetryize
-            diff_R = numpy.abs(self.R-R_new).max()
-            diff_Lambda = numpy.abs(self.Lambda-Lambda_new).max()
+                Lambda_new = np.kron(Lambda_new[::2,::2],np.eye(2)) # symmetryize
+            diff_R = np.abs(self.R-R_new).max()
+            diff_Lambda = np.abs(self.Lambda-Lambda_new).max()
             self.diff = max(diff_R,diff_Lambda)
             if diis and ( it >= numNonDIIS ):
                 error = Lambda_new - self.Lambda
@@ -188,8 +188,8 @@ class Grisb_muqp(Grisb):
                 self.R = R_new#RDIIS.Solve()
                 self.Lambda = LDIIS.Solve()
             else:
-                self.R = (1.-mix)*numpy.copy(self.R) + mix*R_new
-                self.Lambda = (1.-mix)*numpy.copy(self.Lambda) + mix*Lambda_new
+                self.R = (1.-mix)*np.copy(self.R) + mix*R_new
+                self.Lambda = (1.-mix)*np.copy(self.Lambda) + mix*Lambda_new
             if not silence:
                 print("R_new=")
                 print(R_new)
@@ -208,7 +208,7 @@ class Grisb_muqp(Grisb):
                 print("--------------------- ghost-RISB converged with diff=%g ---------------------"%(self.diff))
                 print("density matrix=")
                 print(self.denMat)
-                self.nfill = numpy.trace(self.denMat[:self.nimp,:self.nimp])
+                self.nfill = np.trace(self.denMat[:self.nimp,:self.nimp])
                 self.docc = []
                 for idx in range(0,self.nimp,2):
                     self.docc.append(self.edsolver.calc_double_occ(idx))
@@ -223,13 +223,13 @@ class Grisb_muqp(Grisb):
     @staticmethod
     #@numba.jit(nopython=True)
     def _compute_Gf_Sig(mu, ek_path, oms, eta, R, Lambda, eloc, nbath, nimp):
-        Gf = np.zeros((ek_path.shape[0],oms.shape[0],nimp,nimp),dtype=numpy.complex128)#numba.complex128)
-        Sig = np.zeros((oms.shape[0],nimp,nimp),dtype=numpy.complex128)#numba.complex128)
+        Gf = np.zeros((ek_path.shape[0],oms.shape[0],nimp,nimp),dtype=np.complex128)#numba.complex128)
+        Sig = np.zeros((oms.shape[0],nimp,nimp),dtype=np.complex128)#numba.complex128)
         for ik, ek in enumerate(ek_path):
             for iom, om in enumerate(oms):
-                Gf[ik,iom,:,:] = R.conj().T.dot( numpy.linalg.inv( (om+1j*eta + mu)*np.eye(nbath)
+                Gf[ik,iom,:,:] = R.conj().T.dot( np.linalg.inv( (om+1j*eta + mu)*np.eye(nbath)
                                   - R.dot(ek).dot(R.conj().T) - Lambda ) ).dot(R)
                 if ik == 0:
-                    Sig[iom,:,:] = (om + 1j*eta + mu)*np.eye(nimp) - ek - eloc - numpy.linalg.inv(Gf[ik,iom]) #om + 1j*eta - ek - numpy.linalg.inv(Gf[ik,iom])
+                    Sig[iom,:,:] = (om + 1j*eta + mu)*np.eye(nimp) - ek - eloc - np.linalg.inv(Gf[ik,iom]) #om + 1j*eta - ek - np.linalg.inv(Gf[ik,iom])
         return Gf, Sig
 
