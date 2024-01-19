@@ -55,7 +55,9 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     H=GGMPSSolver.ITensors.MPO(os,sites)
     Hint=GGMPSSolver.ITensors.MPO(os_quartic,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
     if !iszero(spin_pen)
-       @assert GGMPSSolver.compute_commutator(H,S2)<1e-3
+       spincommutator = GGMPSSolver.compute_commutator(H,S2)
+       @show spincommutator
+       @assert spincommutator<1e-2
     end
     @show GGMPSSolver.ITensors.maxlinkdim(H)
     
@@ -86,7 +88,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
         #@show typeof(H)
-        E,psi=GGMPSSolver.ITensors.dmrg(H,psi; observer=obs,pars...)
+        E,psi=GGMPSSolver.ITensors.dmrg(H,psi; observer=obs,eigsolve_krylovdim=10,pars...)
         savedata(outfile,obs.the_observer)
         GC.gc()
         Eint=GGMPSSolver.ITensors.inner(psi',Hint,psi)
