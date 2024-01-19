@@ -59,13 +59,15 @@ def rotateBath(M, Norb, Nbath):
         # Wd = M[name][Norb:, :Norb]
 
         # Diagonalization of the bath
-        w, v = np.linalg.eig(B)
+        assert np.allclose(0.5*(B+B.T.conjugate()),B)
+        w, v = np.linalg.eigh(0.5*(B+B.T.conjugate()))
         # Keep the eigenvectors in memory
         v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
                                 [np.zeros((Norb*Nbath, Norb)), v]])
 
         # Rotate the embedded Hamiltonian
-        M_rot[name] = np.linalg.inv(v_all[name]) @ M_rot[name] @ v_all[name]
+        M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
+        assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
     return M_rot, v_all
 
 def rotateDensityMatrix(singlePup,singlePdn, v):
@@ -85,8 +87,8 @@ def rotateDensityMatrix(singlePup,singlePdn, v):
     v_up = v["up"]
     v_dn = v["dn"]
 
-    single_up = v_up @ single_up @ np.linalg.inv(v_up)  ##inv is the wrong thing to do here! it's a unitary rotation after all
-    single_dn = v_dn @ single_dn @ np.linalg.inv(v_dn)
+    single_up = v_up @ single_up @ v_up.T.conjugate()  ##inv is the wrong thing to do here! it's a unitary rotation after all
+    single_dn = v_dn @ single_dn @ v_dn.T.conjugate()
 
     return np.block([[single_up,np.zeros(single_up.shape)],[np.zeros(single_up.shape),single_dn]])
 
