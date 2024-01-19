@@ -1,6 +1,6 @@
 #######################################################
 # Example for the degenerate two-orbital Hubbard model
-# Author: Tsung-Han Lee 
+# Author: Tsung-Han Lee
 # Email: henhans74716@gmail.com
 #######################################################
 import unittest
@@ -8,13 +8,24 @@ import numpy as np
 import h5py
 from triqs_ghostGA.grisb import *
 from triqs_ghostGA.utils_TH import get_semicircle_e_list,U_matrix_kanamori
+
 #from triqs_ghostGA.mps import *
 class TestGrisb(unittest.TestCase):
     def runTest(self):
         np.set_printoptions(suppress=True,precision=10)
-        ntot = 16
-        nimp = 4
-        nbath= 12
+
+        ntot, nimp, nbath = 16, 4, 12
+
+        U = 1.2
+        J = U/4.
+
+        nnom = 2.0
+        eloc = np.zeros((nimp,nimp))
+        eloc[0,0] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
+        eloc[1,1] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
+        eloc[2,2] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
+        eloc[3,3] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
+
         start_from_checkpoint=False
         if start_from_checkpoint==True:
             f=h5py.File("checkpoint.h5","r")
@@ -24,21 +35,9 @@ class TestGrisb(unittest.TestCase):
             eks=f["eks"][:]
             mu=f["mu"][()]
             f.close()
-            U=1.2
-            J=U/4.
-            nnom=2.0
-            eloc=np.zeros((nimp,nimp))
-            eloc[0,0] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[1,1] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[2,2] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[3,3] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[0,2] = 0.0
-            eloc[2,0] = 0.0
-            eloc[1,3] = 0.0
-            eloc[3,1] = 0.
         else:
-            # construct ek with semicircular DOS 
-            e_list = get_semicircle_e_list(nmesh=5000) 
+            # construct ek with semicircular DOS
+            e_list = get_semicircle_e_list(nmesh=5000)
             eks = []
             for e in e_list:
                 tmp = np.array([[1.0*e, 0.0  ],
@@ -58,24 +57,13 @@ class TestGrisb(unittest.TestCase):
             Lambda0[5,5] =-0.1
             Lambda0 = np.kron(Lambda0,np.eye(2))
 
-            U = 1.2
-            J = U/4.
-            eloc = np.zeros((nimp,nimp))
-            nnom = 2.0
-            eloc[0,0] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[1,1] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[2,2] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[3,3] =-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
-            eloc[0,2] = 0.0
-            eloc[2,0] = 0.0
-            eloc[1,3] = 0.0
-            eloc[3,1] = 0.0
             from triqs.operators.util import U_matrix_kanamori as Umk
             Utensor = Umk(2, U, J,full_Uijkl=True)
             #Utensor *= 2.0
-        from triqs_ghostGA.mps import ITensorMPSSolver 
+
+        from triqs_ghostGA.mps import ITensorMPSSolver
         solver = ITensorMPSSolver(ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.05})
-        print(solver.type) 
+        print(solver.type)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=solver)
         grisb.run(itmax=1, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.05)
 
