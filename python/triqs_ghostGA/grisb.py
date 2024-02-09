@@ -63,7 +63,7 @@ class Grisb(object):
         self.Utensor = Utensor
         self.soc = soc
         self.spin_sym = spin_sym
-        self_gs_wf = None
+        self.gs_wf = None
         # initialize R and Lambda
         if R is None:
             self.R = np.kron(np.ones((nbath//2,nimp//2)), np.eye(2))*0.5
