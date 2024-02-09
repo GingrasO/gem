@@ -12,6 +12,7 @@ from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inve
      Hermitian_list, get_blocks, funcMat, calc_nf, dF
 from triqs_ghostGA.DIIS import *
 from triqs_ghostGA.utils_grisb import *
+from h5 import *
 
 
 class Grisb(object):
@@ -62,6 +63,7 @@ class Grisb(object):
         self.Utensor = Utensor
         self.soc = soc
         self.spin_sym = spin_sym
+        self_gs_wf = None
         # initialize R and Lambda
         if R is None:
             self.R = np.kron(np.ones((nbath//2,nimp//2)), np.eye(2))*0.5
@@ -152,6 +154,22 @@ class Grisb(object):
                     calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
         self.epot = self.E2loc + np.trace(self.eloc.dot(self.denMat[:self.nimp,:self.nimp].T))
         self.etot = self.ekin + self.epot - mu*self.nfill
+
+    def save_data(self, mu, filepath="saved_data.h5", save_state=True):
+        from datetime import datetime
+        with HDFArchive(filepath, 'a') as A:
+            tmp_dict = {
+                "eloc": self.eloc,
+                "D": self.D,
+                "Lambda_c": self.Lambda_c,
+                "Utensor": self.Utensor,
+                "mu": mu,
+            }
+            if self.gs_wf is not None:
+                tmp_dict['gs_wf'] = self.gs_wf
+
+            timestamp = "%d" % datetime.timestamp(datetime.now())
+            A[timestamp] = tmp_dict
 
     def run(self, mu=0.0, itmax=200, mix=0.5, tol=1e-6, beta=200., silence=True, spin_pen=0.0, sz_pen=0.0, idx=0, num_eig=2, ed_verbose=0, diis=False):
         """ Run ghost-RISB self-consistency
@@ -259,6 +277,10 @@ class Grisb(object):
                 print(ffdagger.T)
                 print("density matrix=")
                 print(self.denMat[::2,::2])
+
+            # Save information
+            self.save_data(mu)
+
             print("iteration:",it,'diff=',self.diff)
             if self.diff < tol or it == (itmax-1):
                 print("--------------------- ghost-RISB converged with diff=%g ---------------------"%(self.diff))
