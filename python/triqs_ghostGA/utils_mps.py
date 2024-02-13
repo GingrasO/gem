@@ -34,6 +34,8 @@ def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=
     kwarg_vals=(use_Sz,use_Ntot,spin_pen)
     converged, Eint, Cuu,Cdd=jl.solve(Utensor,M,schedule,tolerances,[kwarg_names,kwarg_vals]
            )
+    #Cuu = 0.5*(Cuu + Cdd)
+    #Cdd = Cuu.copy()
 
     return  Cuu,Cdd, Eint
 
@@ -48,6 +50,8 @@ def rotateBath(M, Norb, Nbath):
         Nbath : int : Number of bath per orbital.
     """
     # Preparing the rotated Embedded Hamiltonian
+    #M_rot = {"up": np.copy(0.5*(M["up"]+M["dn"])),
+    #         "dn": np.copy(0.5*(M["up"]+M["dn"]))}
     M_rot = {"up": np.copy(M["up"]),
              "dn": np.copy(M["dn"])}
 

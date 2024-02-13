@@ -42,16 +42,22 @@ class test_hemb_2o6_mps(unittest.TestCase):
         R0 = np.kron(R0, np.eye(2))
 
         Lambda0 = np.zeros((nbath//2, nbath//2))
-        Lambda0[0, 0], Lambda0[1, 1] = 0.1, 0.1
+        Lambda0[0, 0], Lambda0[1, 1] = 0.2, 0.2
         Lambda0[2, 2], Lambda0[3, 3] = 0.0, 0.0
-        Lambda0[4, 4], Lambda0[5, 5] = -0.1, -0.1
+        Lambda0[4, 4], Lambda0[5, 5] = -0.2, -0.2
         Lambda0 = np.kron(Lambda0, np.eye(2))
 
         Utensor = Umk(nimp//2, U, J, full_Uijkl=True)
 
         solver = ITensorMPSSolver(ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.05})
+        solver.schedule=[]
+        solver.add_to_schedule(nsweeps=2,maxdim=128,cutoff=1e-10,noise=1e-8)
+        solver.add_to_schedule(nsweeps=3,maxdim=256,cutoff=1e-12,noise=1e-10)
+        solver.add_to_schedule(nsweeps=2,maxdim=512,cutoff=1e-14,noise=0.0)
+        solver.set_tolerances(tol_vals=(1e-6,1e-4))
+        
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=solver)
-        grisb.run(itmax=1, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.05)
+        grisb.run(itmax=100, mix=0.5, tol=1e-6, beta=500, silence=False, spin_pen=0.0)
 
         docc0 = grisb.docc[0]
         docc1 = grisb.docc[1]
