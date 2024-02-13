@@ -7,4 +7,14 @@ export PATH=@CMAKE_INSTALL_PREFIX@/bin:$PATH
 export LIBRARY_PATH=@CMAKE_INSTALL_PREFIX@/lib:$LIBRARY_PATH
 export LD_LIBRARY_PATH=@CMAKE_INSTALL_PREFIX@/lib:$LD_LIBRARY_PATH 
 export CMAKE_PREFIX_PATH=@CMAKE_INSTALL_PREFIX@:$CMAKE_PREFIX_PATH
+#ToDo: add runtime env variables here
+#- remove triqs dependecy from cmake
+#- findpackage(Python)
+#- figure out julia package path ?
+#- install julia / copy files to install path 
+#- check for available solvers in cmake
+#- print available solvers/ test only the available ones
+#- julia setup independent, require julicacall being installed
+#- simply import solver as package from python via juliacall
+#- run tests
 @EXPORT_PYTHON_PATH@
