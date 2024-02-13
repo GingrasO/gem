@@ -51,7 +51,7 @@ class test_hemb_2o6_mps(unittest.TestCase):
 
         solver = ITensorMPSSolver(ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.05})
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=solver)
-        grisb.run(itmax=1, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.05)
+        grisb.run(itmax=100, mix=0.5, tol=1e-6, beta=500, silence=True, spin_pen=0.05)
 
         docc0 = grisb.docc[0]
         docc1 = grisb.docc[1]
