@@ -130,9 +130,9 @@ class Grisb(object):
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
         elif self.edsolver.type == "ITensorMPSSolver":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-            self.edsolver.schedule=[]
-            self.edsolver.make_schedule()
-            self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
+            #self.edsolver.schedule=[]
+            #self.edsolver.make_schedule()
+            #self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
         elif self.edsolver.type == "PySCFCCSD":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
         else:

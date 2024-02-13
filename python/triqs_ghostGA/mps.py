@@ -32,7 +32,9 @@ class ITensorMPSSolver(object):
         self.nbath = nbath
         self.set_kwargs(params)
         self.schedule = []
+        self.make_schedule()    #initialize with default
         self.tolerances = []
+        self.set_tolerances()   #initialize with default
 
     def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
         thesweep=    {
@@ -75,7 +77,7 @@ class ITensorMPSSolver(object):
         self.set_kwargs(d)
         return
 
-    def set_tolerances(self,tol_names=["E","rho"],tol_vals=(1e-5,5e-3)):
+    def set_tolerances(self,tol_names=("E","rho"),tol_vals=(1e-5,5e-3)):
         self.tolerances=[[tol_names,tol_vals]]
         return
 
