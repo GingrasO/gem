@@ -13,6 +13,7 @@ from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inve
 from triqs_ghostGA.DIIS import *
 from triqs_ghostGA.utils_grisb import *
 from h5 import *
+import sys
 
 
 class Grisb(object):
@@ -292,6 +293,7 @@ class Grisb(object):
                     self.docc.append(self.edsolver.calc_double_occ(idx))
                 print("double occupancy=", self.docc)
                 break
+        sys.stdout.flush()
 
     def func_mu(self, mu, *args):
         #self.mu_tmp = mu
