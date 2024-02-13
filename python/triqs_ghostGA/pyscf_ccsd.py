@@ -1,4 +1,5 @@
-from pyscf import fci, gto, scf, ao2mo, ci, cc, hci, lib, dmrgscf
+#from pyscf import fci, gto, scf, ao2mo, ci, cc, hci, lib, dmrgscf
+from pyscf import fci, gto, scf, ao2mo, ci, cc, lib # dmrgscf
 from pyscf.scf import diis
 import numpy
 import os
