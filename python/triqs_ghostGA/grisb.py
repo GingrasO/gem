@@ -293,7 +293,7 @@ class Grisb(object):
                     self.docc.append(self.edsolver.calc_double_occ(idx))
                 print("double occupancy=", self.docc)
                 break
-        sys.stdout.flush()
+            sys.stdout.flush()
 
     def func_mu(self, mu, *args):
         #self.mu_tmp = mu
