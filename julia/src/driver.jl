@@ -84,9 +84,10 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     oldCuu=nothing
     oldCdd=nothing
     Eold=nothing
-    
-    Eint, Cuu, Cdd = nothing, nothing, nothing
-
+    ## bring exported quantities into this scope
+    Cuu=nothing
+    Cdd=nothing
+    Eint=nothing
     ## setup observers
     internal_obs = GGMPSSolver.Observers.Observer(
         "sweepnumber"=>get_total_sweep,
