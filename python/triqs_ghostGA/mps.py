@@ -35,6 +35,8 @@ class ITensorMPSSolver(object):
         self.make_schedule()    #initialize with default
         self.tolerances = []
         self.set_tolerances()   #initialize with default
+        self.scalartype = np.float_ # if not set elsewhere
+        self.paramagnetic = True
 
     def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
         thesweep=    {
@@ -83,21 +85,22 @@ class ITensorMPSSolver(object):
 
     def build_Hemb(self, D, H1E, LAMBDA, V2E, spin_pen=0.0):
         # Local Hamiltonian
-        dtype=np.complex_
-        self.E = {"up": np.zeros((self.nimp//2, self.nimp//2),dtype=np.complex_),
-                  "dn": np.zeros((self.nimp//2, self.nimp//2),dtype=np.complex_)}
+        #thedtype=np.complex_
+        thedtype=self.scalartype
+        self.E = {"up": np.zeros((self.nimp//2, self.nimp//2),dtype=thedtype),
+                  "dn": np.zeros((self.nimp//2, self.nimp//2),dtype=thedtype)}
         self.E["up"] = H1E[::2,::2]
         self.E["dn"] = H1E[1::2,1::2]
 
         # Hybridization matrix
-        self.W = {"up": np.zeros((self.nimp//2, self.nbath//2),dtype=np.complex_),
-                  "dn": np.zeros((self.nimp//2, self.nbath//2),dtype=np.complex_)}
+        self.W = {"up": np.zeros((self.nimp//2, self.nbath//2),dtype=thedtype),
+                  "dn": np.zeros((self.nimp//2, self.nbath//2),dtype=thedtype)}
         self.W["up"][:,:] = D[::2,::2].conj().T
         self.W["dn"][:,:] = D[1::2,1::2].conj().T
 
         # Bath parameters
-        self.B = {"up": np.zeros((self.nbath//2, self.nbath//2),dtype=np.complex_),
-                  "dn": np.zeros((self.nbath//2, self.nbath//2),dtype=np.complex_)}
+        self.B = {"up": np.zeros((self.nbath//2, self.nbath//2),dtype=thedtype),
+                  "dn": np.zeros((self.nbath//2, self.nbath//2),dtype=thedtype)}
         self.B["up"][:,:] = -LAMBDA[::2,::2]
         self.B["dn"][:,:] = -LAMBDA[1::2,1::2]
 
@@ -117,7 +120,7 @@ class ITensorMPSSolver(object):
 
         # Rotate the Bath and Hybridization for smaller entropy
         ## We can either assume that this just works out of the box, or assume the bath is diagonal?
-        self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp)
+        self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp,paramagnetic=self.paramagnetic)
         self.M["up"]=0.5*(self.M["up"] + self.M["up"].T.conjugate())
         self.M["dn"]=0.5*(self.M["dn"] + self.M["dn"].T.conjugate())
         #print('v=')
@@ -139,6 +142,12 @@ class ITensorMPSSolver(object):
         # Set up and run ForkTPS using the useful_func.py
         self.converged=False
         self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
+        print(self.singleP_rot_up)
+        self.singleP_rot_up = np.asarray(self.singleP_rot_up)
+        self.singleP_rot_dn = np.asarray(self.singleP_rot_dn)
+        if self.paramagnetic:
+            self.singleP_rot_up = 0.5*(self.singleP_rot_up + self.singleP_rot_dn)   #constrains to paramagnet
+            self.singleP_rot_dn = self.singleP_rot_up.copy() #constrains to paramagnet
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')
@@ -149,8 +158,10 @@ class ITensorMPSSolver(object):
         #print(self.singleP)
         ##Assumes this one is the same now
         self.singleP = rotateToTsungHanConvention(self.singleP, self.nimp//2, self.nbath//self.nimp)
-
-        self.dm = self.singleP
+        if self.scalartype==np.float_:
+            self.dm = self.singleP.real
+        else:
+            self.dm = self.singleP
         return self.dm
 
     def calc_double_occ(self,idx):

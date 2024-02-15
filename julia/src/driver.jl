@@ -53,11 +53,23 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
         
     end
     H=GGMPSSolver.ITensors.MPO(os,sites)
+    Hnint=GGMPSSolver.ITensors.MPO(os_quadratic,sites)
     Hint=GGMPSSolver.ITensors.MPO(os_quartic,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
+    @show spin_pen
     if !iszero(spin_pen)
        spincommutator = GGMPSSolver.compute_commutator(H,S2)
        @show spincommutator
-       @assert spincommutator<1e-2
+       spincommutator_int = GGMPSSolver.compute_commutator(Hint,S2)
+       @show spincommutator_int
+       spincommutator_nint = GGMPSSolver.compute_commutator(Hnint,S2)
+       @show spincommutator_nint
+       if spincommutator_nint > 1e-2
+            @show H1Eup
+            @show H1Edn
+            @show all(H1Eup .== H1Edn)
+            @assert false
+       end
+       spincommutator>1e-2 && @warn("Spin commutator larger than expected! Likely due to numerical noise in embedding H.")
     end
     @show GGMPSSolver.ITensors.maxlinkdim(H)
     
@@ -96,8 +108,8 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
         GC.gc()
         Eint=GGMPSSolver.ITensors.inner(psi',Hint,psi)
         S2val=GGMPSSolver.ITensors.inner(psi',S2,psi)
-        Cuu = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagup", "Cup")[perm,perm]
-        Cdd = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagdn", "Cdn")[perm,perm]
+        Cuu = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagup", "Cup";ishermitian=true)[perm,perm]
+        Cdd = GGMPSSolver.ITensors.correlation_matrix(psi, "Cdagdn", "Cdn";ishermitian=true)[perm,perm]
         GC.gc()
         converged=false
         if !isnothing(oldCuu)

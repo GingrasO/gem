@@ -18,6 +18,7 @@
 import numpy as np
 from itertools import product as itp
 
+#DEPRECATE --- not used in current codepath 
 def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=True,spin_pen=0.0):
     """
     Given the embedded Hamiltonian and parameters, run MPS and return density matrix.
@@ -34,12 +35,13 @@ def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=
     kwarg_vals=(use_Sz,use_Ntot,spin_pen)
     converged, Eint, Cuu,Cdd=jl.solve(Utensor,M,schedule,tolerances,[kwarg_names,kwarg_vals]
            )
-    #Cuu = 0.5*(Cuu + Cdd)
-    #Cdd = Cuu.copy()
+    Cuu = 0.5*(Cuu + Cdd)
+    Cdd = Cuu.copy()
 
     return  Cuu,Cdd, Eint
 
-def rotateBath(M, Norb, Nbath):
+
+def rotateBath(M, Norb, Nbath, paramagnetic=True ):
     """
     Diagonalizes the Bath part of the M matrix. Also rotates the hybridization.
     This function returns the rotated M matrix, along with the vectors to
@@ -50,21 +52,27 @@ def rotateBath(M, Norb, Nbath):
         Nbath : int : Number of bath per orbital.
     """
     # Preparing the rotated Embedded Hamiltonian
-    #M_rot = {"up": np.copy(0.5*(M["up"]+M["dn"])),
-    #         "dn": np.copy(0.5*(M["up"]+M["dn"]))}
-    M_rot = {"up": np.copy(M["up"]),
-             "dn": np.copy(M["dn"])}
+    if paramagnetic:
+        Mav=np.copy(0.5*(M["up"]+M["dn"]))
+        M_rot = {"up": np.copy(Mav),
+                "dn": np.copy(Mav)}
+    else:
+        M_rot = {"up": np.copy(M["up"]),
+                 "dn": np.copy(M["dn"])}
 
     # Obtained the eigenvectors of the bath sites to rotate the matrix
     v_all = {"up": [], "dn": []}
     for name in ["up", "dn"]:
-        B = M[name][Norb:, Norb:] # Bath sites
+        #B = M[name][Norb:, Norb:] # Bath sites
+        B = M_rot[name][Norb:, Norb:] # Bath sites
+        
         # W = M[name][:Norb, Norb:]
         # Wd = M[name][Norb:, :Norb]
 
         # Diagonalization of the bath
         assert np.allclose(0.5*(B+B.T.conjugate()),B)
         w, v = np.linalg.eigh(0.5*(B+B.T.conjugate()))
+        #print(name, w)
         # Keep the eigenvectors in memory
         v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
                                 [np.zeros((Norb*Nbath, Norb)), v]])
@@ -72,6 +80,9 @@ def rotateBath(M, Norb, Nbath):
         # Rotate the embedded Hamiltonian
         M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
         assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
+    #M_rot={"up": np.copy(M["up"]),
+    #         "dn": np.copy(M["dn"])}
+    #v_all={"up": np.eye(M["up"].shape[0]), "dn": np.eye(M["dn"].shape[0])}
     return M_rot, v_all
 
 def rotateDensityMatrix(singlePup,singlePdn, v):
