@@ -55,7 +55,7 @@ class Grisb(object):
     :type Hfull_list: list
 
     """
-    def __init__(self, ntot, nimp, nbath, eks, eloc, Utensor, spin_sym=True, soc=False, R=None, Lambda=None, edsolver=None):
+    def __init__(self, ntot, nimp, nbath, eks, eloc, Utensor, spin_sym=True, soc=False, R=None, Lambda=None, edsolver=None, suff=''):
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
@@ -65,6 +65,7 @@ class Grisb(object):
         self.soc = soc
         self.spin_sym = spin_sym
         self.gs_wf = None
+        self.suff = suff    # Suffixe for file writting when many cpu at same time
         # initialize R and Lambda
         if R is None:
             self.R = np.kron(np.ones((nbath//2,nimp//2)), np.eye(2))*0.5
@@ -109,7 +110,7 @@ class Grisb(object):
     def solve_embedding(self, mu, num_eig, ed_verbose, spin_pen, sz_pen=0.0):
         """ Solve embedding problem using a variety of impurity solver
         """
-        fh5 = h5py.File('hemb_test.h5','w')
+        fh5 = h5py.File('hemb_test%s.h5' % self.suff,'w')
         fh5['eloc'] = self.eloc
         fh5['D'] = self.D
         fh5['Lambda_c'] = self.Lambda_c
@@ -156,7 +157,9 @@ class Grisb(object):
         self.epot = self.E2loc + np.trace(self.eloc.dot(self.denMat[:self.nimp,:self.nimp].T))
         self.etot = self.ekin + self.epot - mu*self.nfill
 
-    def save_data(self, mu, filepath="saved_data.h5", save_state=True):
+    def save_data(self, mu, filepath=None, save_state=True):
+        if filepath is None:
+            filepath = "saved_data%s.h5" % self.suff
         from datetime import datetime
         with HDFArchive(filepath, 'a') as A:
             tmp_dict = {
@@ -222,6 +225,8 @@ class Grisb(object):
                     print("Lambda_c=")
                     print(self.Lambda_c[:,:])
             # ED solvers
+            sys.stdout.flush()
+
             self.solve_embedding(mu, num_eig, ed_verbose, spin_pen, sz_pen)
             #Update R and Update Lambda
             cdaggerf = self.denMat[:self.nimp,self.nimp:]
@@ -258,7 +263,7 @@ class Grisb(object):
 #            tmp[:self.nimp,:self.nimp] = sqrtm(self.R.conj().T.dot(self.R)[:self.nimp,:self.nimp])
 #            self.R = tmp
             # check point
-            fh5 = h5py.File('checkpoint.h5','w')
+            fh5 = h5py.File('checkpoint%s.h5' % self.suff,'w')
             fh5['R'] = self.R
             fh5['Lambda'] = self.Lambda
             fh5['eks'] = self.eks
@@ -293,6 +298,8 @@ class Grisb(object):
                     self.docc.append(self.edsolver.calc_double_occ(idx))
                 print("double occupancy=", self.docc)
                 break
+            print("##########")
+            print()
             sys.stdout.flush()
 
     def func_mu(self, mu, *args):
