@@ -36,6 +36,7 @@ class ITensorMPSSolver(object):
         self.tolerances = []
         self.set_tolerances()   #initialize with default
         self.scalartype = np.float_ # if not set elsewhere
+        self.scalartype = np.complex_ # if not set elsewhere
         self.paramagnetic = True
 
     def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
