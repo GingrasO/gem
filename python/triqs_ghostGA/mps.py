@@ -23,7 +23,7 @@ from triqs_ghostGA.utils_mps import setup_MPS, rotateBath, rotateDensityMatrix, 
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
+    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}, suff=""):
         """Constructor method
         """
         self.type = "ITensorMPSSolver"
@@ -38,6 +38,7 @@ class ITensorMPSSolver(object):
         self.scalartype = np.float_ # if not set elsewhere
         self.scalartype = np.complex_ # if not set elsewhere
         self.paramagnetic = True
+        self.suff = suff
 
     def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
         thesweep=    {
@@ -135,17 +136,21 @@ class ITensorMPSSolver(object):
         self.modify_kwargs("spin_pen",spin_pen)
 
 
-    def solve_Hemb(self, num_eig=1, verbose=1, outfile="data"):
+    def solve_Hemb(self, num_eig=1, verbose=1):
         # Setting up some parameters for ForkTPS
         #maxM = 300 # Maximum dimension bond for DMRG
 
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
-        self.converged=False
-        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
-        print(self.singleP_rot_up)
+        outfile = "data%s.h5" % self.suff
+        self.converged = False
+        self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
         self.singleP_rot_up = np.asarray(self.singleP_rot_up)
         self.singleP_rot_dn = np.asarray(self.singleP_rot_dn)
+
+        print("single particle density matrix up: ")
+        print(self.singleP_rot_up)
+
         if self.paramagnetic:
             self.singleP_rot_up = 0.5*(self.singleP_rot_up + self.singleP_rot_dn)   #constrains to paramagnet
             self.singleP_rot_dn = self.singleP_rot_up.copy() #constrains to paramagnet
