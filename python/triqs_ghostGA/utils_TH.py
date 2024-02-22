@@ -121,10 +121,12 @@ def funcMat(H, function, pr=False):
     #
     eigenvalues,U = eigh(H)
     Udagger = U.conj().T
+
     if pr:
         print(eigenvalues)
     #
     functioneigenvalues = function(eigenvalues)
+
     #print functioneigenvalues.dtype
     if pr:
         print(functioneigenvalues)
@@ -744,27 +746,29 @@ def calc_C_hole(H):
     return C
 
 def denR(x):
-    return (x*((1.0+0.j)-x))**(-0.5)
-    #return (x*((1.0+0.j)-x)+1e-12)**(-0.5)
+    # return (x*((1.0+0.j)-x))**(-0.5)
+    return (x*((1.0+0.j)-x)+1e-12)**(-0.5)
 
 def denR_real(x):
     #return 1./sqrt(x*((1.0)-x))
-    return (x*((1.0)-x))**(-0.5)
-    #return (x*((1.0)-x)+1e-12)**(-0.5)
+    # return (x*((1.0)-x))**(-0.5)
+    return (x*((1.0)-x)+1e-12)**(-0.5)
 
 def denRm1(x):
-    return (x*((1.0+0.j)-x))**(0.5)
+    # return (x*((1.0+0.j)-x))**(0.5)
+    return (x*((1.0+0.j)-x)+1e-12)**(0.5)
 
 def denRm1_real(x):
-    return sqrt(x*((1.0)-x))#(x*((1.0)-x))**(0.5)
+    #return sqrt(x*((1.0)-x))#(x*((1.0)-x))**(0.5)
+    return sqrt(x*((1.0)-x)+1e-12)#(x*((1.0)-x))**(0.5)
 
 def ddenRm1(x):
-    return ((0.5-x)/(x*((1.0+0.j)-x))**0.5)
-    #return ((0.5-x)/(x*((1.0+0.j)-x)+1e-12)**0.5)
+    # return ((0.5-x)/(x*((1.0+0.j)-x))**0.5)
+    return ((0.5-x)/(x*((1.0+0.j)-x)+1e-12)**0.5)
 
 def ddenRm1_real(x):
-    return ((0.5-x)/sqrt(x*((1.0)-x)))#(x*((1.0)-x))**0.5)
-    #return ((0.5-x)/sqrt(x*((1.0)-x)+1e-12))#(x*((1.0)-x))**0.5)
+    # return ((0.5-x)/sqrt(x*((1.0)-x)))#(x*((1.0)-x))**0.5)
+    return ((0.5-x)/sqrt(x*((1.0)-x)+1e-12))#(x*((1.0)-x))**0.5)
 
 #def calc_Fermi(x):
 #    """
