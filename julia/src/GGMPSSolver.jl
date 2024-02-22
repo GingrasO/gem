@@ -4,6 +4,7 @@ module GGMPSSolver
     using ITensors
     using NamedTupleTools
     using Random
+    using StatsBase
     using LinearAlgebra
     using Observers
     using ITensors.HDF5

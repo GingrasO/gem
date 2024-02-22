@@ -80,9 +80,10 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
         # Rotate the embedded Hamiltonian
         M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
         assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
-    #M_rot={"up": np.copy(M["up"]),
-    #         "dn": np.copy(M["dn"])}
-    #v_all={"up": np.eye(M["up"].shape[0]), "dn": np.eye(M["dn"].shape[0])}
+    if paramagnetic:
+        M_rot={"up": np.copy(M_rot["up"]) ),
+             "dn": np.copy(M_rot["up"]) }
+        v_all={"up": v_all["up"], "dn": np.copy(v_all["up"])}
     return M_rot, v_all
 
 def rotateDensityMatrix(singlePup,singlePdn, v):
