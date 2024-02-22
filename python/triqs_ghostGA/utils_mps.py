@@ -57,6 +57,8 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
         Mav=np.copy(0.5*(M["up"]+M["dn"]))
         M_rot = {"up": np.copy(Mav),
                 "dn": np.copy(Mav)}
+        print("Mav")
+        print(Mav)
     else:
         M_rot = {"up": np.copy(M["up"]),
                  "dn": np.copy(M["dn"])}
@@ -67,26 +69,40 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
         #B = M[name][Norb:, Norb:] # Bath sites
         B = M_rot[name][Norb:, Norb:] # Bath sites
 
-        # W = M[name][:Norb, Norb:]
-        # Wd = M[name][Norb:, :Norb]
-
         # Diagonalization of the bath
         assert np.allclose(0.5*(B+B.T.conjugate()),B)
         w, v = np.linalg.eigh(0.5*(B+B.T.conjugate()))
-        #print(name, w)
+
+        W = M_rot[name][:Norb, Norb:]
+        W_rot = W @ v
+        ind = np.argsort(np.amax(np.abs(W_rot[:Norb, :]), axis=0))[::-1]
+        w[:] = w[ind]
+        v[:, :] = v[:, ind]
+
         # Keep the eigenvectors in memory
-        # v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
-        #                         [np.zeros((Norb*Nbath, Norb)), v]])
-        v_all[name] = np.eye(Norb*(1+Nbath))
+        v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
+                                [np.zeros((Norb*Nbath, Norb)), v]])
+        # v_all[name] = np.eye(Norb*(1+Nbath))
 
         # Rotate the embedded Hamiltonian
+        # M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
         M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
-        assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
+        try:
+            assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
+        except:
+            print(M_rot[name])
+            print(np.diag(w))
+            raise
     if paramagnetic:
         M_rot={"up": np.copy(M_rot["up"]) ),
              "dn": np.copy(M_rot["up"]) }
         v_all={"up": v_all["up"], "dn": np.copy(v_all["up"])}
-        # assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
+
+    np.set_printoptions(precision=4, linewidth=np.inf, threshold=np.inf)
+    print("M_rot up")
+    print(M_rot["up"].real)
+    print("v_all up")
+    print(v_all["up"])
     #M_rot={"up": np.copy(M["up"]),
     #         "dn": np.copy(M["dn"])}
     #v_all={"up": np.eye(M["up"].shape[0]), "dn": np.eye(M["dn"].shape[0])}
@@ -109,9 +125,9 @@ def rotateDensityMatrix(singlePup,singlePdn, v):
     v_up = v["up"]
     v_dn = v["dn"]
 
+    single_up = v_up @ single_up @ v_up.T.conjugate()  ##inv is the wrong thing to do here! it's a unitary rotation after all
     # single_up = v_up @ single_up @ v_up.T.conjugate()  ##inv is the wrong thing to do here! it's a unitary rotation after all
-    single_up = inv(v_up.T.conjugate()) @ single_up @ inv(v_up)  ##inv is the wrong thing to do here! it's a unitary rotation after all
-    single_dn = inv(v_dn.T.conjugate()) @ single_dn @ inv(v_dn)
+    single_dn = v_dn @ single_dn @ v_dn.T.conjugate()
 
     return np.block([[single_up,np.zeros(single_up.shape)],[np.zeros(single_up.shape),single_dn]])
 
