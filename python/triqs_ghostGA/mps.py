@@ -166,8 +166,6 @@ class ITensorMPSSolver(object):
         # print(Mconn['up'])
 
         sys.stdout.flush()
-        # Setting up some parameters for ForkTPS
-        #maxM = 300 # Maximum dimension bond for DMRG
 
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
@@ -175,7 +173,6 @@ class ITensorMPSSolver(object):
         self.converged = False
 
         ### Run MPS with julia call ###
-        # self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
         self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, Mconn, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
 
         self.singleP_rot_up = np.asarray(self.singleP_rot_up)
@@ -189,25 +186,6 @@ class ITensorMPSSolver(object):
         print(self.singleP_rot_up)
         print("single particle density matrix dn: ")
         print(self.singleP_rot_dn)
-
-        # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_up)
-        # print("eigvals", eigvals)
-        # print(eigvecs)
-        # for i, e_val in enumerate(eigvals):
-        #     if e_val <= 1e-10:
-        #         eigvals[i] = 0.5
-        #     if e_val >= 1-1e-10:
-        #         eigvals[i] = 0.5
-        # self.singleP_rot_up = eigvecs @ np.diag(eigvals) @ eigvecs.T.conjugate()
-        # print(self.singleP_rot_up)
-
-        # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_dn)
-        # for i, e_val in enumerate(eigvals):
-        #     if e_val <= 1e-12:
-        #         eigvals[i] = 0.5
-        #     if e_val >= 1-1e-12:
-        #         eigvals[i] = 0.5
-        # self.singleP_rot_dn = eigvecs @ np.diag(eigvals) @ eigvecs.T.conjugate()
 
         if self.paramagnetic:
             self.singleP_rot_up = 0.5*(self.singleP_rot_up + self.singleP_rot_dn)   #constrains to paramagnet
