@@ -146,24 +146,24 @@ class ITensorMPSSolver(object):
                  "dn": np.copy(self.M["dn"])}
 
         cut = {"up": 0, "dn": 0}
-        for name in ["up", "dn"]:
-            for i in np.arange(self.ntot//2-1, self.nimp//2-1, -1):
-                W = Mconn[name][:self.nimp//2, i]
-                print(W)
-                print(np.amax(np.abs(W)))
-                if np.amax(np.abs(W)) < 1e-6 and Mconn[name][i, i] < 5e-3:
-                    print(i)
-                    Mconn[name] = np.delete(Mconn[name], i, 0)
-                    Mconn[name] = np.delete(Mconn[name], i, 1)
-                    Mconn[name] = np.block([[Mconn[name], np.zeros((len(Mconn[name]), 1))],
-                                            [np.zeros((1, len(Mconn[name]))), np.zeros((1, 1))]])
+        # for name in ["up", "dn"]:
+        #     for i in np.arange(self.ntot//2-1, self.nimp//2-1, -1):
+        #         W = Mconn[name][:self.nimp//2, i]
+        #         print(W)
+        #         print(np.amax(np.abs(W)))
+        #         if np.amax(np.abs(W)) < 1e-6 and Mconn[name][i, i] < 5e-3:
+        #             print(i)
+        #             Mconn[name] = np.delete(Mconn[name], i, 0)
+        #             Mconn[name] = np.delete(Mconn[name], i, 1)
+        #             Mconn[name] = np.block([[Mconn[name], np.zeros((len(Mconn[name]), 1))],
+        #                                     [np.zeros((1, len(Mconn[name]))), np.zeros((1, 1))]])
             #         cut[name] += 1
             # if cut[name] % 2 == 1:
             #     cut[name] -= 1
             #     Mconn[name] = np.block([[Mconn[name], np.zeros((len(Mconn[name]), 1))],
             #                             [np.zeros((1, len(Mconn[name]))), np.zeros((1, 1))]])
-        print("In solve_Hemb, Mconn:")
-        print(Mconn['up'])
+        # print("In solve_Hemb, Mconn:")
+        # print(Mconn['up'])
 
         sys.stdout.flush()
         # Setting up some parameters for ForkTPS
@@ -178,14 +178,17 @@ class ITensorMPSSolver(object):
         # self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
         self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, Mconn, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
 
-        self.singleP_rot_up = np.block([[np.asarray(self.singleP_rot_up), np.zeros((len(Mconn[name]), cut["up"]))],
-                                        [np.zeros((cut["up"], len(Mconn[name]))), 0.5*np.eye(cut["up"])]])
-        self.singleP_rot_dn = np.block([[np.asarray(self.singleP_rot_dn), np.zeros((len(Mconn[name]), cut["dn"]))],
-                                        [np.zeros((cut["dn"], len(Mconn[name]))), 0.5*np.eye(cut["dn"])]])
+        self.singleP_rot_up = np.asarray(self.singleP_rot_up)
         self.singleP_rot_dn = np.asarray(self.singleP_rot_dn)
+        # self.singleP_rot_up = np.block([[np.asarray(self.singleP_rot_up), np.zeros((len(Mconn["up"]), cut["up"]))],
+        #                                 [np.zeros((cut["up"], len(Mconn["up"]))), 0.5*np.eye(cut["up"])]])
+        # self.singleP_rot_dn = np.block([[np.asarray(self.singleP_rot_dn), np.zeros((len(Mconn["dn"]), cut["dn"]))],
+        #                                 [np.zeros((cut["dn"], len(Mconn["dn"]))), 0.5*np.eye(cut["dn"])]])
 
         print("single particle density matrix up: ")
         print(self.singleP_rot_up)
+        print("single particle density matrix dn: ")
+        print(self.singleP_rot_dn)
 
         # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_up)
         # print("eigvals", eigvals)
