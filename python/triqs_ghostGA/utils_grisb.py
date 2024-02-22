@@ -20,16 +20,22 @@ def calc_Lambda_c(R, Lambda, Delta_p, D, H_list):
     """ Compute Lambda_c matrix
     """
     no = Lambda.shape[0]
+    print("In calc_Lambda_c")
+    print(Lambda)
     l=inverse_realHcombination(Lambda,H_list)
+    print(l)
     lc=np.copy(l)*0.0
     MM=np.dot(D,np.transpose(R))
+    print(MM)
     for k in range(len(H_list)):
         AA=Delta_p
         HH=H_list[k].T
         derivative=dF(AA,HH, denRm1, ddenRm1)
         tt=np.trace(np.dot(MM,derivative))
         lc[k]=-l[k]-(tt+np.conjugate(tt)).real
+    print(tt)
     Lambda_c=realHcombination(lc,H_list)
+    print(Lambda_c)
     return Lambda_c
 
 def calc_Lambda(R, Lambda_c, Delta_p, D, H_list):
@@ -77,8 +83,15 @@ def find_Lambda(Lambda0, R, ffdagger, eks, Hspin_list, beta):
 
 def svd_truncate_R(R, eps=0.5):
     "perform SVD truncation for the singular value of R greater than 1 and smaller than a threshold eps"
+
     from scipy.linalg import svd
-    u, s, vh = svd(R)
+    try:
+        u, s, vh = svd(R)
+    except ValueError:
+        print("R")
+        print(R)
+        raise
+
     print('singular values of R:', s)
     sp = np.zeros(R.shape, dtype=s.dtype)
     for i,si in enumerate(s):
