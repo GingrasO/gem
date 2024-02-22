@@ -10,12 +10,12 @@ end
 
 function  convert_schedule(schedule)::Vector{NamedTuple}
     param_vec=NamedTuple[]
-    
+
     for apair in schedule
-        keys,values=apair        
+        keys,values=apair
         push!(param_vec,namedtuple(keys,values))
     end
-    
+
     return param_vec
 end
 
@@ -65,14 +65,14 @@ function init_state_insector(filling::Int,magnetization::Int,N::Int)
     Ndown = div(N-magnetization,2)
     Nup = N-Ndown
     Nuppos=fill(0,N)
-    Nuppos[sample(collect(1:N),Nup;replace=false,ordered=true)] .= 1
+    Nuppos[StatsBase.sample(collect(1:N),Nup;replace=false,ordered=true)] .= 1
     Ndnpos=fill(0,N)
-    Ndnpos[sample(collect(1:N),Ndn;replace=false,ordered=true)] .= 2
+    Ndnpos[StatsBase.sample(collect(1:N),Ndown;replace=false,ordered=true)] .= 2
     stateints=Nuppos + Ndnpos
     int2str=Dict(0=>"Emp",1=>"Up",2=>"Dn",3=>"UpDn")
-    statestr=Str[]
+    statestr=String[]
     for i in 1:N
-        push!(statestr,int2str(stateints[i]))
+        push!( statestr, int2str[stateints[i]] )
     end
     return statestr
 end

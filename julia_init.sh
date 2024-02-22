@@ -11,3 +11,6 @@ export JULIA_PYTHONCALL_EXE="/mnt/home/ogingras/.py_3.9.15_2.1-20230222/bin/pyth
 ###Threading layer defaults to sequential after sourcing these modules, so we set it to INTEL manually --- may be breaking things elsewhere!
 export MKL_THREADING_LAYER="INTEL"
 export PYTHON_JULIACALL_HANDLE_SIGNALS=yes
+
+export MKL_NUM_THREADS=4
+export JULIA_NUM_THREADS=4

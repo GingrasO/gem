@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import sys
 
 # from h5 import *
 ###julia setup
@@ -23,7 +24,7 @@ from triqs_ghostGA.utils_mps import setup_MPS, rotateBath, rotateDensityMatrix, 
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}):
+    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}, suff=""):
         """Constructor method
         """
         self.type = "ITensorMPSSolver"
@@ -36,7 +37,9 @@ class ITensorMPSSolver(object):
         self.tolerances = []
         self.set_tolerances()   #initialize with default
         self.scalartype = np.float_ # if not set elsewhere
+        self.scalartype = np.complex_ # if not set elsewhere
         self.paramagnetic = True
+        self.suff = suff
 
     def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
         thesweep=    {
@@ -134,17 +137,78 @@ class ITensorMPSSolver(object):
         self.modify_kwargs("spin_pen",spin_pen)
 
 
-    def solve_Hemb(self, num_eig=1, verbose=1, outfile="data"):
+    def solve_Hemb(self, num_eig=1, verbose=1):
+        # print("In solve_Hemb")
+        # print(self.Utensor)
+        #print(self.M)
+
+        Mconn = {"up": np.copy(self.M["up"]),
+                 "dn": np.copy(self.M["dn"])}
+
+        cut = {"up": 0, "dn": 0}
+        # for name in ["up", "dn"]:
+        #     for i in np.arange(self.ntot//2-1, self.nimp//2-1, -1):
+        #         W = Mconn[name][:self.nimp//2, i]
+        #         print(W)
+        #         print(np.amax(np.abs(W)))
+        #         if np.amax(np.abs(W)) < 1e-6 and Mconn[name][i, i] < 5e-3:
+        #             print(i)
+        #             Mconn[name] = np.delete(Mconn[name], i, 0)
+        #             Mconn[name] = np.delete(Mconn[name], i, 1)
+        #             Mconn[name] = np.block([[Mconn[name], np.zeros((len(Mconn[name]), 1))],
+        #                                     [np.zeros((1, len(Mconn[name]))), np.zeros((1, 1))]])
+            #         cut[name] += 1
+            # if cut[name] % 2 == 1:
+            #     cut[name] -= 1
+            #     Mconn[name] = np.block([[Mconn[name], np.zeros((len(Mconn[name]), 1))],
+            #                             [np.zeros((1, len(Mconn[name]))), np.zeros((1, 1))]])
+        # print("In solve_Hemb, Mconn:")
+        # print(Mconn['up'])
+
+        sys.stdout.flush()
         # Setting up some parameters for ForkTPS
         #maxM = 300 # Maximum dimension bond for DMRG
 
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
-        self.converged=False
-        self.converged,self.EHint ,self.singleP_rot_up,self.singleP_rot_dn= jl.solve(self.Utensor,self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
-        print(self.singleP_rot_up)
+        outfile = "data%s.h5" % self.suff
+        self.converged = False
+
+        ### Run MPS with julia call ###
+        # self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
+        self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, Mconn, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
+
         self.singleP_rot_up = np.asarray(self.singleP_rot_up)
         self.singleP_rot_dn = np.asarray(self.singleP_rot_dn)
+        # self.singleP_rot_up = np.block([[np.asarray(self.singleP_rot_up), np.zeros((len(Mconn["up"]), cut["up"]))],
+        #                                 [np.zeros((cut["up"], len(Mconn["up"]))), 0.5*np.eye(cut["up"])]])
+        # self.singleP_rot_dn = np.block([[np.asarray(self.singleP_rot_dn), np.zeros((len(Mconn["dn"]), cut["dn"]))],
+        #                                 [np.zeros((cut["dn"], len(Mconn["dn"]))), 0.5*np.eye(cut["dn"])]])
+
+        print("single particle density matrix up: ")
+        print(self.singleP_rot_up)
+        print("single particle density matrix dn: ")
+        print(self.singleP_rot_dn)
+
+        # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_up)
+        # print("eigvals", eigvals)
+        # print(eigvecs)
+        # for i, e_val in enumerate(eigvals):
+        #     if e_val <= 1e-10:
+        #         eigvals[i] = 0.5
+        #     if e_val >= 1-1e-10:
+        #         eigvals[i] = 0.5
+        # self.singleP_rot_up = eigvecs @ np.diag(eigvals) @ eigvecs.T.conjugate()
+        # print(self.singleP_rot_up)
+
+        # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_dn)
+        # for i, e_val in enumerate(eigvals):
+        #     if e_val <= 1e-12:
+        #         eigvals[i] = 0.5
+        #     if e_val >= 1-1e-12:
+        #         eigvals[i] = 0.5
+        # self.singleP_rot_dn = eigvecs @ np.diag(eigvals) @ eigvecs.T.conjugate()
+
         if self.paramagnetic:
             self.singleP_rot_up = 0.5*(self.singleP_rot_up + self.singleP_rot_dn)   #constrains to paramagnet
             self.singleP_rot_dn = self.singleP_rot_up.copy() #constrains to paramagnet
