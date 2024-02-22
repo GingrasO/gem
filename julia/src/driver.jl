@@ -1,4 +1,4 @@
-function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
+function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data",filling=nothing,magnetization=nothing)
     # kwargs
     #   sweep schedule as a list of Dictionaries or zipped key value pairs
     #   flags: permute sites, diagonalize_bath, min_iters etc.
@@ -26,6 +26,9 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     ## extract keyword args/parameters
     Nimp=size(Utensor,1)
     N=size(H1Eup,1)
+    filling,magnetization, sector_consistent=check_filling(filling,magnetization, N)
+    @assert sector_consistent
+
     Nbath=N-Nimp
     dmrg_params=GGMPSSolver.convert_schedule(schedule)
     kwargs=GGMPSSolver.convert_schedule(kwargs)[]
@@ -77,8 +80,8 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data")
     #potentially trigger different behaviour via kwarg
     #assumes that the total system size is even, otherwise not half filled and zero mag
     @assert iseven(length(sites))
-    psi=GGMPSSolver.ITensors.MPS(sites,x -> isodd(x) ? "Up" : "Dn")
-    psi=psi+GGMPSSolver.ITensors.MPS(sites,x -> isodd(x) ? "Dn" : "Up")
+    psi=GGMPSSolver.ITensors.randomMPS(sites,init_state_insector(filling,magnetization,N), linkdims=128)
+    #psi=psi+GGMPSSolver.ITensors.randomMPS(sites,x -> isodd(x) ? "Dn" : "Up", linkdims=64)
     
     ## initialize quantities for which convergence is assessed
     oldCuu=nothing
