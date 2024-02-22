@@ -94,7 +94,7 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
             print(np.diag(w))
             raise
     if paramagnetic:
-        M_rot={"up": np.copy(M_rot["up"]) ),
+        M_rot={"up": np.copy(M_rot["up"]),
              "dn": np.copy(M_rot["up"]) }
         v_all={"up": v_all["up"], "dn": np.copy(v_all["up"])}
 
