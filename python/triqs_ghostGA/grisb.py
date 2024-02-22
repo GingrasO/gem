@@ -235,6 +235,8 @@ class Grisb(object):
             #if not silence:
             print("norm(ffdagger.T-Delta_p)=", np.linalg.norm(ffdagger.T-self.Delta_p))
             self.Delta_p = ffdagger.T
+            print("Delta_p new:")
+            print(self.Delta_p)
             R_new = np.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
             if not self.soc:
                 R_new = np.kron(R_new[::2,::2],np.eye(2))# symmetrize
@@ -263,13 +265,13 @@ class Grisb(object):
 #            tmp[:self.nimp,:self.nimp] = sqrtm(self.R.conj().T.dot(self.R)[:self.nimp,:self.nimp])
 #            self.R = tmp
             # check point
-            fh5 = h5py.File('checkpoint%s.h5' % self.suff,'w')
-            fh5['R'] = self.R
-            fh5['Lambda'] = self.Lambda
-            fh5['eks'] = self.eks
-            fh5['Utensor'] = self.Utensor
-            fh5['mu'] = mu
-            fh5.close()
+            with HDFArchive('checkpoint%s.h5' % self.suff,'a') as fh5:
+                fh5['R_%d' % it] = self.R
+                fh5['Lambda_%d'% it] = self.Lambda
+                fh5['eks'] = self.eks
+                fh5['Utensor'] = self.Utensor
+                fh5['mu'] = mu
+
             if not silence:
                 print("R_new=")
                 print(R_new)
