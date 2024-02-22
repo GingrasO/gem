@@ -76,8 +76,23 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
         W = M_rot[name][:Norb, Norb:]
         W_rot = W @ v
         ind = np.argsort(np.amax(np.abs(W_rot[:Norb, :]), axis=0))[::-1]
+        W_rot[:] = W_rot[:, ind]
         w[:] = w[ind]
         v[:, :] = v[:, ind]
+
+        decoupled = 1
+        for i in np.arange(Nbath*Norb-1, Norb-1, -1):
+            if np.amax(np.abs(W_rot[:Norb, i]), axis=0) < 1e-6:
+                 decoupled += 1
+
+        if decoupled > 1:
+            a = np.random.rand(decoupled, decoupled)
+            q, r = np.linalg.qr(a)
+
+            recouple = np.block([[np.eye(Nbath*Norb-decoupled), np.zeros((Nbath*Norb-decoupled, decoupled))],
+                                 [np.zeros((decoupled, Nbath*Norb-decoupled)), q]])
+
+            v = v @ recouple
 
         # Keep the eigenvectors in memory
         v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
