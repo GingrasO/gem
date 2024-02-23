@@ -21,7 +21,7 @@ function get_H_quartic(n::Int,U::AbstractArray;perm=1:n)
     for i in 1:size(U,1), j in 1:size(U,2), k in 1:size(U,3), l in 1:size(U,4)
         if !iszero(U[i,j,k,l])
             pref=0.5
-        
+
             cU=U[i,j,k,l]
             os+=(pref*cU,"Cdagup",perm[i],"Cdagdn",perm[j],"Cdn",perm[l],"Cup",perm[k])
             os+=(pref*cU,"Cdagdn",perm[i],"Cdagup",perm[j],"Cup",perm[l],"Cdn",perm[k])
@@ -36,16 +36,22 @@ function get_Ssquared(n)
     os=OpSum()
     for i in 1:n
         for j in 1:n
-            os+=0.25, "Cdagup", i, "Cup",i , "Cdagup", j, "Cup",j
-            os+=0.25, "Cdagdn", i, "Cdn",i , "Cdagdn", j, "Cdn",j
-            os-=0.25, "Cdagdn", i, "Cdn",i , "Cdagup", j, "Cup",j
-            os-=0.25, "Cdagup", i, "Cup",i , "Cdagdn", j, "Cdn",j
-            
-            
-            os+=0.25, "Cup",i,"Cdagdn",i,"Cdn",j,"Cdagup",j
-            os+=0.25,"Cup",j,"Cdagdn",j,"Cdn",i,"Cdagup",i
-            os+=0.25, "Cdn",j,"Cdagup",j,"Cup",i,"Cdagdn",i
-            os+=0.25, "Cdn",i,"Cdagup",i,"Cup",j,"Cdagdn",j
+            os += 0.5, "S+",i,"S-",j
+            os += 0.5, "S-",i,"S+",j
+
+            # os+=0.25, "Cdagup", i, "Cup",i , "Cdagup", j, "Cup",j
+            # os+=0.25, "Cdagdn", i, "Cdn",i , "Cdagdn", j, "Cdn",j
+            # os-=0.25, "Cdagdn", i, "Cdn",i , "Cdagup", j, "Cup",j
+            # os-=0.25, "Cdagup", i, "Cup",i , "Cdagdn", j, "Cdn",j
+
+            # os+=0.5, "Cdagup",i,"Cdn",i,"Cdagdn",j,"Cup",j
+            # os+=0.5, "Cdagdn",i,"Cup",i,"Cdagup",j,"Cdn",j
+
+            # os+=0.25, "Cup",i,"Cdagdn",i,"Cdn",j,"Cdagup",j
+            # os+=0.25, "Cup",j,"Cdagdn",j,"Cdn",i,"Cdagup",i
+            # os+=0.25, "Cdn",j,"Cdagup",j,"Cup",i,"Cdagdn",i
+            # os+=0.25, "Cdn",i,"Cdagup",i,"Cup",j,"Cdagdn",j
+
         end
     end
     return os

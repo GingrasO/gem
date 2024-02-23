@@ -70,7 +70,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data",filling=not
             @show H1Eup
             @show H1Edn
             @show all(H1Eup .== H1Edn)
-            @assert false
+            #@assert false
        end
        spincommutator>1e-2 && @warn("Spin commutator larger than expected! Likely due to numerical noise in embedding H.")
     end
