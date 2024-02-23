@@ -56,16 +56,20 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
     if paramagnetic:
         Mav=np.copy(0.5*(M["up"]+M["dn"]))
         M_rot = {"up": np.copy(Mav),
-                "dn": np.copy(Mav)}
+                 "dn": np.copy(Mav)}
         print("Mav")
         print(Mav)
+        names = ["up"]
     else:
         M_rot = {"up": np.copy(M["up"]),
                  "dn": np.copy(M["dn"])}
+        names = ["up", "dn"]
+        raise NotImplementedError("Not sure this is right if not paramagnetic. Due to the random matrix in the folowing decoupled procedure.")
 
     # Obtained the eigenvectors of the bath sites to rotate the matrix
     v_all = {"up": [], "dn": []}
-    for name in ["up", "dn"]:
+
+    for name in names:
         #B = M[name][Norb:, Norb:] # Bath sites
         B = M_rot[name][Norb:, Norb:] # Bath sites
 
@@ -76,23 +80,27 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
         W = M_rot[name][:Norb, Norb:]
         W_rot = W @ v
         ind = np.argsort(np.amax(np.abs(W_rot[:Norb, :]), axis=0))[::-1]
-        W_rot[:] = W_rot[:, ind]
+        W_rot[:, :] = W_rot[:, ind]
         w[:] = w[ind]
         v[:, :] = v[:, ind]
 
-        decoupled = 1
-        for i in np.arange(Nbath*Norb-1, Norb-1, -1):
-            if np.amax(np.abs(W_rot[:Norb, i]), axis=0) < 1e-6:
-                 decoupled += 1
+        v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
+                                [np.zeros((Norb*Nbath, Norb)), v]])
+        if self.recouple:
+            decoupled = 1
+            for i in np.arange(Nbath*Norb-1, Norb-1, -1):
+                if np.amax(np.abs(W_rot[:Norb, i]), axis=0) < 1e-6:
+                     decoupled += 1
 
-        if decoupled > 1:
-            a = np.random.rand(decoupled, decoupled)
-            q, r = np.linalg.qr(a)
+            if decoupled > 1:
+                print("Recoupling procedure with %s states" % (decoupled-1))
+                a = np.random.rand(decoupled, decoupled)
+                q, r = np.linalg.qr(a)
 
-            recouple = np.block([[np.eye(Nbath*Norb-decoupled), np.zeros((Nbath*Norb-decoupled, decoupled))],
-                                 [np.zeros((decoupled, Nbath*Norb-decoupled)), q]])
+                recouple = np.block([[np.eye(Nbath*Norb-decoupled), np.zeros((Nbath*Norb-decoupled, decoupled))],
+                                     [np.zeros((decoupled, Nbath*Norb-decoupled)), q]])
 
-            v = v @ recouple
+                v = v @ recouple
 
         # Keep the eigenvectors in memory
         v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
@@ -102,25 +110,22 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
         # Rotate the embedded Hamiltonian
         # M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
         M_rot[name] = v_all[name].T.conjugate() @ M_rot[name] @ v_all[name]
-        try:
-            assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
-        except:
-            print(M_rot[name])
-            print(np.diag(w))
-            raise
-    if paramagnetic:
-        M_rot={"up": np.copy(M_rot["up"]),
-             "dn": np.copy(M_rot["up"]) }
-        v_all={"up": v_all["up"], "dn": np.copy(v_all["up"])}
 
-    np.set_printoptions(precision=4, linewidth=np.inf, threshold=np.inf)
+        print(v_all[name] @ M_rot[name] @ v_all[name].T.conjugate())
+        # try:
+        #     assert np.allclose(M_rot[name][Norb:,Norb:],np.diag(w))
+        # except:
+        #     print(M_rot[name])
+        #     print(np.diag(w))
+        #     raise
+
+    if paramagnetic:
+        M_rot={"up": np.copy(M_rot["up"]), "dn": np.copy(M_rot["up"])}
+        v_all={"up": np.copy(v_all["up"]), "dn": np.copy(v_all["up"])}
+
+    np.set_printoptions(precision=8, linewidth=np.inf, threshold=np.inf)
     print("M_rot up")
-    print(M_rot["up"].real)
-    print("v_all up")
-    print(v_all["up"])
-    #M_rot={"up": np.copy(M["up"]),
-    #         "dn": np.copy(M["dn"])}
-    #v_all={"up": np.eye(M["up"].shape[0]), "dn": np.eye(M["dn"].shape[0])}
+    print(M_rot["up"])
     return M_rot, v_all
 
 def rotateDensityMatrix(singlePup,singlePdn, v):
