@@ -10,12 +10,12 @@ end
 
 function  convert_schedule(schedule)::Vector{NamedTuple}
     param_vec=NamedTuple[]
-
+    
     for apair in schedule
-        keys,values=apair
+        keys,values=apair        
         push!(param_vec,namedtuple(keys,values))
     end
-
+    
     return param_vec
 end
 
@@ -38,7 +38,15 @@ function compute_commutator(A,B)
     return norm(A*Bp - B*Ap)
 end
 
+function make_hermitian(O)
+    O=0.5*(O+setprime(siteinds,uniqueinds,prime(dag.(O)),O,0))
+    return O
+end
 
+function check_hermitian(O)
+    O=0.5*(O-setprime(siteinds,uniqueinds,prime(dag.(O)),O,0))
+    return norm(O)
+end
 
 function symmetrize(A)
     n=length(size(A))
@@ -62,8 +70,8 @@ function check_filling(filling::Union{Int,Nothing},magnetization::Union{Int,Noth
 end
 
 function init_state_insector(filling::Int,magnetization::Int,N::Int)
-    Ndown = div(N-magnetization,2)
-    Nup = N-Ndown
+    Ndown = div(filling-magnetization,2)
+    Nup = filling-Ndown
     Nuppos=fill(0,N)
     Nuppos[StatsBase.sample(collect(1:N),Nup;replace=false,ordered=true)] .= 1
     Ndnpos=fill(0,N)
@@ -72,7 +80,7 @@ function init_state_insector(filling::Int,magnetization::Int,N::Int)
     int2str=Dict(0=>"Emp",1=>"Up",2=>"Dn",3=>"UpDn")
     statestr=String[]
     for i in 1:N
-        push!( statestr, int2str[stateints[i]] )
+        push!(statestr,int2str[stateints[i]])
     end
     return statestr
 end
