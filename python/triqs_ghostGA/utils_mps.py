@@ -42,7 +42,7 @@ def setup_MPS(M, Utensor, Norb, Nbath, schedule,tolerances,use_Sz=True,use_Ntot=
     return  Cuu,Cdd, Eint
 
 
-def rotateBath(M, Norb, Nbath, paramagnetic=True ):
+def rotateBath(M, Norb, Nbath, paramagnetic=True, recouple=True):
     """
     Diagonalizes the Bath part of the M matrix. Also rotates the hybridization.
     This function returns the rotated M matrix, along with the vectors to
@@ -86,7 +86,7 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True ):
 
         v_all[name] = np.block([[np.eye(Norb), np.zeros((Norb, Nbath*Norb))],
                                 [np.zeros((Norb*Nbath, Norb)), v]])
-        if self.recouple:
+        if recouple:
             decoupled = 1
             for i in np.arange(Nbath*Norb-1, Norb-1, -1):
                 if np.amax(np.abs(W_rot[:Norb, i]), axis=0) < 1e-6:

@@ -126,7 +126,7 @@ class ITensorMPSSolver(object):
         if self.rotateBath:
             # Rotate the Bath and Hybridization for smaller entropy
             ## We can either assume that this just works out of the box, or assume the bath is diagonal?
-            self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp,paramagnetic=self.paramagnetic)
+            self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp,paramagnetic=self.paramagnetic, recouple=self.recouple)
 
         self.M["up"]=0.5*(self.M["up"] + self.M["up"].T.conjugate())
         self.M["dn"]=0.5*(self.M["dn"] + self.M["dn"].T.conjugate())
