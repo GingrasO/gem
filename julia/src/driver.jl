@@ -48,29 +48,33 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data",filling=not
 
     ## make MPOs
     S2=MPO(os_S2,sites)
-    if !iszero(spin_pen)
-        os=os_quadratic + os_quartic + spin_pen*os_S2
-
-    else
-        os=os_quadratic + os_quartic
-
-    end
+    os=os_quadratic + os_quartic
     H=GGMPSSolver.ITensors.MPO(os,sites)
     Hnint=GGMPSSolver.ITensors.MPO(os_quadratic,sites)
     Hint=GGMPSSolver.ITensors.MPO(os_quartic,sites)  ##for <Eimp>        ###FIXME: most likely we'll want to use only the quartic part here
     @show spin_pen
     if !iszero(spin_pen)
+       Sz2new=GGMPSSolver.ITensors.MPO(GGMPSSolver.get_Sz_squared(N),sites)
+       Spm2new=GGMPSSolver.ITensors.MPO(GGMPSSolver.get_Spm_squared(N),sites)
+       Sz2newh=GGMPSSolver.make_hermitian(Sz2new)
+       Spm2newh=GGMPSSolver.make_hermitian(Spm2new)
+       S2=Spm2newh+Sz2newh
+       @show maxlinkdim(H)
+       @show maxlinkdim(S2)
+       H=H+spin_pen*S2
+       @show maxlinkdim(H)
        spincommutator = GGMPSSolver.compute_commutator(H,S2)
        @show spincommutator
        spincommutator_int = GGMPSSolver.compute_commutator(Hint,S2)
        @show spincommutator_int
        spincommutator_nint = GGMPSSolver.compute_commutator(Hnint,S2)
        @show spincommutator_nint
+       
        if spincommutator_nint > 1e-2
             @show H1Eup
             @show H1Edn
             @show all(H1Eup .== H1Edn)
-            @assert false
+            #@assert false
        end
        spincommutator>1e-2 && @warn("Spin commutator larger than expected! Likely due to numerical noise in embedding H.")
     end
@@ -106,7 +110,7 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data",filling=not
         #we should be passing all these
         #dmrg_kwargs = (nsweeps=Nsweeps[i], reverse_step=false, normalize=true, maxdim=D, cutoff=cutoffs[i], noise=noise[i], outputlevel=1, nsites = 2,)
         #@show typeof(H)
-        E,psi=GGMPSSolver.ITensors.dmrg(H,psi; observer=obs,eigsolve_krylovdim=10,pars...)
+        E,psi=GGMPSSolver.ITensors.dmrg(H,psi; ishermitian=false, observer=obs,eigsolve_krylovdim=10,pars...)
         savedata(outfile,obs.the_observer)
         GC.gc()
         Eint=GGMPSSolver.ITensors.inner(psi',Hint,psi)

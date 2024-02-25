@@ -24,7 +24,7 @@ from triqs_ghostGA.utils_mps import setup_MPS, rotateBath, rotateDensityMatrix, 
 
 class ITensorMPSSolver(object):
     ''' FTPS solver class'''
-    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}, suff=""):
+    def __init__(self, ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.0}, suff="", rotateBath=True, recouple=True):
         """Constructor method
         """
         self.type = "ITensorMPSSolver"
@@ -40,6 +40,8 @@ class ITensorMPSSolver(object):
         self.scalartype = np.complex_ # if not set elsewhere
         self.paramagnetic = True
         self.suff = suff
+        self.rotateBath = rotateBath
+        self.recouple = recouple
 
     def add_to_schedule(self,nsweeps=1,maxdim=1024, cutoff=1e-14,noise=0.0,outputlevel=1):
         thesweep=    {
@@ -121,9 +123,11 @@ class ITensorMPSSolver(object):
 
         self.Utensor = V2E
 
-        # Rotate the Bath and Hybridization for smaller entropy
-        ## We can either assume that this just works out of the box, or assume the bath is diagonal?
-        self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp,paramagnetic=self.paramagnetic)
+        if self.rotateBath:
+            # Rotate the Bath and Hybridization for smaller entropy
+            ## We can either assume that this just works out of the box, or assume the bath is diagonal?
+            self.M, self.v = rotateBath(self.M, self.nimp//2, self.nbath//self.nimp,paramagnetic=self.paramagnetic, recouple=self.recouple)
+
         self.M["up"]=0.5*(self.M["up"] + self.M["up"].T.conjugate())
         self.M["dn"]=0.5*(self.M["dn"] + self.M["dn"].T.conjugate())
         #print('v=')
@@ -142,10 +146,10 @@ class ITensorMPSSolver(object):
         # print(self.Utensor)
         #print(self.M)
 
-        Mconn = {"up": np.copy(self.M["up"]),
-                 "dn": np.copy(self.M["dn"])}
+        # Mconn = {"up": np.copy(self.M["up"]),
+        #          "dn": np.copy(self.M["dn"])}
 
-        cut = {"up": 0, "dn": 0}
+        # cut = {"up": 0, "dn": 0}
         # for name in ["up", "dn"]:
         #     for i in np.arange(self.ntot//2-1, self.nimp//2-1, -1):
         #         W = Mconn[name][:self.nimp//2, i]
@@ -166,59 +170,44 @@ class ITensorMPSSolver(object):
         # print(Mconn['up'])
 
         sys.stdout.flush()
-        # Setting up some parameters for ForkTPS
-        #maxM = 300 # Maximum dimension bond for DMRG
 
         # Criteria for the bound dimension of the DMRG, just be converged
         # Set up and run ForkTPS using the useful_func.py
         outfile = "data%s.h5" % self.suff
         self.converged = False
 
+        print(self.M)
         ### Run MPS with julia call ###
-        # self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
-        self.converged, self.EHint, self.singleP_rot_up, self.singleP_rot_dn = jl.solve(self.Utensor, Mconn, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
+        self.converged, self.EHint, self.singleP_up, self.singleP_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
 
-        self.singleP_rot_up = np.asarray(self.singleP_rot_up)
-        self.singleP_rot_dn = np.asarray(self.singleP_rot_dn)
+        self.singleP_up = np.asarray(self.singleP_up)
+        self.singleP_dn = np.asarray(self.singleP_dn)
         # self.singleP_rot_up = np.block([[np.asarray(self.singleP_rot_up), np.zeros((len(Mconn["up"]), cut["up"]))],
         #                                 [np.zeros((cut["up"], len(Mconn["up"]))), 0.5*np.eye(cut["up"])]])
         # self.singleP_rot_dn = np.block([[np.asarray(self.singleP_rot_dn), np.zeros((len(Mconn["dn"]), cut["dn"]))],
         #                                 [np.zeros((cut["dn"], len(Mconn["dn"]))), 0.5*np.eye(cut["dn"])]])
 
         print("single particle density matrix up: ")
-        print(self.singleP_rot_up)
+        print(self.singleP_up)
         print("single particle density matrix dn: ")
-        print(self.singleP_rot_dn)
-
-        # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_up)
-        # print("eigvals", eigvals)
-        # print(eigvecs)
-        # for i, e_val in enumerate(eigvals):
-        #     if e_val <= 1e-10:
-        #         eigvals[i] = 0.5
-        #     if e_val >= 1-1e-10:
-        #         eigvals[i] = 0.5
-        # self.singleP_rot_up = eigvecs @ np.diag(eigvals) @ eigvecs.T.conjugate()
-        # print(self.singleP_rot_up)
-
-        # eigvals, eigvecs = np.linalg.eigh(self.singleP_rot_dn)
-        # for i, e_val in enumerate(eigvals):
-        #     if e_val <= 1e-12:
-        #         eigvals[i] = 0.5
-        #     if e_val >= 1-1e-12:
-        #         eigvals[i] = 0.5
-        # self.singleP_rot_dn = eigvecs @ np.diag(eigvals) @ eigvecs.T.conjugate()
+        print(self.singleP_dn)
+        print("EHint:", self.EHint)
 
         if self.paramagnetic:
-            self.singleP_rot_up = 0.5*(self.singleP_rot_up + self.singleP_rot_dn)   #constrains to paramagnet
-            self.singleP_rot_dn = self.singleP_rot_up.copy() #constrains to paramagnet
+            self.singleP_up = 0.5*(self.singleP_up + self.singleP_dn)   #constrains to paramagnet
+            self.singleP_dn = self.singleP_up.copy() #constrains to paramagnet
         #print('self.singleP_rot=')
         #print(self.singleP_rot)
         #print('self.v=')
         #print(self.v)
 
     def calc_density_matrix(self):
-        self.singleP = rotateDensityMatrix(self.singleP_rot_up,self.singleP_rot_dn, self.v)
+        if self.rotateBath:
+            self.singleP = rotateDensityMatrix(self.singleP_up,self.singleP_dn, self.v)
+        else:
+            zeros = np.zeros(self.singleP_up.shape)
+            self.singleP = np.block([[self.singleP_up, zeros],
+                                     [zeros, self.singleP_dn]])
         #print(self.singleP)
         ##Assumes this one is the same now
         self.singleP = rotateToTsungHanConvention(self.singleP, self.nimp//2, self.nbath//self.nimp)
