@@ -4,34 +4,37 @@ import unittest
 
 from triqs_ghostGA import LatticeSolver
 from triqs_ghostGA.grisb import *
-from triqs_ghostGA.utils_TH import get_semicircle_e_list, U_matrix_kanamori
-from triqs.operators.util import U_matrix_kanamori as Umk
+from triqs_ghostGA.utils_TH import get_semicircle_e_list#, U_matrix_kanamori
+from triqs.operators.util import U_matrix_kanamori
 import numpy as np
 from triqs_ghostGA.version import *
 from triqs_ghostGA.mps import ITensorMPSSolver
 
 
-class test_hemb_2o6_mps(unittest.TestCase):
+class test_hemb_3o9_ci(unittest.TestCase):
 
-    def test_grisb_mps(self):
+    def test_grisb_ci(self):
 
         # 2 orbital with 2 spins, 3 bath per orbital, total 16
-        nimp, nbath, ntot = 4, 12, 16
+        nimp, nbath, ntot = 6, 18, 24
 
-        U, J = 1.2, 0.3
+        U, J = 3.0, 3.0/4.
+        nfix = 2.0
         nnom = 2.0
         eloc = np.zeros((nimp, nimp))
-        tmp_e = -(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
+        tmp_e = -1.3151383176669014#-(U+(nimp//2-1)*(U-2*J)+(nimp//2-1)*(U-3*J))*(nnom-0.5)/(2*nimp//2-1)
         eloc[0,0] = tmp_e
         eloc[1,1] = tmp_e
         eloc[2,2] = tmp_e
         eloc[3,3] = tmp_e
+        eloc[4,4] = tmp_e
+        eloc[5,5] = tmp_e
 
         # construct ek with semicircular DOS
         e_list = get_semicircle_e_list(nmesh=5000)
         eks = []
         for e in e_list:
-            tmp = np.array([[1.0*e, 0.0], [0.0, 1.0*e]], dtype=np.complex128)
+            tmp = np.array([[1.0*e, 0.0, 0.0], [0.0, 1.0*e, 0.0], [0.0, 0.0, 1.0*e]], dtype=np.complex128)
             tmp = np.kron(tmp,np.eye(2))
             eks.append(tmp)
         eks = np.array(eks)
@@ -42,22 +45,20 @@ class test_hemb_2o6_mps(unittest.TestCase):
         R0 = np.kron(R0, np.eye(2))
 
         Lambda0 = np.zeros((nbath//2, nbath//2))
-        Lambda0[0, 0], Lambda0[1, 1] = 0.2, 0.2
-        Lambda0[2, 2], Lambda0[3, 3] = 0.0, 0.0
-        Lambda0[4, 4], Lambda0[5, 5] = -0.2, -0.2
+        Lambda0[0, 0], Lambda0[1, 1], Lambda0[2,2] = 0.1, 0.1, 0.1
+        Lambda0[3, 3], Lambda0[4, 4], Lambda0[5,5] = 0.0, 0.0, 0.0
+        Lambda0[6, 6], Lambda0[7, 7], Lambda0[8,8] = -0.1, -0.1, -0.1
         Lambda0 = np.kron(Lambda0, np.eye(2))
 
-        Utensor = Umk(nimp//2, U, J, full_Uijkl=True)
 
+        Utensor = U_matrix_kanamori(nimp//2, U, J, full_Uijkl=True)
+        print("Utensor:", Utensor)
+        #edsolver=CI(ntot, use_Ntot=True, use_Sz=True, dtype=np.complex128)
+        #grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=edsolver)
+        #grisb.run_canonical(mu0=0.0, nfix=nfix, itmax=100, mix=0.5, tol=5e-6, beta=500, silence=True, spin_pen=0.00, num_eig=2)
         solver = ITensorMPSSolver(ntot, nimp, nbath, params={"use_Sz":True,"use_Ntot":True,"spin_pen":0.05})
-        solver.schedule=[]
-        solver.add_to_schedule(nsweeps=2,maxdim=128,cutoff=1e-10,noise=1e-8)
-        solver.add_to_schedule(nsweeps=3,maxdim=256,cutoff=1e-12,noise=1e-10)
-        solver.add_to_schedule(nsweeps=2,maxdim=512,cutoff=1e-14,noise=0.0)
-        solver.set_tolerances(tol_vals=(1e-6,1e-4))
-        
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=solver)
-        grisb.run(itmax=100, mix=0.5, tol=1e-6, beta=500, silence=False, spin_pen=0.0)
+        grisb.run_canonical(mu0=0.0, nfix=nfix, itmax=100, mix=0.5, tol=5e-6, beta=500, silence=True, spin_pen=0.05, num_eig=2)
 
         docc0 = grisb.docc[0]
         docc1 = grisb.docc[1]

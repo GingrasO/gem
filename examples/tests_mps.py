@@ -61,7 +61,7 @@ if __name__ == "__main__":
     nimp=2*Nimp
     nbath=2*Nbath
     solver = ITensorMPSSolver(ntot, nimp, nbath)
-    solver.make_kwargs(use_Sz=True,use_Ntot=True,spin_pen=1.0)
+    solver.set_kwargs({"use_Sz":True,"use_Ntot":True,"spin_pen":1.0})
     solver.make_schedule()  ##default schedule, probably overkill for 3-orbital model
     solver.set_tolerances(("E","rho"),(1e-5,5e-3))
     solver.build_Hemb(D, eloc, Lambda_c, Utensor)

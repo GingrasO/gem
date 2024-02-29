@@ -38,10 +38,49 @@ function compute_commutator(A,B)
     return norm(A*Bp - B*Ap)
 end
 
+function make_hermitian(O)
+    O=0.5*(O+setprime(siteinds,uniqueinds,prime(dag.(O)),O,0))
+    return O
+end
 
+function check_hermitian(O)
+    O=0.5*(O-setprime(siteinds,uniqueinds,prime(dag.(O)),O,0))
+    return norm(O)
+end
 
 function symmetrize(A)
     n=length(size(A))
     A .+= conj.(permutedims(A,n:-1:1))
     return A
+end
+
+function check_filling(filling::Union{Int,Nothing},magnetization::Union{Int,Nothing}, N::Int)::Tuple{Int,Int,Bool}
+    isconsistent=true
+    if isnothing(filling)
+        filling=N
+        magnetization = isnothing(magnetization) ? 0 : magnetization
+        isconsistent = iseven(N) && iseven(magnetization)
+    else
+        @assert !isnothing(magnetization)
+        if isodd(filling)
+            isconsistent =  isodd(magnetization)
+        end
+    end
+    return filling,magnetization, isconsistent
+end
+
+function init_state_insector(filling::Int,magnetization::Int,N::Int)
+    Ndown = div(filling-magnetization,2)
+    Nup = filling-Ndown
+    Nuppos=fill(0,N)
+    Nuppos[StatsBase.sample(collect(1:N),Nup;replace=false,ordered=true)] .= 1
+    Ndnpos=fill(0,N)
+    Ndnpos[StatsBase.sample(collect(1:N),Ndown;replace=false,ordered=true)] .= 2
+    stateints=Nuppos + Ndnpos
+    int2str=Dict(0=>"Emp",1=>"Up",2=>"Dn",3=>"UpDn")
+    statestr=String[]
+    for i in 1:N
+        push!(statestr,int2str[stateints[i]])
+    end
+    return statestr
 end

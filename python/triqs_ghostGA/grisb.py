@@ -8,12 +8,12 @@ from scipy.linalg import sqrtm
 import h5py
 import numpy as np
 import numba
-# from triqs_ghostGA.ci import *
-# from triqs_ghostGA.ftps import *
 from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination, \
      Hermitian_list, get_blocks, funcMat, calc_nf, dF
 from triqs_ghostGA.DIIS import *
 from triqs_ghostGA.utils_grisb import *
+from h5 import *
+import sys
 
 
 class Grisb(object):
@@ -55,7 +55,7 @@ class Grisb(object):
     :type Hfull_list: list
 
     """
-    def __init__(self, ntot, nimp, nbath, eks, eloc, Utensor, spin_sym=True, soc=False, R=None, Lambda=None, edsolver=None):
+    def __init__(self, ntot, nimp, nbath, eks, eloc, Utensor, spin_sym=True, soc=False, R=None, Lambda=None, edsolver=None, suff=''):
         self.ntot = ntot
         self.nimp = nimp
         self.nbath = nbath
@@ -64,6 +64,8 @@ class Grisb(object):
         self.Utensor = Utensor
         self.soc = soc
         self.spin_sym = spin_sym
+        self.gs_wf = None
+        self.suff = suff    # Suffixe for file writting when many cpu at same time
         # initialize R and Lambda
         if R is None:
             self.R = np.kron(np.ones((nbath//2,nimp//2)), np.eye(2))*0.5
@@ -108,7 +110,7 @@ class Grisb(object):
     def solve_embedding(self, mu, num_eig, ed_verbose, spin_pen, sz_pen=0.0):
         """ Solve embedding problem using a variety of impurity solver
         """
-        fh5 = h5py.File('hemb_test.h5','w')
+        fh5 = h5py.File('hemb_test%s.h5' % self.suff,'w')
         fh5['eloc'] = self.eloc
         fh5['D'] = self.D
         fh5['Lambda_c'] = self.Lambda_c
@@ -130,12 +132,10 @@ class Grisb(object):
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
         elif self.edsolver.type == "ITensorMPSSolver":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-            self.edsolver.schedule=[]
-            self.edsolver.make_schedule()
-            self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
+            #self.edsolver.schedule=[]
+            #self.edsolver.make_schedule()
+            #self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
         elif self.edsolver.type == "PySCFCCSD":
-            self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
-        elif self.edsolver.type == "Bock2N" or self.edsolver.type == "Block2NSZ":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
         else:
             raise ValueError("only Full ED, CI, and HCI are supported")
@@ -156,6 +156,24 @@ class Grisb(object):
                     calc_nf( np.dot(self.R, np.dot(x, self.R.conj().T) ) + self.Lambda , 1./beta).T ) for x in self.eks] )/float(len(self.eks))
         self.epot = self.E2loc + np.trace(self.eloc.dot(self.denMat[:self.nimp,:self.nimp].T))
         self.etot = self.ekin + self.epot - mu*self.nfill
+
+    def save_data(self, mu, filepath=None, save_state=True):
+        if filepath is None:
+            filepath = "saved_data%s.h5" % self.suff
+        from datetime import datetime
+        with HDFArchive(filepath, 'a') as A:
+            tmp_dict = {
+                "eloc": self.eloc,
+                "D": self.D,
+                "Lambda_c": self.Lambda_c,
+                "Utensor": self.Utensor,
+                "mu": mu,
+            }
+            if self.gs_wf is not None:
+                tmp_dict['gs_wf'] = self.gs_wf
+
+            timestamp = "%d" % datetime.timestamp(datetime.now())
+            A[timestamp] = tmp_dict
 
     def run(self, mu=0.0, itmax=200, mix=0.5, tol=1e-6, beta=200., silence=True, spin_pen=0.0, sz_pen=0.0, idx=0, num_eig=2, ed_verbose=0, diis=False):
         """ Run ghost-RISB self-consistency
@@ -207,6 +225,8 @@ class Grisb(object):
                     print("Lambda_c=")
                     print(self.Lambda_c[:,:])
             # ED solvers
+            sys.stdout.flush()
+
             self.solve_embedding(mu, num_eig, ed_verbose, spin_pen, sz_pen)
             #Update R and Update Lambda
             cdaggerf = self.denMat[:self.nimp,self.nimp:]
@@ -215,6 +235,8 @@ class Grisb(object):
             #if not silence:
             print("norm(ffdagger.T-Delta_p)=", np.linalg.norm(ffdagger.T-self.Delta_p))
             self.Delta_p = ffdagger.T
+            print("Delta_p new:")
+            print(self.Delta_p)
             R_new = np.transpose(cdaggerf.dot(funcMat(self.Delta_p, denR)))
             if not self.soc:
                 R_new = np.kron(R_new[::2,::2],np.eye(2))# symmetrize
@@ -243,13 +265,13 @@ class Grisb(object):
 #            tmp[:self.nimp,:self.nimp] = sqrtm(self.R.conj().T.dot(self.R)[:self.nimp,:self.nimp])
 #            self.R = tmp
             # check point
-            fh5 = h5py.File('checkpoint.h5','w')
-            fh5['R'] = self.R
-            fh5['Lambda'] = self.Lambda
-            fh5['eks'] = self.eks
-            fh5['Utensor'] = self.Utensor
-            fh5['mu'] = mu
-            fh5.close()
+            with HDFArchive('checkpoint%s.h5' % self.suff,'a') as fh5:
+                fh5['R_%d' % it] = self.R
+                fh5['Lambda_%d'% it] = self.Lambda
+                fh5['eks'] = self.eks
+                fh5['Utensor'] = self.Utensor
+                fh5['mu'] = mu
+
             if not silence:
                 print("R_new=")
                 print(R_new)
@@ -263,6 +285,10 @@ class Grisb(object):
                 print(ffdagger.T)
                 print("density matrix=")
                 print(self.denMat[::2,::2])
+
+            # Save information
+            self.save_data(mu)
+
             print("iteration:",it,'diff=',self.diff)
             if self.diff < tol or it == (itmax-1):
                 print("--------------------- ghost-RISB converged with diff=%g ---------------------"%(self.diff))
@@ -274,6 +300,9 @@ class Grisb(object):
                     self.docc.append(self.edsolver.calc_double_occ(idx))
                 print("double occupancy=", self.docc)
                 break
+            print("##########")
+            print()
+            sys.stdout.flush()
 
     def func_mu(self, mu, *args):
         #self.mu_tmp = mu
