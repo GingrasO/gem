@@ -504,15 +504,16 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
         mpi.report('#'*80)
         mpi.report('Running iteration: {} / {}'.format(it, iteration_offset + n_iter))
-        (sum_k, solvers,
-         observables, is_converged) = _dmft_step(sum_k, solvers, it, general_params,
-                                                 solver_params, advanced_params, dft_params,
-                                                 h_int, archive, shell_multiplicity, E_kin_dft,
-                                                 observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy,
-                                                 is_converged, is_sampling=False)
+#        (sum_k, solvers,
+#         observables, is_converged) = _grisb_step(sum_k, solvers, it, general_params,
+#                                                 solver_params, advanced_params, dft_params,
+#                                                 h_int, archive, shell_multiplicity, E_kin_dft,
+#                                                 observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy,
+#                                                 is_converged, is_sampling=False)
 
         if is_converged:
             break
+    quit()
 
     if is_converged:
         mpi.report('*** Required convergence reached ***')
