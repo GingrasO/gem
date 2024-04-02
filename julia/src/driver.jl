@@ -127,14 +127,14 @@ function solve(Utensor,H1E,schedule,tolerances,kwargs;outfile="data",filling=not
             converged=GGMPSSolver.check_convergence(E,Cuu,Cdd,Eold,oldCuu,oldCdd,tolerances)
         end
         if converged
-            return true, Eint,Cuu,Cdd
+            return true, psi, Eint,Cuu,Cdd
         end
         oldCuu=deepcopy(Cuu)
         oldCdd=deepcopy(Cdd)
         Eold=deepcopy(E)
     end
 
-    return false, Eint, Cuu, Cdd
+    return false, psi, Eint, Cuu, Cdd
 end
     #eventually implement logging via Observers, pass in an iteration id, so we can save separate HDF5 files for every iteration
 

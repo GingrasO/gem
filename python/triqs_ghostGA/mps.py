@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import sys
-
+import h5py
 # from h5 import *
 ###julia setup
 import juliacall
@@ -178,7 +178,7 @@ class ITensorMPSSolver(object):
 
         print(self.M)
         ### Run MPS with julia call ###
-        self.converged, self.EHint, self.singleP_up, self.singleP_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
+        self.converged, self.gs, self.EHint, self.singleP_up, self.singleP_dn = jl.solve(self.Utensor, self.M, self.schedule,self.tolerances, self.kwargs,outfile=outfile)
 
         self.singleP_up = np.asarray(self.singleP_up)
         self.singleP_dn = np.asarray(self.singleP_dn)
@@ -225,4 +225,32 @@ class ITensorMPSSolver(object):
         #eone = 2*numpy.einsum('ij,ij',self.h1,self.dm[::2,::2])
         #etwo = self.e0 - eone
         return self.EHint
+    
+    def h5write_gs(self,filename,group_path,name):
+        #check that group at group_path exists
+        with h5py.File(filename,"a") as f:
+            if group_path not in f:
+                f.create_group(group_path)
+        jl.GGMPSSolver.write_mps_to_file(filename,group_path,name,self.gs)
+        return
+
+    def h5read_state(self,filename,group_path,name):
+        #check that group at group_path exists
+        return jl.GGMPSSolver.read_mps_from_file(filename,group_path,name)
+
+    def inner(self,bra,ket):
+        bra=jl.GGMPSSolver.ITensors.replace_siteinds(bra,jl.GGMPSSolver.ITensors.siteinds(ket))
+        return jl.GGMPSSolver.ITensors.inner(bra,ket)
+
+def write_mps_to_file(state,filename,group_path,name):
+    #check that group at group_path exists
+    with h5py.File(filename,"a") as f:
+        if group_path not in f:
+            f.create_group(group_path)
+    jl.GGMPSSolver.write_mps_to_file(filename,group_path,name,state)
+    return
+
+def read_mps_from_file(filename,group_path,name):
+    return jl.GGMPSSolver.read_mps_from_file(filename,group_path,name)
+
 
