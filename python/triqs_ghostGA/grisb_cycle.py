@@ -17,7 +17,10 @@ from h5 import HDFArchive
 import triqs.utility.mpi as mpi
 from triqs.gf import Gf, make_hermitian, MeshReFreq, MeshImFreq
 from triqs.gf.tools import inverse
-from triqs_dft_tools.sumk_dft import SumkDFT
+#from triqs_dft_tools.sumk_dft import SumkDFT
+
+# ghostGA
+from triqs_ghostGA.sumk_grisb import SumkGRISB
 
 # own modules
 from solid_dmft.version import solid_dmft_hash
@@ -255,9 +258,9 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
                                S='Fermion',
                                n_iw=general_params['n_iw'])
 
-    sum_k = SumkDFT(hdf_file=general_params['jobname']+'/'+general_params['seedname']+'.h5',
-                    mesh=sumk_mesh, use_dft_blocks=False, h_field=general_params['h_field'])
-
+    sum_k = SumkGRISB(hdf_file=general_params['jobname']+'/'+general_params['seedname']+'.h5',
+                      mesh=sumk_mesh, use_dft_blocks=False, h_field=general_params['h_field'])
+    
     iteration_offset = 0
 
     # determine chemical potential for bare DFT sum_k object
@@ -297,9 +300,9 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
     # need to set sigma immediately here, otherwise mesh in unclear for sumK
     # Initializes empty Sigma for calculation of DFT density even if block structure changes later
-    zero_Sigma = [sum_k.block_structure.create_gf(ish=iineq, gf_function=Gf, mesh=sum_k.mesh)
-                  for iineq in range(sum_k.n_inequiv_shells)]
-    sum_k.put_Sigma(zero_Sigma)
+    #zero_Sigma = [sum_k.block_structure.create_gf(ish=iineq, gf_function=Gf, mesh=sum_k.mesh)
+    #              for iineq in range(sum_k.n_inequiv_shells)]
+    #sum_k.put_Sigma(zero_Sigma)
 
     # Initializes chemical potential with mu_initial_guess if this is the first iteration
     if general_params['mu_initial_guess'] != 'none' and iteration_offset == 0:
@@ -312,17 +315,18 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
     else:
         dft_mu = sum_k.calc_mu(precision=general_params['prec_mu'], method=general_params['calc_mu_method'])
 
+
     # calculate E_kin_dft for one shot calculations
-    if not general_params['csc'] and general_params['calc_energies']:
-        E_kin_dft = calc_dft_kin_en(general_params, sum_k, dft_mu)
-    else:
-        E_kin_dft = None
+    #if not general_params['csc'] and general_params['calc_energies']:
+    #    E_kin_dft = calc_dft_kin_en(general_params, sum_k, dft_mu)
+    #else:
+    #    E_kin_dft = None
 
     # check for previous broyden data oterhwise initialize it:
-    if mpi.is_master_node() and  general_params['g0_mix_type'] == 'broyden':
-        if not 'broyler' in archive['DMFT_results']:
-            archive['DMFT_results']['broyler'] = [{'mu' : [],'V': [], 'dV': [], 'F': [], 'dF': []}
-                                                  for _ in range(sum_k.n_inequiv_shells)]
+    #if mpi.is_master_node() and  general_params['g0_mix_type'] == 'broyden':
+    #    if not 'broyler' in archive['DMFT_results']:
+    #        archive['DMFT_results']['broyler'] = [{'mu' : [],'V': [], 'dV': [], 'F': [], 'dF': []}
+    #                                              for _ in range(sum_k.n_inequiv_shells)]
 
     # Generates a rotation matrix to change the basis
     if general_params['set_rot'] != 'none':
@@ -402,9 +406,9 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
     shell_multiplicity = [sum_k.corr_to_inequiv.count(icrsh) for icrsh in range(sum_k.n_inequiv_shells)]
 
     # Initializes new empty Sigma with new blockstructure for calculation of DFT density
-    zero_Sigma = [sum_k.block_structure.create_gf(ish=iineq, gf_function=Gf, mesh=sum_k.mesh)
-                  for iineq in range(sum_k.n_inequiv_shells)]
-    sum_k.put_Sigma(zero_Sigma)
+    #zero_Sigma = [sum_k.block_structure.create_gf(ish=iineq, gf_function=Gf, mesh=sum_k.mesh)
+    #              for iineq in range(sum_k.n_inequiv_shells)]
+    #sum_k.put_Sigma(zero_Sigma)
 
     # print block structure and DFT input quantitites!
     formatter.print_block_sym(sum_k, dm, general_params)
@@ -458,7 +462,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         archive['DMFT_input']['version']['solver_name'] = general_params['solver_type']
         archive['DMFT_input']['version']['solver_hash'] = solvers[0].git_hash
         archive['DMFT_input']['version']['solver_version'] = solvers[0].version
-
+    print('here. below need to take care of the double counting term')
+    quit()
     # Determines initial Sigma and DC
     sum_k, solvers = initial_sigma.determine_dc_and_initial_sigma(general_params, advanced_params, sum_k,
                                                                   archive, iteration_offset, density_mat_dft, solvers)
@@ -467,12 +472,12 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
 
     # setup of measurement of chi(SzSz(tau) if requested
-    if general_params['measure_chi'] != 'none':
-        solver_params, Op_list = _chi_setup(sum_k, general_params, solver_params)
-    else:
-        Op_list = None
+    #if general_params['measure_chi'] != 'none':
+    #    solver_params, Op_list = _chi_setup(sum_k, general_params, solver_params)
+    #else:
+    #    Op_list = None
 
-    mpi.report('\n {} DMFT cycles requested. Starting with iteration  {}.\n'.format(n_iter, iteration_offset+1))
+    mpi.report('\n {} GRISB cycles requested. Starting with iteration  {}.\n'.format(n_iter, iteration_offset+1))
 
     # Prepares observable and conv dicts
     observables = None

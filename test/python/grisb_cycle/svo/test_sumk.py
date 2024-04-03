@@ -15,7 +15,7 @@ beta = 500.
 sumk_mesh = None
 
 sumk = SumkGRISB(hdf_file='svo.h5',
-                mesh=sumk_mesh, use_dft_blocks=False, beta=beta, h_field=0.0, nbath=6)
+                mesh=sumk_mesh, use_dft_blocks=False, beta=beta, h_field=0.0)
 
 mu = sumk.calc_mu(precision=0.001,beta=beta)
 print('mu=',mu)

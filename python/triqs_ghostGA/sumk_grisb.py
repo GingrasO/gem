@@ -6,14 +6,14 @@ class SumkGRISB(SumkDFT):
     '''
     Inherent from SumkDFT for GRISB k-summation
     '''
-    def __init__(self, *args, nbath, **kwargs):
+    def __init__(self, *args, **kwargs):
       '''
       Inherent all initial parameters from sumk_dft
       '''
       super().__init__(*args, **kwargs)
       # additional grisb parameters
-      self.nbath = nbath
-      print('number of bath orbital:', nbath)
+      #self.nbath = nbath
+      #print('number of bath orbital:', nbath)
 
     def calc_rhoks(self, R, Lambda, T):
         '''
