@@ -6,7 +6,7 @@ from triqs_ghostGA import LatticeSolver
 from triqs_ghostGA.grisb import *
 from triqs_ghostGA.utils_TH import get_semicircle_e_list, U_matrix_kanamori
 # from triqs.operators.util import U_matrix_kanamori as Umk
-# from h5 import *
+from h5 import *
 import numpy as np
 # from triqs.utility import mpi
 # from triqs.lattice.tight_binding import TBLattice
@@ -54,10 +54,22 @@ class test_hemb_ci_1o3(unittest.TestCase):
                       dtype=np.complex128)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
                       Lambda=Lambda0, edsolver=edsolver)
-        grisb.run(itmax=5, mix=0.5, tol=5e-2, beta=500,
+        grisb.run(itmax=30, mix=1, tol=1e-5, beta=500,
                   silence=True, spin_pen=0.05, diis=True)
-        print(grisb.docc)
-        print(grisb.denMat)
+
+        name = "1o3_ci_diis"
+        with HDFArchive("result_tests.h5", "r") as A:
+            print("Compare docc")
+            np.testing.assert_allclose(grisb.docc, A[name]["docc"], atol=1e-3)
+            print("Compare denMat")
+            np.testing.assert_allclose(grisb.denMat[:nimp, :nimp], A[name]["denMat"][:nimp, :nimp], atol=1e-3)
+
+        # with HDFArchive("result_tests.h5", "a") as A:
+        #     tmp_dir = {
+        #         'docc': grisb.docc,
+        #         'denMat': grisb.denMat,
+        #     }
+        #     A[name] = tmp_dir
 
 
 if __name__ == '__main__':

@@ -55,18 +55,20 @@ class test_hemb_2o6_mps(unittest.TestCase):
         solver.add_to_schedule(nsweeps=3,maxdim=256,cutoff=1e-12,noise=1e-10)
         solver.add_to_schedule(nsweeps=2,maxdim=512,cutoff=1e-14,noise=0.0)
         solver.set_tolerances(tol_vals=(1e-6,1e-4))
-        
+
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=solver)
-        grisb.run(itmax=100, mix=0.5, tol=1e-6, beta=500, silence=False, spin_pen=0.0)
+        grisb.run(itmax=100, mix=1, tol=1e-5, beta=500, silence=True, spin_pen=0.1)
 
-        docc0 = grisb.docc[0]
-        docc1 = grisb.docc[1]
-        Z = grisb.R.conj().T.dot(grisb.R)
-        docc = grisb.docc
-        R0 = grisb.R
-        Lambda0 = grisb.Lambda
+        name = "2o6_mps"
+        with HDFArchive("result_tests.h5", "r") as A:
+            print("Compare denMat")
+            np.testing.assert_allclose(grisb.denMat[:nimp, :nimp], A[name]["denMat"][:nimp, :nimp], atol=1e-3)
 
-        # self.assertAlmostEqual(docc0.real , 0.1442486503727918, 4, 'incorrect double occupancy')
+        # with HDFArchive("result_tests.h5", "a") as A:
+        #     tmp_dir = {
+        #         'denMat': grisb.denMat,
+        #     }
+        #     A[name] = tmp_dir
 
 
 if __name__ == '__main__':

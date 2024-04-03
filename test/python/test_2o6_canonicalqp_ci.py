@@ -52,16 +52,24 @@ class test_hemb_2o6_canonical_qp_ci(unittest.TestCase):
 
         edsolver=CI(ntot, use_Ntot=True, use_Sz=True, dtype=np.complex128)
         grisb = Grisb_muqp(ntot, nimp, nbath, eks, eloc, Utensor, R=R0, Lambda=Lambda0, edsolver=edsolver)
-        grisb.run(mu0=0.0, nfix=nfix, itmax=100, mix=0.5, tol=5e-6, beta=500, silence=True, spin_pen=0.00, canonical=True)
+        grisb.run(mu0=0, nfix=nfix, itmax=100, mix=1, tol=1e-5, beta=500, silence=True, spin_pen=0.10, canonical=True)
 
-        docc0 = grisb.docc[0]
-        docc1 = grisb.docc[1]
-        Z = grisb.R.conj().T.dot(grisb.R)
-        docc = grisb.docc
-        R0 = grisb.R
-        Lambda0 = grisb.Lambda
+        name = "2o6_canonicalqp_ci"
+        with HDFArchive("result_tests.h5", "r") as A:
+            print("Compare docc")
+            np.testing.assert_allclose(grisb.docc, A[name]["docc"], atol=1e-3)
+            print("Compare denMat")
+            np.testing.assert_allclose(grisb.denMat[:nimp, :nimp], A[name]["denMat"][:nimp, :nimp], atol=1e-3)
+            print("Compare mu")
+            np.testing.assert_allclose(grisb.mu, A[name]["mu"], atol=1e-3)
 
-        # self.assertAlmostEqual(docc0.real , 0.1442486503727918, 4, 'incorrect double occupancy')
+        # with HDFArchive("result_tests.h5", "a") as A:
+        #     tmp_dir = {
+        #         'docc': grisb.docc,
+        #         'denMat': grisb.denMat,
+        #         'mu': grisb.mu,
+        #     }
+        #     A[name] = tmp_dir
 
 
 if __name__ == '__main__':
