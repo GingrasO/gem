@@ -16,20 +16,31 @@ class SumkGRISB(SumkDFT):
       print('number of bath orbital:', nbath)
 
     def calc_rhoks(self, R, Lambda, T):
-        self.rhoks = np.zeros((self.n_k,Lambda.shape[0],Lambda.shape[1]))
+        '''
+        density matrix for each momentum. currently only consider one correlated shell.
+        TODO: self.rhoks = [{} for icrsh in range(self.n_corr_shells)]
+        '''
+        self.rhoks = {}
         ikarray = np.array(list(range(self.n_k)))
-        for ik in mpi.slice_array(ikarray):
-            print('ik=', ik)
-            for isp in [0]:
-                print(self.hopping[ik])
-                self.rhoks[ik,:,:] = calc_nf( np.dot(R, np.dot(self.hopping[ik,isp], R.conj().T ) ) + Lambda ,T).T
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            self.rhoks[sp] = np.zeros((self.n_k,Lambda.shape[0],Lambda.shape[1]),dtype=complex)
+            for ik in mpi.slice_array(ikarray):
+                #print('ik=', ik, 'isp=', isp, 'sp=', sp, self.spin_names_to_ind[self.SO][sp])
+                #print(self.hopping[ik,isp,:,:])
+                self.rhoks[sp][ik,:,:] = calc_nf( np.dot(R, np.dot(self.hopping[ik,isp], R.conj().T ) ) + Lambda ,T).T
 
     def ksum1(self, R, Lambda):
         '''
-        The first k-summation for density matrix
+        The first k-summation for quasiparticle density matrix. currently only consider one correlated shell
+        TODO: self.Delta_p = [{} for icrsh in range(self.n_corr_shells)]
         '''
-        Delta_p = np.zeros((self.nbath,self.nbath))
-        
+        self.Delta_p = {}
+        ikarray = np.array(list(range(self.n_k)))
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            self.Delta_p[sp] = np.zeros((self.rhoks[sp].shape[1],self.rhoks[sp].shape[2]),dtype=complex)
+            for ik in mpi.slice_array(ikarray):
+                self.Delta_p[sp][:,:] += self.rhoks[sp][ik,:,:]
+            self.Delta_p[sp][:,:] = self.Delta_p[sp][:,:]/self.rhoks[sp].shape[0]
 
     def ksum2(self, R, Lambda):
         '''
@@ -37,7 +48,7 @@ class SumkGRISB(SumkDFT):
         '''
         pass
 
-    def calc_mu(self, R, Lambda):
+    def calc_mu_grisb(self, R, Lambda):
         '''
         Override the sumk calc_mu for GRISB
         '''
