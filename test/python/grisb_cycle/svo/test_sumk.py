@@ -8,13 +8,16 @@ np.set_printoptions(suppress=True,precision=6)
 
 t_start = time.time()
 
+beta = 500.
+
 # first we have to determine the mesh
-sumk_mesh = MeshReFreq(window=[-10,10], n_w=200)
+#sumk_mesh = MeshReFreq(window=[-10,10], n_w=200)
+sumk_mesh = None
 
 sumk = SumkGRISB(hdf_file='svo.h5',
-                mesh=sumk_mesh, use_dft_blocks=True, h_field=0.0, nbath=6)
+                mesh=sumk_mesh, use_dft_blocks=False, beta=beta, h_field=0.0, nbath=6)
 
-mu = sumk.calc_mu(precision=0.001,beta=1000)
+mu = sumk.calc_mu(precision=0.001,beta=beta)
 print('mu=',mu)
 dm_test = sumk.density_matrix(method='using_gf')
 #print(sumk.gf_struct_sumk)
@@ -25,13 +28,16 @@ print(dm_test)
 
 R = np.eye(3,dtype=complex)
 Lambda = np.zeros((3,3),dtype=complex) - mu*np.eye(3)
-T = 0.001
+T = 1/beta
 sumk.calc_rhoks(R,Lambda,T)
 #print(sumk.rhoks['up'][0,:,:])
 #print(sumk.rhoks['down'][0,:,:])
-sumk.ksum1(R,Lambda)
-print(sumk.Delta_p['up'])
-print(sumk.Delta_p['down'])
+sumk.calc_Delta(R,Lambda)
+print(sumk.Delta['up'])
+print(sumk.Delta['down'])
+sumk.calc_D(R,Lambda)
+print(sumk.D['up'])
+print(sumk.D['down'])
 
 #ikarray = np.array(list(range(sumk.n_k)))
 #print(len(sumk.spin_names_to_ind[1]))#sumk.SO])
