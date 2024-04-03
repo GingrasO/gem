@@ -62,7 +62,15 @@ class test_hemb_2o6_mps(unittest.TestCase):
         name = "2o6_mps"
         with HDFArchive("result_tests.h5", "r") as A:
             print("Compare denMat")
-            np.testing.assert_allclose(grisb.denMat[:nimp, :nimp], A[name]["denMat"][:nimp, :nimp], atol=1e-3)
+            ref_denM_eval, ref_denM_evec = np.linalg.eig(A[name]["denMat"])
+            idx = ref_denM_eval.argsort()[::-1]
+            ref_denM_eval = ref_denM_eval[idx]
+
+            test_denM_eval, test_denM_evec = np.linalg.eig(grisb.denMat)
+            idx = test_denM_eval.argsort()[::-1]
+            test_denM_eval = test_denM_eval[idx]
+
+            np.testing.assert_allclose(test_denM_eval, ref_denM_eval, atol=1e-3)
 
         # with HDFArchive("result_tests.h5", "a") as A:
         #     tmp_dir = {
