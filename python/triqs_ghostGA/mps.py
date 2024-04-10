@@ -238,9 +238,15 @@ class ITensorMPSSolver(object):
         #check that group at group_path exists
         return jl.GGMPSSolver.read_mps_from_file(filename,group_path,name)
 
-    def inner(self,bra,ket):
+    def inner(self,bra,ket,operator=None):
+        """
+        operator is expected to have ket indices 
+        """
         bra=jl.GGMPSSolver.ITensors.replace_siteinds(bra,jl.GGMPSSolver.ITensors.siteinds(ket))
-        return jl.GGMPSSolver.ITensors.inner(bra,ket)
+        if operator is not None:
+            return jl.GGMPSSolver.ITensors.inner(jl.prime(bra),operator,ket)
+        else:
+            return jl.GGMPSSolver.ITensors.inner(jl.prime(bra),operator,ket)
 
 def write_mps_to_file(state,filename,group_path,name):
     #check that group at group_path exists
