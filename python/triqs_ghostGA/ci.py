@@ -770,6 +770,14 @@ class CI(object):
         '''
         compute local impurity Green's function
         '''
+
+    def inner(self,bra,ket,operator=None):
+        if operator is not None:
+            return np.vdot(bra,operator.dot(ket))
+        else:
+            return np.vdot(bra,ket)
+        
+
         
 #  def build_one_body_RISB(self, H1E, D, Lambdac, dtype=np.float64, debug=False):
 #    '''
