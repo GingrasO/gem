@@ -225,7 +225,7 @@ class ITensorMPSSolver(object):
         #eone = 2*numpy.einsum('ij,ij',self.h1,self.dm[::2,::2])
         #etwo = self.e0 - eone
         return self.EHint
-    
+
     def h5write_gs(self,filename,group_path,name):
         #check that group at group_path exists
         with h5py.File(filename,"a") as f:
@@ -240,13 +240,13 @@ class ITensorMPSSolver(object):
 
     def inner(self,bra,ket,operator=None):
         """
-        operator is expected to have ket indices 
+        operator is expected to have ket indices
         """
         bra=jl.GGMPSSolver.ITensors.replace_siteinds(bra,jl.GGMPSSolver.ITensors.siteinds(ket))
         if operator is not None:
-            return jl.GGMPSSolver.ITensors.inner(jl.prime(bra),operator,ket)
+            return jl.GGMPSSolver.ITensors.inner(jl.GGMPSSolver.ITensors.prime(bra),operator,ket)
         else:
-            return jl.GGMPSSolver.ITensors.inner(jl.prime(bra),operator,ket)
+            return jl.GGMPSSolver.ITensors.inner(bra,ket)
 
 def write_mps_to_file(state,filename,group_path,name):
     #check that group at group_path exists

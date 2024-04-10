@@ -89,7 +89,7 @@ def rotateBath(M, Norb, Nbath, paramagnetic=True, recouple=True):
         if recouple:
             decoupled = 1
             for i in np.arange(Nbath*Norb-1, Norb-1, -1):
-                if np.amax(np.abs(W_rot[:Norb, i]), axis=0) < 1e-6:
+                if np.amax(np.abs(W_rot[:Norb, i]), axis=0) < 1e-3:
                      decoupled += 1
 
             if decoupled > 1:

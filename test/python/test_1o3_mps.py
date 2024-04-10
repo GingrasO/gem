@@ -47,10 +47,28 @@ class test_hemb_1o3_mps(unittest.TestCase):
         edsolver = MPS(ntot, nimp, nbath, params=params)
         grisb = Grisb(ntot, nimp, nbath, eks, eloc, Utensor, R=R0,
                       Lambda=Lambda0, edsolver=edsolver)
-        grisb.run(itmax=1, mix=0.5, tol=5e-2, beta=500,
+        grisb.run(itmax=30, mix=1, tol=1e-5, beta=500,
                   silence=True, spin_pen=0.05)
-        print(grisb.docc)
-        print(grisb.denMat)
+
+        name = "1o3_mps"
+        # with HDFArchive("result_tests.h5", "r") as A:
+
+        #     print("Compare denMat")
+        #     ref_denM_eval, ref_denM_evec = np.linalg.eig(A[name]["denMat"])
+        #     idx = ref_denM_eval.argsort()[::-1]
+        #     ref_denM_eval = ref_denM_eval[idx]
+
+        #     test_denM_eval, test_denM_evec = np.linalg.eig(grisb.denMat)
+        #     idx = test_denM_eval.argsort()[::-1]
+        #     test_denM_eval = test_denM_eval[idx]
+
+        #     np.testing.assert_allclose(test_denM_eval, ref_denM_eval, atol=1e-3)
+
+        with HDFArchive("result_tests.h5", "a") as A:
+            tmp_dir = {
+                'denMat': grisb.denMat,
+            }
+            A[name] = tmp_dir
 
 
 if __name__ == '__main__':

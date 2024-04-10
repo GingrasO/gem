@@ -12,5 +12,7 @@ export JULIA_PYTHONCALL_EXE="/mnt/home/ogingras/.py_3.9.15_2.1-20230222/bin/pyth
 export MKL_THREADING_LAYER="INTEL"
 export PYTHON_JULIACALL_HANDLE_SIGNALS=yes
 
-export MKL_NUM_THREADS=4
-export JULIA_NUM_THREADS=4
+export MKL_NUM_THREADS=3
+export JULIA_NUM_THREADS=1
+
+# export JULIA_DEPOT_PATH="/mnt/home/bkloss/.julia/v1.9:/mnt/sw/nix/store/fms6zspq4gnq3x8bps8i9wx4lhd6j8s3-julia-1.9.0/local/share/julia:/mnt/sw/nix/store/fms6zspq4gnq3x8bps8i9wx4lhd6j8s3-julia-1.9.0/share/julia"

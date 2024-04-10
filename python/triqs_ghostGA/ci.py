@@ -1,6 +1,6 @@
 #######################################################
 # Full Configuration Interaction Exact Diagonalization
-# Author: Tsung-Han Lee 
+# Author: Tsung-Han Lee
 # Email:  henhans74716@gmail.com
 #######################################################
 from triqs_ghostGA.basis import * #table_ep, table_es
@@ -10,6 +10,7 @@ from primme import eigsh
 from scipy.linalg import block_diag
 import numpy as np
 from numba import jit
+import h5py
 
 Instance = None
 is_ci_initialized = False
@@ -45,16 +46,16 @@ def find_count(i,j,bsr,norb,bsltmp):
 @jit(nopython=True)
 def build_cid_cj_csc(i, j, basis, bit_max, norb, debug=False):
     #print 'i=',i, 'j=', j, 'bit_max=', bit_max
-    row_ind = [] 
+    row_ind = []
     col_ind = []
     data = []
 
     for bsrid,bsr in enumerate(basis):
         # temporary bit for fliping the bit on j and i.
-        tmp_bit1 = bit_max>>j  
+        tmp_bit1 = bit_max>>j
         tmp_bit2 = bit_max>>i
         #print i,j,'bsrid=',bsrid,'bsr=',bsr,'',self.strb.format(bsr),'tmp_bit1=',tmp_bit1,self.strb.format(tmp_bit1),'tmp_bit2=',tmp_bit2,self.strb.format(tmp_bit2), self.strb.format(bit_max>>j), self.strb.format(bit_max>>i)
-        
+
         # check if bit on j is 1 and if bit on i is 0 and i!=j
         if (tmp_bit1&bsr)!=tmp_bit1 or (tmp_bit2&bsr)==tmp_bit2 and i!=j:
             continue
@@ -68,7 +69,7 @@ def build_cid_cj_csc(i, j, basis, bit_max, norb, debug=False):
         if bsl != basis[id_bsl] or id_bsl>=len(basis): # The c_i^\dagger c_j may lead to a state that is not in the symmetry constrained states.
             continue
         else:
-            bslid = id_bsl       
+            bslid = id_bsl
         #determine sign
         # Bitwise method to calculate sign
         # extract the first j bits from bsr and count the 1s
@@ -102,7 +103,7 @@ def build_two_body_ijkl_csc_2(i, j, k, l, basis, bit_max, norb, debug=False):
     # for debug no jit
     #print('norb=',norb)
     #strb = '{0:0'+str(norb)+'b}'
-    row_ind = [] 
+    row_ind = []
     col_ind = []
     data = []
     #build <bsl|Htwo|bsr>
@@ -133,7 +134,7 @@ def build_two_body_ijkl_csc_2(i, j, k, l, basis, bit_max, norb, debug=False):
         #    #print('continue')
         #    continue
         #annhilate particle j
-        bsltmp1 = bsr ^ tmp_bit1 
+        bsltmp1 = bsr ^ tmp_bit1
         #annhilate particle l
         bsltmp2 = bsltmp1 ^ tmp_bit2
         #create particle k
@@ -146,7 +147,7 @@ def build_two_body_ijkl_csc_2(i, j, k, l, basis, bit_max, norb, debug=False):
         if bsl != basis[id_bsl] or id_bsl>=len(basis): # The c_i^\dagger c_j may lead to the state that is not in the symmetry constrained states.
             continue
         else:
-            bslid = id_bsl  
+            bslid = id_bsl
         # compute the sign
         count = 0
         bit_tmp = ( ((1 << j) - 1)  &  (bsr >> (norb-j) ) )
@@ -193,9 +194,9 @@ def build_rholoc_onfly(basis,gs_wf,rholoc,bipart_smap):
             #jidx = np.where(basis==bipart_smap[j,0])[0][0]
             #print(iidx, basis[iidx], bipart_smap[i,0], jidx, basis[jidx], bipart_smap[j,0])
             #if bipart_smap[i,2] == bipart_smap[j,2] and abs(gs_wf[iidx]*gs_wf[jidx]) > 1e-12:
-            #    rholoc[bipart_smap[i,1],bipart_smap[j,1]] += gs_wf[iidx]*gs_wf[jidx]#M[iidx,jidx]        
+            #    rholoc[bipart_smap[i,1],bipart_smap[j,1]] += gs_wf[iidx]*gs_wf[jidx]#M[iidx,jidx]
             if bipart_smap[i,2] == bipart_smap[j,2] and abs(gs_wf[i]*gs_wf[j]) > 1e-12:
-                rholoc[bipart_smap[i,1],bipart_smap[j,1]] += gs_wf[i]*gs_wf[j]#M[iidx,jidx]        
+                rholoc[bipart_smap[i,1],bipart_smap[j,1]] += gs_wf[i]*gs_wf[j]#M[iidx,jidx]
     return rholoc
 
 class CI(object):
@@ -229,12 +230,12 @@ class CI(object):
         # create basis in the ground space half-filled and optionally Sz=0.
         if use_Ntot == True and use_Sz == False and CISD == False: # Ntot symmetry
             if Nparticle == None:
-                self.basis = table_ep(norb,norb//2) 
+                self.basis = table_ep(norb,norb//2)
             else:
                 self.basis = table_ep(norb,Nparticle)
         if use_Ntot == True and use_Sz == True and CISD == False: # Ntot and Sz symmetry
             if Nparticle == None:
-                self.basis = table_es(norb,norb//2,0) 
+                self.basis = table_es(norb,norb//2,0)
             else:
                 self.basis = table_es(norb,Nparticle,0)
         if use_Ntot == False and use_Sz == False: # no symmetry
@@ -249,7 +250,7 @@ class CI(object):
         #print 'basis='
         #for bs in self.basis:
         #  print bs, self.strb.format(bs)
-        
+
         if not is_ci_initialized:
             # build operators
             print('build denmat_op')
@@ -260,7 +261,7 @@ class CI(object):
 
             # create map between the system and local Hilbert space
             #self.build_bipart_smap(debug=False)#True)
-            
+
             #is_ci_initialized = True
 
     #def __del__(self):
@@ -315,7 +316,7 @@ class CI(object):
         #        jidx = np.where(self.basis==j)[0][0]
         #        Mijkl[self.bipart_smap[i][0],self.bipart_smap[i][1],self.bipart_smap[j][0],self.bipart_smap[j][1]] = M[iidx,jidx]
         #trenvM = np.einsum("ikjk",Mijkl)
-        
+
         trenvM = lil_matrix((no,no),dtype=M.dtype)
         for i in range(len(self.basis)):
             for j in range(len(self.basis)):
@@ -325,7 +326,7 @@ class CI(object):
                 #    trenvM[self.bipart_smap[i,1],self.bipart_smap[j,1]] += M[iidx,jidx]
                 if self.bipart_smap[i,2] == self.bipart_smap[j,2] and abs(M[i,j]) > 1e-12:
                     trenvM[self.bipart_smap[i,1],self.bipart_smap[j,1]] += M[i,j]
-                
+
         return trenvM
 
     def trloc(self, M):
@@ -474,7 +475,7 @@ class CI(object):
         #build S^2 operator
         self.S2 = Sm.dot(Sp)+Sz.dot(Sz)+Sz
         self.Sz = Sz
-    
+
 
     #def build_docc_op(self,debug=False):
     #    '''
@@ -485,7 +486,7 @@ class CI(object):
     #    self.docc_op = {}
     #    bit_max = 2**(self.norb-1)
     #    for i in range(0,self.norb,2):
-    #        indptr = [] 
+    #        indptr = []
     #        indices = []
     #        bsrids = []
     #        data = []
@@ -498,12 +499,12 @@ class CI(object):
     #            tmp_bit4 = bit_max>>i #2**(self.norb-1-i)
     #            if self.strb.format(bsr)[i] != '1' or self.strb.format(bsr)[i+1] != '1': #HERE
     #                continue
-    #            # annhilate particles on l and j 
+    #            # annhilate particles on l and j
     #            #bsltmp = bsr ^ tmp_bit1
     #            # create particles on i and k
     #            #bsl = bsltmp | tmp_bit2
     #            #annhilate particle i
-    #            bsltmp1 = bsr ^ tmp_bit1 
+    #            bsltmp1 = bsr ^ tmp_bit1
     #            #create particle i+1
     #            bsltmp2 = bsltmp1 | tmp_bit2
     #            #annhilate particle i
@@ -544,7 +545,7 @@ class CI(object):
     #        #print i,j
     #        #print indices
     #        #print indptr
-    #        #print data 
+    #        #print data
     #        self.docc_op[i] = csc_matrix( (data, indices, indptr), shape=(self.hsize,self.hsize),dtype=self.data_type)
 
     def build_docc_op(self,i,debug=False):
@@ -565,12 +566,12 @@ class CI(object):
             if ((tmp_bit1&bsr)!=tmp_bit1 or (tmp_bit3&bsr)!=tmp_bit3): # if i is 0 or if i+1 is 0 continue
                 #print('continue')
                 continue
-            # annhilate particles on l and j 
+            # annhilate particles on l and j
             #bsltmp = bsr ^ tmp_bit1
             # create particles on i and k
             #bsl = bsltmp | tmp_bit2
             #annhilate particle i
-            bsltmp1 = bsr ^ tmp_bit1 
+            bsltmp1 = bsr ^ tmp_bit1
             #create particle i+1
             bsltmp2 = bsltmp1 | tmp_bit2
             #annhilate particle i
@@ -642,7 +643,7 @@ class CI(object):
         for i in range(num_eig):
             S2 = vecs[:,i].conj().T.dot(self.S2.dot(vecs[:,i]))
             Sz = vecs[:,i].conj().T.dot(self.Sz.dot(vecs[:,i]))
-            print(vals[i], S2, Sz) 
+            print(vals[i], S2, Sz)
             print('deg=',self.deg)
             #print('energies=',vals)
         return self.gs_wf, self.gs_ene
@@ -680,7 +681,7 @@ class CI(object):
         '''
         #return self.gs_wf.conj().T.dot((self.Htwo).dot(self.gs_wf))
         return np.trace(self.evecs[:,:self.deg].conj().T.dot(self.Htwo.dot(self.evecs[:,:self.deg])))/self.deg
-    
+
     def compute_denmat_from_phi(self,phi):
         '''
         Compute denstiy matrix.
@@ -709,7 +710,7 @@ class CI(object):
         #        if self.bipart_smap[i][1] == self.bipart_smap[j][1] and abs(self.gs_wf[iidx]*self.gs_wf[jidx]) > 1e-12:
         #            self.rholoc[self.bipart_smap[i][0],self.bipart_smap[j][0]] += self.gs_wf[iidx]*self.gs_wf[jidx]#M[iidx,jidx]
         rholoc = np.zeros((no,no),dtype=self.data_type)
-        self.rholoc = build_rholoc_onfly(self.basis, self.gs_wf, rholoc, self.bipart_smap)        
+        self.rholoc = build_rholoc_onfly(self.basis, self.gs_wf, rholoc, self.bipart_smap)
         return self.rholoc
 
     def compute_rho(self):
@@ -743,7 +744,7 @@ class CI(object):
         '''
         #return self.gs_wf.conj().T.dot(self.docc_op[i].dot(self.gs_wf))
         #return np.trace(self.evecs[:,:self.deg].conj().T.dot(self.docc_op[i].dot(self.evecs[:,:self.deg])))/self.deg
-        docc_op = self.build_docc_op(i) 
+        docc_op = self.build_docc_op(i)
         return np.trace(self.evecs[:,:self.deg].conj().T.dot(docc_op.dot(self.evecs[:,:self.deg])))/self.deg
 
     def compute_docc_i_from_phi(self,i,phi):
@@ -771,14 +772,27 @@ class CI(object):
         compute local impurity Green's function
         '''
 
+    def h5write_gs(self,filename,group_path,name):
+        #check that group at group_path exists
+        with h5py.File(filename,"a") as f:
+            if group_path not in f:
+                f.create_group(group_path)
+            f[group_path][name] = self.gs_wf
+        return
+
+    def h5read_state(self,filename,group_path,name):
+        #check that group at group_path exists
+        with h5py.File(filename,"r") as f:
+            return f[group_path][name][:]
+
     def inner(self,bra,ket,operator=None):
         if operator is not None:
             return np.vdot(bra,operator.dot(ket))
         else:
             return np.vdot(bra,ket)
-        
 
-        
+
+
 #  def build_one_body_RISB(self, H1E, D, Lambdac, dtype=np.float64, debug=False):
 #    '''
 #    Depricated! too slow compare to build_one_body above!
@@ -791,7 +805,7 @@ class CI(object):
 #      debug: bool. print out debug message
 #    '''
 #    #self.Hone = csr_matrix((self.hsize,self.hsize),dtype=dtype)
-#    indptr = [] 
+#    indptr = []
 #    indices = []
 #    bsrids = []
 #    data = []
@@ -815,7 +829,7 @@ class CI(object):
 #          #print 'keep'
 #          #print i, j, self.strb.format(bsr), self.strb.format(bsr)[j]
 #
-#          # annhilate particles on j 
+#          # annhilate particles on j
 #          bsltmp = bsr ^ tmp_bit1
 #          # create particles on i
 #          bsl = bsltmp | tmp_bit2
@@ -900,7 +914,7 @@ class CI(object):
 #          # see if j orbital is occupied and i is empty if not continue
 #          if self.strb.format(bsr)[j] != '1' or self.strb.format(bsr)[i] != '0' or abs(D[i,j-self.norb/2])<1e-12:
 #             continue
-#          # annhilate particles on j 
+#          # annhilate particles on j
 #          bsltmp = bsr ^ tmp_bit1
 #          # create particles on i
 #          bsl = bsltmp | tmp_bit2
@@ -940,7 +954,7 @@ class CI(object):
 #          # see if j orbital is occupied and i is empty if not continue
 #          if self.strb.format(bsr)[j] != '1' or self.strb.format(bsr)[i] != '0' or abs(D.conj().T[i-self.norb/2,j])<1e-12:
 #             continue
-#          # annhilate particles on j 
+#          # annhilate particles on j
 #          bsltmp = bsr ^ tmp_bit1
 #          # create particles on i
 #          bsl = bsltmp | tmp_bit2

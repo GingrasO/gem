@@ -23,7 +23,7 @@ def calc_Lambda_c(R, Lambda, Delta_p, D, H_list):
     MM=np.dot(D,np.transpose(R))
     for k in range(len(H_list)):
         AA=Delta_p
-        HH=H_list[k].T 
+        HH=H_list[k].T
         derivative=dF(AA,HH, denRm1, ddenRm1)
         tt=np.trace(np.dot(MM,derivative))
         lc[k]=-l[k]-(tt+np.conjugate(tt)).real
@@ -39,7 +39,7 @@ def calc_Lambda(R, Lambda_c, Delta_p, D, H_list):
     MM=np.dot(D,np.transpose(R))
     for k in range(len(H_list)):
         AA=Delta_p
-        HH=H_list[k].T 
+        HH=H_list[k].T
         derivative=dF(AA,HH, denRm1, ddenRm1)
         tt=np.trace(np.dot(MM,derivative))
         l[k]=-lc[k]-(tt+np.conjugate(tt)).real
@@ -110,24 +110,24 @@ class Grisb_muqp(Grisb):
         self.epot = self.E2loc + np.trace(self.eloc.dot(self.denMat[:self.nimp,:self.nimp].T))
         self.etot = self.ekin + self.epot - mu*self.nfill
 
-    def run(self, mu0=0.0, itmax=200, mix=0.5, tol=1e-6, beta=200., silence=True, spin_pen=0.0, idx=0, num_eig=2, ed_verbose=0, diis=False, canonical=False, nfix=None, dmu=0.001):
+    def run(self, mu0=0.0, itmax=200, mix=0.5, tol=1e-6, beta=200., silence=True, spin_pen=0.0, idx=0, num_eig=2, ed_verbose=0, diis=False, canonical=False, nfix=None, dmu=0.001, mu_tol=0.001):
         """ Run ghost-RISB self-consistency
 
         :param itmax: Maxiumum iteraction for self-consistency.
         :type itmax: int
-    
+
         :param tol: Tolerence for convergence
         :type tol: float
-    
+
         :param beta: Inverse temperature (equivalent to smearing temperature).
         :type beta: float
 
         :param silence: Silence the printing.
         :type silence: bool
- 
+
         :param spin_pen: Penalty for S2 conservation.
         :type spin_pen: float
-    
+
         :param silence: Orbital index for computing double occupancy.
         :type idx: int
 
@@ -142,8 +142,12 @@ class Grisb_muqp(Grisb):
         for it in range(itmax):
             # compute qp density matrix
             if canonical:
-                nfix_qp = (self.nbath - self.nimp)/2 + nfix
-                self.mu = find_mu(self.mu, self.R, self.Lambda, self.eks, nfix_qp, beta, dmu=dmu)
+                if it > 0 or self.mu == 0:
+                    nfix_qp = (self.nbath - self.nimp)/2 + nfix
+                    self.mu = find_mu(self.mu, self.R, self.Lambda, self.eks, nfix_qp, beta, dmu=dmu, mu_tol=mu_tol)
+                else:
+                    print("Initial chemical potential: ", self.mu)
+
             self.rhok_list=calc_rhoks(self.R, self.Lambda, self.eks, 1./beta, self.mu)
             self.Delta_p=calc_Delta_p(self.rhok_list)
             self.D=calc_D(self.R, self.Lambda, self.Delta_p, self.eks, self.rhok_list)
