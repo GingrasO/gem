@@ -205,18 +205,33 @@ def _construct_kanamori(sum_k, general_params, icrsh):
         h_int = ftps.solver_core.HInt(u=general_params['U'][icrsh], j=j, up=up, dd=False)
     elif sum_k.SO == 0:
         # Constructs U matrix
-        Umat, Upmat = util.U_matrix_kanamori(n_orb=n_orb, U_int=general_params['U'][icrsh],
-                                             J_hund=general_params['J'][icrsh],
-                                             Up_int=U_prime)
+        #Umat, Upmat = util.U_matrix_kanamori(n_orb=n_orb, U_int=general_params['U'][icrsh],
+        #                                     J_hund=general_params['J'][icrsh],
+        #                                     Up_int=U_prime)
 
-        h_int = util.h_int_kanamori(sum_k.spin_block_names[sum_k.SO], n_orb,
-                                    map_operator_structure=sum_k.sumk_to_solver[icrsh],
-                                    U=Umat, Uprime=Upmat, J_hund=general_params['J'][icrsh],
-                                    H_dump=os.path.join(general_params['jobname'], 'H.txt'))
+        #h_int = util.h_int_kanamori(sum_k.spin_block_names[sum_k.SO], n_orb,
+        #                            map_operator_structure=sum_k.sumk_to_solver[icrsh],
+        #                            U=Umat, Uprime=Upmat, J_hund=general_params['J'][icrsh],
+        #                            H_dump=os.path.join(general_params['jobname'], 'H.txt'))
+        # In ghostGA we return interaction matrix 
+        h_int_spinless = util.U_matrix_kanamori(n_orb=n_orb, U_int=general_params['U'][icrsh],
+                                                 J_hund=general_params['J'][icrsh],
+                                                 Up_int=U_prime, full_Uijkl=True)
+        # swap triqs convention to ghostGA conventions
+        h_int_spinless = np.swapaxes(h_int_spinless,1,2)
+        print(h_int_spinless)
+        h_int = np.zeros((2*n_orb, 2*n_orb, 2*n_orb, 2*n_orb), dtype=np.complex128)
+        h_int[::2, ::2, ::2, ::2]     = h_int_spinless  # up, up
+        h_int[1::2, 1::2, 1::2, 1::2] = h_int_spinless  # dn, dn
+        h_int[::2, ::2, 1::2, 1::2]   = h_int_spinless  # up, dn
+        h_int[1::2, 1::2, ::2, ::2]   = h_int_spinless  # dn, up
+        #print('h_int=')
+        #print(h_int)
     else:
-        h_int = _construct_kanamori_soc(general_params['U'][icrsh], general_params['J'][icrsh],
-                                        n_orb, sum_k.sumk_to_solver[icrsh],
-                                        os.path.join(general_params['jobname'], 'H.txt'))
+        raise NotImplementedError('Kanamori with SOC not implemented !!')
+        #h_int = _construct_kanamori_soc(general_params['U'][icrsh], general_params['J'][icrsh],
+        #                                n_orb, sum_k.sumk_to_solver[icrsh],
+        #                                os.path.join(general_params['jobname'], 'H.txt'))
     return h_int
 
 
@@ -430,15 +445,15 @@ def _construct_slater(sum_k, general_params, Umat_full_rotated, icrsh):
     Constructs the full Slater-Hamiltonian from the four-index interaction
     matrix.
     """
+    raise NotImplementedError('Slater interaction is not adapted to tensor form for ghostGA. Need to implement it!')
+    #n_orb = solver.get_n_orbitals(sum_k)[icrsh]['up']
 
-    n_orb = solver.get_n_orbitals(sum_k)[icrsh]['up']
+    #h_int = util.h_int_slater(sum_k.spin_block_names[sum_k.SO], n_orb,
+    #                          map_operator_structure=sum_k.sumk_to_solver[icrsh],
+    #                          U_matrix=Umat_full_rotated,
+    #                          H_dump=os.path.join(general_params['jobname'], 'H.txt'))
 
-    h_int = util.h_int_slater(sum_k.spin_block_names[sum_k.SO], n_orb,
-                              map_operator_structure=sum_k.sumk_to_solver[icrsh],
-                              U_matrix=Umat_full_rotated,
-                              H_dump=os.path.join(general_params['jobname'], 'H.txt'))
-
-    return h_int
+    #return h_int
 
 
 def construct(sum_k, general_params, advanced_params):
