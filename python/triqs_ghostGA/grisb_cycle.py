@@ -461,8 +461,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         if 'version' not in archive['DMFT_input']:
             archive['DMFT_input'].create_group('version')
         archive['DMFT_input']['version']['solver_name'] = general_params['solver_type']
-        archive['DMFT_input']['version']['solver_hash'] = solvers[0].git_hash
-        archive['DMFT_input']['version']['solver_version'] = solvers[0].version
+        #archive['DMFT_input']['version']['solver_hash'] = solvers[0].git_hash
+        #archive['DMFT_input']['version']['solver_version'] = solvers[0].version
     #print('here. below need to take care of the double counting term')
     #quit()
     # Determines initial Sigma and DC
@@ -499,8 +499,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         for icrsh in range(sum_k.n_inequiv_shells):
             for spin in sum_k.spin_block_names[sum_k.SO]:
                 n_orb = sum_k.corr_shells[icrsh]['dim']
-                observables['R'][icrsh][spin] = np.eye(n_orb,dtype=complex)
-                observables['Lambda'][icrsh][spin] = np.zeros((n_orb,n_orb),dtype=complex)
+                observables['R'][icrsh][spin] = np.eye(general_params['norb_bath'],dtype=complex)
+                observables['Lambda'][icrsh][spin] = np.zeros((general_params['norb_bath'],general_params['norb_bath']),dtype=complex)
         print('Initial R =')
         print(observables['R'])
         print('Initial Lambda =')
