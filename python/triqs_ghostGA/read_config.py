@@ -106,6 +106,9 @@ solver_type : str
             * 'ci'
             * 'block2'
 
+norb_bath: int
+            number of bath orbital in gRISB
+            
 n_iw : int, optional, default=1025
             number of Matsubara frequencies
 n_tau : int, optional, default=10001
@@ -197,11 +200,6 @@ afm_order : bool, optional, default=False
 set_rot : string, optional, default='none'
             use density_mat_dft to diagonalize occupations = 'den'
             use hloc_dft to diagonalize occupations = 'hloc'
-measure_chi_SzSz : bool, optional, default=False
-            measure the dynamic spin suszeptibility chi(sz,sz(tau))
-            triqs.github.io/cthyb/unstable/guide/dynamic_susceptibility_notebook.html
-measure_chi_insertions : int, optional, default=100
-            number of insertation for measurement of chi
 mu_gap_gb2_threshold : float, optional, default=none
             Threshold of the absolute of the lattice GF at tau=beta/2 for use
             of MaxEnt's lattice spectral function to put the chemical potential
@@ -216,63 +214,6 @@ mu_gap_occ_deviation : float, optional, default=none
 ------------
 store_solver : bool, optional default= False
             store the whole solver object under GRISB_input in h5 archive
-
-cthyb parameters
-================
-length_cycle : int
-            length of each cycle; number of sweeps before measurement is taken
-n_warmup_cycles : int
-            number of warmup cycles before real measurement sets in
-n_cycles_tot : int
-            total number of sweeps
-measure_G_l : bool
-            measure Legendre Greens function
-measure_G_tau : bool,optional, default=True
-            should the solver measure G(tau)?
-measure_G_iw : bool,optional, default=False
-            should the solver measure G(iw)?
-measure_density_matrix : bool, optional, default=False
-            measures the impurity density matrix and sets also
-            use_norm_as_weight to true
-measure_pert_order : bool, optional, default=False
-            measure perturbation order histograms: triqs.github.io/cthyb/latest/guide/perturbation_order_notebook.html
-
-            The result is stored in the h5 archive under 'GRISB_results' at every iteration
-            in the subgroups 'pert_order_imp_X' and 'pert_order_total_imp_X'
-max_time : int, optional, default=-1
-            maximum amount the solver is allowed to spend in each iteration
-imag_threshold : float, optional, default= 10e-15
-            threshold for imag part of G0_tau. be warned if symmetries are off in projection scheme imag parts can occur in G0_tau
-off_diag_threshold : float, optional
-            threshold for off-diag elements in Hloc0
-delta_interface : bool, optional, default=False
-            use new delta interface in cthyb instead of input G0
-move_double : bool, optional, default=True
-            double moves in solver
-perform_tail_fit : bool, optional, default=False
-            tail fitting if legendre is off?
-fit_max_moment : int, optional
-            max moment to be fitted
-fit_min_n : int, optional
-            number of start matsubara frequency to start with
-fit_max_n : int, optional
-            number of highest matsubara frequency to fit
-fit_min_w : float, optional
-            start matsubara frequency to start with
-fit_max_w : float, optional
-            highest matsubara frequency to fit
-random_seed : str, optional default by triqs
-            if specified the int will be used for random seeds! Careful, this will give the same random
-            numbers on all mpi ranks
-            You can also pass a string that will convert the keywords it or rank on runtime, e.g.
-            34788 * it + 928374 * rank will convert each iteration the variables it and rank for the random
-            seed
-legendre_fit : bool, optional default= False
-            filter noise of G(tau) with G_l, cutoff is taken from n_l
-loc_n_min : int, optional
-            Restrict local Hilbert space to states with at least this number of particles
-loc_n_max : int, optional
-            Restrict local Hilbert space to states with at most this number of particles
 
 ftps parameters
 ===============
@@ -454,7 +395,7 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                                  'used': True},
 
                                  'beta': {'converter': float, 'valid for': lambda x, _: x > 0,
-                                          'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'inchworm', 'hubbardI','ctseg','hartree']},
+                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'block2']},
 
                                  'n_iter_grisb': {'converter': int, 'valid for': lambda x, _: x >= 0, 'used': True},
 
@@ -474,29 +415,26 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                  'cpa_x': {'converter': lambda s: list(map(float, s.split(','))),
                                            'used': lambda params: params['general']['dc'] and params['general']['dc_type'] == 4},
 
-                                 'solver_type': {'valid for': lambda x, _: x in ['cthyb', 'ctint', 'ftps', 'hubbardI','ctseg', 'hartree'],
+                                 'solver_type': {'valid for': lambda x, _: x in ['fci', 'block2'],
                                                  'used': True},
-                                 
 
-                                 'n_l': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                         'used': lambda params: params['general']['solver_type'] in ['cthyb', 'inchworm', 'hubbardI', 'ctseg']
-                                         and (params['solver']['measure_G_l'] or params['solver']['legendre_fit'])},
+                                 'norb_bath': {'converter': int, 'used': True},
 
                                  'n_iw': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                          'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'inchworm', 'hubbardI','ctseg','hartree'], 'default': 1025},
+                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 1025},
 
                                  'n_tau': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                           'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'inchworm', 'hubbardI','ctseg','hartree'], 'default': 10001},
+                                           'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 10001},
 
                                  'n_w': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                         'used': lambda params: params['general']['solver_type'] in ['ftps', 'hubbardI', 'hartree'], 'default': 5001},
+                                         'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 5001},
 
                                  'w_range': {'converter': lambda s: tuple(map(float, s.split(','))),
                                              'valid for': lambda x, _: x[0] < x[1],
-                                             'used': lambda params: params['general']['solver_type'] in ['ftps', 'hubbardI', 'hartree'], 'default': (-10, 10)},
+                                             'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': (-10, 10)},
 
                                  'eta': {'converter': float, 'valid for': lambda x, _: x >= 0,
-                                         'used': lambda params: params['general']['solver_type'] in ['ftps', 'hubbardI', 'hartree']},
+                                         'used': lambda params: params['general']['solver_type'] in ['fci', 'block2']},
 
                                  'diag_delta': {'converter': BOOL_PARSER, 'used': True, 'default': False},
 
@@ -604,12 +542,12 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                  # TODO: used for which solvers? Generalize to real freq. solvers without maxent?
                                  'mu_gap_gb2_threshold': {'converter': float,
                                                           'valid for': lambda x, _: x == 'none' or x > 0 or np.isclose(x, 0),
-                                                          'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint','ctseg'],
+                                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'],
                                                           'default': 'none'},
 
                                  'mu_gap_occ_deviation': {'converter': float,
                                                           'valid for': lambda x, _: x == 'none' or x > 0 or np.isclose(x, 0),
-                                                          'used': lambda params: (params['general']['solver_type'] in ['cthyb', 'ctint','ctseg']
+                                                          'used': lambda params: (params['general']['solver_type'] in ['fci', 'block2']
                                                                                   and params['general']['mu_gap_gb2_threshold'] != 'none'),
                                                           'default': 'none'},
 
@@ -654,111 +592,6 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                      'solver': {
                                 #
                                 'store_solver': {'converter': BOOL_PARSER, 'used': True, 'default': False},
-                                #
-                                # cthyb parameters
-                                #
-                                'length_cycle': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                                 'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']},
-
-                                'n_warmup_cycles': {'converter': lambda s: int(float(s)),
-                                                    'valid for': lambda x, _: x > 0,
-                                                    'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']},
-
-                                'n_cycles_tot': {'converter': lambda s: int(float(s)),
-                                                 'valid for': lambda x, _: x >= 0,
-                                                 'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']},
-
-                                'max_time': {'converter': int, 'valid for': lambda x, _: x >= 0,
-                                             'default': None,
-                                             'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']},
-
-                                'imag_threshold': {'converter': float, 'default': None,
-                                                   'used': lambda params: params['general']['solver_type'] in ['cthyb']},
-
-                                'off_diag_threshold': {'converter': float, 'default': 0.0,
-                                                   'used': lambda params: params['general']['solver_type'] in ['cthyb']},
-
-                                'delta_interface': {'converter': BOOL_PARSER, 'default': False,
-                                                  'used': lambda params: params['general']['solver_type'] in ['cthyb']},
-
-                                'measure_G_tau': {'converter': BOOL_PARSER, 'default': True,
-                                                  'used': lambda params: params['general']['solver_type'] in ['hubbardI', 'ctseg']},
-
-                                'measure_G_iw': {'converter': BOOL_PARSER, 'default': False,
-                                                  'used': lambda params: params['general']['solver_type'] in ['ctseg']},
-
-                                'measure_G_l': {'converter': BOOL_PARSER, 'default': False,
-                                                'used': lambda params: params['general']['solver_type'] in ['cthyb', 'hubbardI', 'ctseg']},
-
-                                'measure_density_matrix': {'converter': BOOL_PARSER, 'default': False,
-                                                           'used': lambda params: params['general']['solver_type'] in ['cthyb', 'hubbardI']},
-
-                                'move_double': {'converter': BOOL_PARSER, 'default': True,
-                                                'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint']},
-
-                                'measure_pert_order': {'converter': BOOL_PARSER, 'default': False,
-                                                       'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']},
-
-                                'move_shift': {'converter': BOOL_PARSER, 'default': False,
-                                                'used': lambda params: params['general']['solver_type'] in ['cthyb']},
-
-                                'random_seed': {'converter': str, 'default': None,
-                                                'used': lambda params: params['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']},
-
-                                'perform_tail_fit': {'converter': BOOL_PARSER,
-                                                     'used': lambda params: params['general']['solver_type'] in ['cthyb']
-                                                             and not params['solver']['measure_G_l'],
-                                                     'default': False},
-
-                                'fit_max_moment': {'converter': int, 'valid for': lambda x, _: x >= 0,
-                                                   'used': lambda params: 'perform_tail_fit' in params['solver']
-                                                           and params['solver']['perform_tail_fit']
-                                                           and params['general']['solver_type'] in ['cthyb'],
-                                                   'default': None},
-
-                                'fit_min_n': {'converter': int, 'valid for': lambda x, _: x >= 0,
-                                              'used': lambda params: 'perform_tail_fit' in params['solver']
-                                                      and params['solver']['perform_tail_fit']
-                                                      and params['general']['solver_type'] in ['cthyb'],
-                                              'default': None},
-
-                                'fit_max_n': {'converter': int, 'valid for': lambda x, params: x >= params['solver']['fit_min_n'],
-                                              'used': lambda params: 'perform_tail_fit' in params['solver']
-                                                      and params['solver']['perform_tail_fit']
-                                                      and params['general']['solver_type'] in ['cthyb'],
-                                              'default': None},
-
-                                'fit_min_w': {'converter': float, 'valid for': lambda x, _: x >= 0,
-                                              'used': lambda params: 'perform_tail_fit' in params['solver']
-                                                      and params['solver']['perform_tail_fit']
-                                                      and params['general']['solver_type'] in ['cthyb'],
-                                              'default': None},
-
-                                'fit_max_w': {'converter': float, 'valid for': lambda x, params: x >= params['solver']['fit_min_w'],
-                                              'used': lambda params: 'perform_tail_fit' in params['solver']
-                                                      and params['solver']['perform_tail_fit']
-                                                      and params['general']['solver_type'] in ['cthyb'],
-                                              'default': None},
-
-                                'legendre_fit': {'converter': BOOL_PARSER,
-                                                 'used': lambda params: params['general']['solver_type'] in ['cthyb','ctseg'],
-                                                 'default': False},
-
-                                'loc_n_min': {'converter': int, 'valid for': lambda x, _: x >= 0,
-                                              'used': lambda params: params['general']['solver_type'] in ['cthyb'],
-                                              'default': None},
-
-                                'loc_n_max': {'converter': int, 'valid for': lambda x, _: x >= 0,
-                                              'used': lambda params: params['general']['solver_type'] in ['cthyb'],
-                                              'default': None},
-
-
-                                #
-                                # extra ctseg params
-                                #
-                                'improved_estimator': {'converter': BOOL_PARSER,
-                                                 'used': lambda params: params['general']['solver_type'] in ['ctseg'],
-                                                 'default': False},
 
                                 #
                                 # extra hartree params
@@ -1195,40 +1028,6 @@ def read_config(config_file):
 
     if isinstance(parameters['advanced']['map_solver_struct'], dict):
         parameters['advanced']['map_solver_struct'] = [parameters['advanced']['map_solver_struct']]
-
-    if parameters['general']['solver_type'] in ['cthyb', 'ctint', 'ctseg']:
-        parameters['solver']['n_cycles'] = parameters['solver']['n_cycles_tot'] // mpi.size
-        del parameters['solver']['n_cycles_tot']
-
-    if parameters['general']['solver_type'] in ['cthyb']:
-        parameters['general']['cthyb_delta_interface'] = parameters['solver']['delta_interface']
-        del parameters['solver']['delta_interface']
-
-    if parameters['general']['solver_type'] in ['ctseg']:
-        # some parameters have different names for ctseg
-        parameters['solver']['measure_gt'] = parameters['solver']['measure_G_tau']
-        del parameters['solver']['measure_G_tau']
-
-        parameters['solver']['measure_gw'] = parameters['solver']['measure_G_iw']
-        del parameters['solver']['measure_G_iw']
-
-        # make sure measure_gw is true if improved estimators are used
-        if parameters['solver']['improved_estimator']:
-            parameters['solver']['measure_gt'] = True
-            parameters['solver']['measure_ft'] = True
-        else:
-            parameters['solver']['measure_ft'] = False
-        del parameters['solver']['improved_estimator']
-
-        parameters['solver']['measure_gl'] = parameters['solver']['measure_G_l']
-        del parameters['solver']['measure_G_l']
-
-        parameters['solver']['measure_hist'] = parameters['solver']['measure_pert_order']
-        del parameters['solver']['measure_pert_order']
-
-    if parameters['general']['solver_type'] in ['cthyb'] and parameters['solver']['measure_density_matrix']:
-        # also required to measure the density matrix
-        parameters['solver']['use_norm_as_weight'] = True
 
     if parameters['general']['solver_type'] in ['ftps'] and parameters['general']['calc_energies']:
         raise ValueError('"calc_energies" is not valid for solver_type = "ftps"')
