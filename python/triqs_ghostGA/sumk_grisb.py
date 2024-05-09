@@ -7,13 +7,18 @@ class SumkGRISB(SumkDFT):
     Inherent from SumkDFT for GRISB k-summation
     '''
     def __init__(self, *args, **kwargs):
-      '''
-      Inherent all initial parameters from sumk_dft
-      '''
-      super().__init__(*args, **kwargs)
-      # additional grisb parameters
-      #self.nbath = nbath
-      #print('number of bath orbital:', nbath)
+        '''
+        Inherent all initial parameters from sumk_dft
+        '''
+        super().__init__(*args, **kwargs)
+        # additional grisb parameters
+        #self.nbath = nbath
+        #print('number of bath orbital:', nbath)
+        # Generic Hermitian matrix basis current didn't consider ghostGA and the size is the physical orbital
+        self.H_list = {}
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            self.H_list[sp] = Hermitian_list(self.hopping[0,isp].shape[0])[0] # here only consider physical orbitals
+            # we need to adapt it to ghost in the future
 
     def calc_rhoks(self, R, Lambda, T):
         '''
@@ -22,14 +27,16 @@ class SumkGRISB(SumkDFT):
         '''
         self.rhoks = {}
         ikarray = np.array(list(range(self.n_k)))
+        icrsh = 0
         for sp, isp in self.spin_names_to_ind[self.SO].items():
-            self.rhoks[sp] = np.zeros((self.n_k,Lambda.shape[0],Lambda.shape[1]),dtype=complex)
+            self.rhoks[sp] = np.zeros((self.n_k,Lambda[icrsh][sp].shape[0],Lambda[icrsh][sp].shape[1]),dtype=complex)
             for ik in mpi.slice_array(ikarray):
                 #print('ik=', ik, 'isp=', isp, 'sp=', sp, self.spin_names_to_ind[self.SO][sp])
                 #print(self.hopping[ik,isp,:,:])
-                self.rhoks[sp][ik,:,:] = calc_nf( np.dot(R, np.dot(self.hopping[ik,isp], R.conj().T ) ) + Lambda ,T).T
+                self.rhoks[sp][ik,:,:] = calc_nf( np.dot(R[icrsh][sp], np.dot(self.hopping[ik,isp], R[icrsh][sp].conj().T ) ) + Lambda[icrsh][sp]
+                                                 - self.chemical_potential*np.eye(Lambda[icrsh][sp].shape[0]) ,T).T
 
-    def calc_Delta(self, R, Lambda):
+    def calc_Delta(self):
         '''
         The first k-summation for quasiparticle density matrix. currently only consider one correlated shell
         TODO: self.Delta = [{} for icrsh in range(self.n_corr_shells)]
@@ -42,20 +49,42 @@ class SumkGRISB(SumkDFT):
                 self.Delta[sp][:,:] += self.rhoks[sp][ik,:,:]
             self.Delta[sp][:,:] = self.Delta[sp][:,:]/self.rhoks[sp].shape[0]
 
-    def calc_D(self, R, Lambda):
+    def calc_D(self, R):
         '''
         The second k-sum for kinetic energy. currently only consider one correlated shell
         TODO:
         '''
         self.D = {}
+        icrsh = 0
         ikarray = np.array(list(range(self.n_k)))
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             sum_ek_Rdagger_rhoks = np.zeros((self.rhoks[sp].shape[1],self.rhoks[sp].shape[2]),dtype=complex)
             for ik in mpi.slice_array(ikarray):
-                sum_ek_Rdagger_rhoks[:,:] += self.hopping[ik,isp].dot(R.conj().T).dot(self.rhoks[sp][ik,:,:].T)
+                sum_ek_Rdagger_rhoks[:,:] += self.hopping[ik,isp].dot(R[icrsh][sp].conj().T).dot(self.rhoks[sp][ik,:,:].T)
             sum_ek_Rdagger_rhoks[:,:] = sum_ek_Rdagger_rhoks[:,:]/self.rhoks[sp].shape[0]
             sqrt_Delta=funcMat(self.Delta[sp], denR)
             self.D[sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta))
+
+    def calc_Lambdac(self, R, Lambda):
+        '''
+        Calculate Lambdac matrix
+        '''
+        self.Lambdac = {}
+        icrsh = 0
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            self.Lambdac[sp] = self.calc_Lambdac_icrsh_isp(R[icrsh][sp], Lambda[icrsh][sp], 
+                                        self.Delta[sp], self.D[sp], self.H_list[sp])
+
+    def calc_Lambda(self, R, Lambda):
+        '''
+        Calculate Lambda matrix
+        '''
+        Lambda = {}
+        icrsh = 0
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            Lambda[sp] = self.calc_Lambda_icrsh_isp(R[icrsh][sp], Lambda[icrsh][sp], 
+                                        self.Delta[sp], self.D[sp], self.H_list[sp])
+        return Lambda
 
     def calc_mu_grisb(self, R, Lambda):
         '''
@@ -70,8 +99,8 @@ class SumkGRISB(SumkDFT):
         pass
 
     @staticmethod
-    def calc_Lambda_c(R, Lambda, Delta_p, D, H_list):
-        """ Compute Lambda_c matrix
+    def calc_Lambdac_icrsh_isp(R, Lambda, Delta_p, D, H_list):
+        """ Compute Lambda_c matrix for a specific shell icrsh and spin isp
         """
         no = Lambda.shape[0]
         l=inverse_realHcombination(Lambda,H_list)
@@ -87,8 +116,8 @@ class SumkGRISB(SumkDFT):
         return Lambda_c
    
     @staticmethod 
-    def calc_Lambda(R, Lambda_c, Delta_p, D, H_list):
-        """ Compute Lambda_c matrix
+    def calc_Lambda_icrsh_isp(R, Lambda_c, Delta_p, D, H_list):
+        """ Compute Lambda matrix for a specific shell icrsh and spin isp 
         """
         no = Lambda_c.shape[0]
         lc=inverse_realHcombination(Lambda_c,H_list)

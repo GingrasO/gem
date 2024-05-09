@@ -610,7 +610,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
     for icrsh in range(sum_k.n_inequiv_shells):
         # copy the block of G_loc into the corresponding instance of the impurity solver
         # TODO: why do we set solvers.G_freq? Isn't that simply an output of the solver?
-        solvers[icrsh].G_freq << G_loc_all[icrsh]
+        #solvers[icrsh].G_freq << G_loc_all[icrsh]
 
         #density_shell_pre[icrsh] = np.real(solvers[icrsh].G_freq.total_density())
         mpi.report('\n *** Correlated Shell type #{:3d} : '.format(icrsh)
@@ -623,10 +623,27 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #        mpi.report(func(value))
 
         # Compute Delta
+        #print(general_params['beta'])
+        #print(observables['R'])
+        #print(observables['Lambda'])
+        sum_k.calc_rhoks(observables['R'], observables['Lambda'], 1./general_params['beta'])
+        sum_k.calc_Delta()
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('Delta_%s='%sp)
+            print(sum_k.Delta[sp])
 
         # Compute D
+        sum_k.calc_D(observables['R'])
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('D_%s='%sp)
+            print(sum_k.D[sp])
 
         # Compute Lambda_c
+        sum_k.calc_Lambdac(observables['R'], observables['Lambda'])
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('Lambdac_%s='%sp)
+            print(sum_k.Lambdac[sp])
+        quit()
 
         if general_params['solver_type'] in ['cthyb', 'ctint', 'hubbardI', 'inchworm']:
             solvers[icrsh].G0_freq << make_hermitian(solvers[icrsh].G0_freq)
