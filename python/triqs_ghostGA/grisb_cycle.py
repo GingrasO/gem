@@ -259,7 +259,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
                                n_iw=general_params['n_iw'])
 
     sum_k = SumkGRISB(hdf_file=general_params['jobname']+'/'+general_params['seedname']+'.h5',
-                      mesh=sumk_mesh, use_dft_blocks=False, h_field=general_params['h_field'])
+                      mesh=sumk_mesh, use_dft_blocks=False, h_field=general_params['h_field'],
+                      nbath=general_params['norb_bath'])
     
     iteration_offset = 0
 
@@ -500,7 +501,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
             for spin in sum_k.spin_block_names[sum_k.SO]:
                 n_orb = sum_k.corr_shells[icrsh]['dim']
                 observables['R'][icrsh][spin] = np.eye(general_params['norb_bath'],dtype=complex)
-                observables['Lambda'][icrsh][spin] = np.zeros((general_params['norb_bath'],general_params['norb_bath']),dtype=complex)
+                #observables['Lambda'][icrsh][spin] = np.zeros((general_params['norb_bath'],general_params['norb_bath']),dtype=complex)
+                observables['Lambda'][icrsh][spin] = sum_k.Hsumk[icrsh][spin]
         print('Initial R =')
         print(observables['R'])
         print('Initial Lambda =')

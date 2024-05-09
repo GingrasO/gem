@@ -6,19 +6,20 @@ class SumkGRISB(SumkDFT):
     '''
     Inherent from SumkDFT for GRISB k-summation
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, nbath, **kwargs):
         '''
         Inherent all initial parameters from sumk_dft
         '''
         super().__init__(*args, **kwargs)
         # additional grisb parameters
-        #self.nbath = nbath
+        self.nbath = nbath
         #print('number of bath orbital:', nbath)
         # Generic Hermitian matrix basis current didn't consider ghostGA and the size is the physical orbital
         self.H_list = {}
         for sp, isp in self.spin_names_to_ind[self.SO].items():
-            self.H_list[sp] = Hermitian_list(self.hopping[0,isp].shape[0])[0] # here only consider physical orbitals
+            self.H_list[sp] = Hermitian_list(self.nbath)[0] # here only consider physical orbitals
             # we need to adapt it to ghost in the future
+
 
     def calc_rhoks(self, R, Lambda, T):
         '''
@@ -28,12 +29,22 @@ class SumkGRISB(SumkDFT):
         self.rhoks = {}
         ikarray = np.array(list(range(self.n_k)))
         icrsh = 0
+        dim = self.corr_shells[icrsh]['dim']
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             self.rhoks[sp] = np.zeros((self.n_k,Lambda[icrsh][sp].shape[0],Lambda[icrsh][sp].shape[1]),dtype=complex)
+            ind = self.spin_names_to_ind[
+                        self.corr_shells[icrsh]['SO']][sp]
             for ik in mpi.slice_array(ikarray):
                 #print('ik=', ik, 'isp=', isp, 'sp=', sp, self.spin_names_to_ind[self.SO][sp])
                 #print(self.hopping[ik,isp,:,:])
-                self.rhoks[sp][ik,:,:] = calc_nf( np.dot(R[icrsh][sp], np.dot(self.hopping[ik,isp], R[icrsh][sp].conj().T ) ) + Lambda[icrsh][sp]
+                n_orb = self.n_orbitals[ik, ind]
+                #MMat = np.identity(n_orb, complex)
+                MMat = self.hopping[
+                            ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+                projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
+                MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
+                self.rhoks[sp][ik,:,:] = calc_nf(np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
+                                                 + Lambda[icrsh][sp]
                                                  - self.chemical_potential*np.eye(Lambda[icrsh][sp].shape[0]) ,T).T
 
     def calc_Delta(self):
@@ -46,8 +57,8 @@ class SumkGRISB(SumkDFT):
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             self.Delta[sp] = np.zeros((self.rhoks[sp].shape[1],self.rhoks[sp].shape[2]),dtype=complex)
             for ik in mpi.slice_array(ikarray):
-                self.Delta[sp][:,:] += self.rhoks[sp][ik,:,:]
-            self.Delta[sp][:,:] = self.Delta[sp][:,:]/self.rhoks[sp].shape[0]
+                self.Delta[sp][:,:] += self.bz_weights[ik] * self.rhoks[sp][ik,:,:]
+            #self.Delta[sp][:,:] = self.Delta[sp][:,:]/self.rhoks[sp].shape[0]
 
     def calc_D(self, R):
         '''
@@ -56,12 +67,22 @@ class SumkGRISB(SumkDFT):
         '''
         self.D = {}
         icrsh = 0
+        dim = self.corr_shells[icrsh]['dim']
         ikarray = np.array(list(range(self.n_k)))
         for sp, isp in self.spin_names_to_ind[self.SO].items():
+            ind = self.spin_names_to_ind[
+            self.corr_shells[icrsh]['SO']][sp]
             sum_ek_Rdagger_rhoks = np.zeros((self.rhoks[sp].shape[1],self.rhoks[sp].shape[2]),dtype=complex)
             for ik in mpi.slice_array(ikarray):
-                sum_ek_Rdagger_rhoks[:,:] += self.hopping[ik,isp].dot(R[icrsh][sp].conj().T).dot(self.rhoks[sp][ik,:,:].T)
-            sum_ek_Rdagger_rhoks[:,:] = sum_ek_Rdagger_rhoks[:,:]/self.rhoks[sp].shape[0]
+                n_orb = self.n_orbitals[ik, ind]
+                #MMat = np.identity(n_orb, complex)
+                MMat = self.hopping[
+                            ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+                projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
+                MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
+                sum_ek_Rdagger_rhoks[:,:] += self.bz_weights[ik]*MMatproj_nloc.dot(R[icrsh][sp].conj().T).dot(
+                                             self.rhoks[sp][ik,:,:].T)
+            #sum_ek_Rdagger_rhoks[:,:] = sum_ek_Rdagger_rhoks[:,:]/self.rhoks[sp].shape[0]
             sqrt_Delta=funcMat(self.Delta[sp], denR)
             self.D[sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta))
 
