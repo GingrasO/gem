@@ -219,7 +219,7 @@ def _construct_kanamori(sum_k, general_params, icrsh):
                                                  Up_int=U_prime, full_Uijkl=True)
         # swap triqs convention to ghostGA conventions
         h_int_spinless = np.swapaxes(h_int_spinless,1,2)
-        print(h_int_spinless)
+        #print(h_int_spinless)
         h_int = np.zeros((2*n_orb, 2*n_orb, 2*n_orb, 2*n_orb), dtype=np.complex128)
         h_int[::2, ::2, ::2, ::2]     = h_int_spinless  # up, up
         h_int[1::2, 1::2, 1::2, 1::2] = h_int_spinless  # dn, dn

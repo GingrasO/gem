@@ -444,7 +444,6 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
             general_params = afm_mapping.determine(general_params, archive, sum_k.n_inequiv_shells)
 
     # Constructs interaction Hamiltonian and writes it to the h5 archive
-    #h_int = interaction_hamiltonian.construct(sum_k, general_params, advanced_params)
     h_int =  interaction_hamiltonian.construct(sum_k, general_params, advanced_params)# we need to store h_int as U_tensor
     if mpi.is_master_node():
         archive['DMFT_input']['h_int'] = h_int
@@ -477,6 +476,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         #archive['DMFT_input']['version']['solver_hash'] = solvers[0].git_hash
         #archive['DMFT_input']['version']['solver_version'] = solvers[0].version
     #print('here. below need to take care of the double counting term')
+    #print('density_mat_dft=')
+    #print(density_mat_dft)
     #quit()
     # Determines initial Sigma and DC
     sum_k, solvers = initial_sigma.determine_dc_and_initial_sigma(general_params, advanced_params, sum_k,
@@ -646,21 +647,21 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #print(observables['Lambda'])
         sum_k.calc_rhoks(observables['R'], observables['Lambda'], 1./general_params['beta'])
         sum_k.calc_Delta()
-        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-            print('Delta_%s='%sp)
-            print(sum_k.Delta[icrsh][sp])
+        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+        #    print('Delta_%s='%sp)
+        #    print(sum_k.Delta[icrsh][sp])
 
         # Compute D
         sum_k.calc_D(observables['R'])
-        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-            print('D_%s='%sp)
-            print(sum_k.D[icrsh][sp])
+        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+        #    print('D_%s='%sp)
+        #    print(sum_k.D[icrsh][sp])
 
         # Compute Lambda_c
         sum_k.calc_Lambdac(observables['R'], observables['Lambda'])
-        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-            print('Lambdac_%s='%sp)
-            print(sum_k.Lambdac[icrsh][sp])
+        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+        #    print('Lambdac_%s='%sp)
+        #    print(sum_k.Lambdac[icrsh][sp])
 
          # store solver to h5 archive
         if general_params['store_solver'] and mpi.is_master_node():
@@ -691,7 +692,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
         # parse density matrix to the grisb_cycle style structure
         #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
         for spin_channel in sorted(sum_k.gf_struct_solver[icrsh].keys()):
-            isp = int(sp=='down_0')# this needs to be changed in future
+            isp = int(spin_channel=='down_0')# this needs to be changed in future
             density_mat_pre[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
                                                                isp:2*solvers[icrsh].nimp:2]
             density_mat[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
@@ -725,12 +726,12 @@ def _grisb_step(sum_k, solvers, it, general_params,
                                         Delta[sp], sum_k.D[icrsh][sp], sum_k.H_list[icrsh][sp])
         #print('R_pre_icrsh=')
         #print(R_pre_icrsh)
-        print('R_new_icrsh=')
-        print(R_new_icrsh)
+        #print('R_new_icrsh=')
+        #print(R_new_icrsh)
         #print('Lambda_pre_icrsh=')
         #print(Lambda_pre_icrsh)
-        print('Lambda_new_icrsh=')
-        print(Lambda_new_icrsh)
+        #print('Lambda_new_icrsh=')
+        #print(Lambda_new_icrsh)
         # symmetrize over spin
         R_sym = (R_new_icrsh['up']+R_new_icrsh['down'])/2.# symmetrize
         Lambda_sym = (Lambda_new_icrsh['up']+Lambda_new_icrsh['down'])/2. # symmetryize

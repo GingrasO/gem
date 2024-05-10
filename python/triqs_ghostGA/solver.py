@@ -127,34 +127,34 @@ class SolverStructure:
             D_spinful = np.zeros((2*self.nbath,2*self.nimp),dtype=complex)
             Lambdac_spinful = np.zeros((2*self.nbath,2*self.nbath),dtype=complex)
             # Sz symmetry assumed
-            # put Vdc by hand
-            nnom = 1
-            Vdc = -(self.general_params['U'][self.icrsh]+(self.nimp-1)*(self.general_params['U'][self.icrsh]
-                    -2*self.general_params['J'][self.icrsh])+(self.nimp-1)*(self.general_params['U'][self.icrsh]
-                    -3*self.general_params['J'][self.icrsh]))*(nnom-0.5)/(2*self.nimp-1)
-            print('Vdc=', Vdc)
-            print(self.sum_k.dc_imp[self.icrsh]['up'])
-            print(self.sum_k.dc_imp[self.icrsh]['down'])
-            eloc_spinful[::2,::2]= self.sum_k.Hsumk[self.icrsh]['up'] + Vdc*np.eye(self.nimp)#- self.sum_k.dc_imp[self.icrsh]['up']
-            eloc_spinful[1::2,1::2]= self.sum_k.Hsumk[self.icrsh]['down'] + Vdc*np.eye(self.nimp) #- self.sum_k.dc_imp[self.icrsh]['down']
+            # put Vdc by hand. There's a minus sign difference from sumk_dft.calc_dc
+            #nnom = 1
+            #Vdc = -(self.general_params['U'][self.icrsh]+(self.nimp-1)*(self.general_params['U'][self.icrsh]
+            #        -2*self.general_params['J'][self.icrsh])+(self.nimp-1)*(self.general_params['U'][self.icrsh]
+            #        -3*self.general_params['J'][self.icrsh]))*(nnom-0.5)/(2*self.nimp-1)
+            #print('Vdc=', Vdc)
+            #print(self.sum_k.dc_imp[self.icrsh]['up'])
+            #print(self.sum_k.dc_imp[self.icrsh]['down'])
+            eloc_spinful[::2,::2]= self.sum_k.Hsumk[self.icrsh]['up'] - self.sum_k.dc_imp[self.icrsh]['up']
+            eloc_spinful[1::2,1::2]= self.sum_k.Hsumk[self.icrsh]['down'] - self.sum_k.dc_imp[self.icrsh]['down']
             D_spinful[::2,::2]= self.sum_k.D[self.icrsh]['up']
             D_spinful[1::2,1::2]= self.sum_k.D[self.icrsh]['down']
             Lambdac_spinful[::2,::2]= self.sum_k.Lambdac[self.icrsh]['up']
             Lambdac_spinful[1::2,1::2]= self.sum_k.Lambdac[self.icrsh]['down']
             self.triqs_solver.build_h1e(eloc_spinful, D_spinful, Lambdac_spinful, 0.0)
-            print('h1e_up=')
-            print(self.triqs_solver.h1e[::2,::2])
-            print('h1e_down=')
-            print(self.triqs_solver.h1e[1::2,1::2])
+            #print('h1e_up=')
+            #print(self.triqs_solver.h1e[::2,::2])
+            #print('h1e_down=')
+            #print(self.triqs_solver.h1e[1::2,1::2])
             #print('h_int=')
             #print(self.h_int)
             self.triqs_solver.build_Hemb_for_grisb_cycle(self.h_int)
             self.triqs_solver.solve_Hemb()
             self.density_matrix = self.triqs_solver.calc_density_matrix()
-            print('density_matrix_up=')
-            print(self.density_matrix[::2,::2])
-            print('density_matrix_down=')
-            print(self.density_matrix[1::2,1::2])
+            #print('density_matrix_up=')
+            #print(self.density_matrix[::2,::2])
+            #print('density_matrix_down=')
+            #print(self.density_matrix[1::2,1::2])
             #quit()
 
             # call postprocessing
