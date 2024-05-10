@@ -142,8 +142,10 @@ h_field : float, optional, default=0.0
             magnetic field
 h_field_it : int, optional, default=0
             number of iterations the magnetic field is kept on
-sigma_mix : float, optional, default=1.0
+grisb_mix : float, optional, default=1.0
             mixing R and Lambda with previous iteration sigma for better convergency. 1.0 means no mixing
+grisb_tol : float, optional, default=1e-5
+            convergence criteria for gGA calculation
 dc : bool, optional, default=True
             dc correction on yes or no?
 calc_energies : bool, optional, default=False, not compatible with 'ftps' solver
@@ -471,9 +473,13 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                                'used': lambda params: params['general']['magnetic'],
                                                'default': False},
 
-                                 'sigma_mix': {'converter': float,
+                                 'grisb_mix': {'converter': float,
                                                'valid for': lambda x, params: x >= 0  or np.isclose(x, 1),
-                                               'used': True, 'default': 1.0},
+                                               'used': True, 'default': 0.5},
+                                            
+                                'grisb_tol': {'converter': float,
+                                               'valid for': lambda x, _: x >= 0,
+                                               'used': True, 'default': 1e-5},
 
                                  'calc_energies': {'converter': BOOL_PARSER, 'used': True, 'default': False},
 

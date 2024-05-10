@@ -292,6 +292,17 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
     else:
         archive = None
 
+    # double counting using nominal valence
+    #dens_mat = sum_k.density_matrix(method='using_gf')
+    ##print(dens_mat)
+    #for icrsh in range(sum_k.n_inequiv_shells):
+    #    if general_params['h_int_type'][icrsh] == 'kanamori':
+    #        sum_k.calc_dc(dens_mat[icrsh], orb=icrsh, U_interact=general_params['U'][icrsh],
+    #                      J_hund=general_params['J'][icrsh], use_dc_formula=1)
+    #    else:
+    #        raise NotImplementedError('Slater-type interaction not implemente for gGA!')
+    #print(sum_k.dc_imp)
+    
     iteration_offset = mpi.bcast(iteration_offset)
     sum_k.chemical_potential = mpi.bcast(sum_k.chemical_potential)
 
@@ -535,7 +546,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
                                                  h_int, archive, shell_multiplicity, E_kin_dft,
                                                  observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy,
                                                  is_converged, is_sampling=False)
-
+        
         if is_converged:
             break
 
@@ -691,42 +702,41 @@ def _grisb_step(sum_k, solvers, it, general_params,
         cdaggerf = solvers[icrsh].density_matrix[:2*solvers[icrsh].nimp,2*solvers[icrsh].nimp:]
         ffdagger = solvers[icrsh].density_matrix[2*solvers[icrsh].nimp:,2*solvers[icrsh].nimp:]
         ffdagger = (np.eye(2*solvers[icrsh].nbath,dtype=complex) - ffdagger).T
-        print("norm(ffdagger.T-Delta_p)=", np.linalg.norm(ffdagger[::2,::2].T-sum_k.Delta[icrsh]["up"]))
+        print("norm(ffdagger.T-Delta_p)_up=", np.linalg.norm(ffdagger[::2,::2].T-sum_k.Delta[icrsh]["up"]))
+        print("norm(ffdagger.T-Delta_p)_down=", np.linalg.norm(ffdagger[1::2,1::2].T-sum_k.Delta[icrsh]["down"]))
         Delta_spinful = ffdagger.T
-        print("Delta new:")
-        print(Delta_spinful)
+        #print("Delta new:")
+        #print(Delta_spinful)
         R_new_spinful = np.transpose(cdaggerf.dot(funcMat(Delta_spinful, denR)))
-        print("R_new=")
-        print(R_new_spinful)
-        #if not self.soc:
-        #    R_new = np.kron(R_new[::2,::2],np.eye(2))# symmetrize
+        #print("R_new=")
+        #print(R_new_spinful)
         #R_new = svd_truncate_R(R_new)
         # Convert R_spinful and Delta_spinful to R and Lambda data structure
         R_new_icrsh = deepcopy(observables['R'][icrsh])
         Delta = {}
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             isp = int(sp=='down')# this needs to be changed in future
-            print(isp)
+            #print(isp)
             R_new_icrsh[sp] = R_new_spinful[isp::2,isp::2]
             Delta[sp] = Delta_spinful[isp::2,isp::2]
-        print('R=')
-        print(R_new_icrsh)
-        print('R=')
-        print(observables['R'][icrsh])
         Lambda_new_icrsh = {}
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             Lambda_new_icrsh[sp] = sum_k.calc_Lambda_icrsh_isp(R_new_icrsh[sp], sum_k.Lambdac[icrsh][sp], 
                                         Delta[sp], sum_k.D[icrsh][sp], sum_k.H_list[icrsh][sp])
-        print('R_pre_icrsh=')
-        print(R_pre_icrsh)
+        #print('R_pre_icrsh=')
+        #print(R_pre_icrsh)
         print('R_new_icrsh=')
         print(R_new_icrsh)
-        print('Lambda_pre_icrsh=')
-        print(Lambda_pre_icrsh)
+        #print('Lambda_pre_icrsh=')
+        #print(Lambda_pre_icrsh)
         print('Lambda_new_icrsh=')
         print(Lambda_new_icrsh)
-        #if not self.soc:
-        #    Lambda_new = np.kron(Lambda_new[::2,::2],np.eye(2)) # symmetryize
+        # symmetrize over spin
+        R_sym = (R_new_icrsh['up']+R_new_icrsh['down'])/2.# symmetrize
+        Lambda_sym = (Lambda_new_icrsh['up']+Lambda_new_icrsh['down'])/2. # symmetryize
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            R_new_icrsh[sp] = R_sym
+            Lambda_new_icrsh[sp] = Lambda_sym
         diff_R, diff_Lambda = 0.0, 0.0
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             diff_R = np.abs(R_pre_icrsh[sp]-R_new_icrsh[sp]).max()
@@ -751,10 +761,9 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #    cpa_G_time << cpa_G_time + general_params['cpa_x'][icrsh] * solvers[icrsh].G_time
 
         # mixing R and Lambda and update the R and Lambda in the observable class
-        mix = 0.4 # add it to the general_params
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-            observables['R'][icrsh][sp] = (1.0-mix)*R_pre_icrsh[sp] + mix*R_new_icrsh[sp]
-            observables['Lambda'][icrsh][sp] = (1.0-mix)*Lambda_pre_icrsh[sp] + mix*Lambda_pre_icrsh[sp]
+            observables['R'][icrsh][sp] = (1.0-general_params['grisb_mix'])*R_pre_icrsh[sp] + general_params['grisb_mix']*R_new_icrsh[sp]
+            observables['Lambda'][icrsh][sp] = (1.0-general_params['grisb_mix'])*Lambda_pre_icrsh[sp] + general_params['grisb_mix']*Lambda_new_icrsh[sp]
         #quit()
 
     # Done with loop over impurities
@@ -846,8 +855,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #    # if convergency criteria was already reached don't overwrite it!
     #    is_converged = is_converged or is_now_converged
     # use the current simple criterion
-    grisb_tol = 1e-5 # add grisb_tol to general_params
-    if diff < grisb_tol: # 
+    if diff < general_params['grisb_tol']:  
         is_converged =True
 
     # Final prints
