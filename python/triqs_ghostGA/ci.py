@@ -400,6 +400,30 @@ class CI(object):
                             #self.Htwo +=  0.5*Umatrix[i,j,k,l]*csc_matrix( (data, indices, indptr), shape=(self.hsize,self.hsize),dtype=self.data_type)
                         #print i,j,k,l,Umatrix[i,j,k,l]
 
+    def build_h1e(self, eloc, D, Lambdac, mu):
+        self.h1e = np.zeros((self.norb,self.norb), dtype=np.complex128)
+        nimp = eloc.shape[0]
+        self.h1e[:nimp,:nimp] = eloc - mu*np.eye(nimp)
+        self.h1e[:nimp,nimp:] = D.T
+        self.h1e[nimp:,nimp:] = -Lambdac
+        self.h1e[nimp:,:nimp] = D.conj()
+
+    def build_one_body_for_grisb_cycle(self, debug=False):
+        '''
+        build one body part of Hamiltonian for grisb_cycle routine for materials using denmat operators.
+        Input:
+          debug: bool. print out debug message
+        '''
+        self.Hone = csc_matrix((self.hsize,self.hsize),dtype=self.data_type)
+
+        for i in range(0,self.norb):
+            for j in range(0,self.norb):
+                if np.abs(self.h1e[i,j])<1e-12:
+                    continue # 0 contribution
+                else:
+                    #print(i,j,H1E[i,j])
+                    self.Hone += self.h1e[i,j]*self.denmat_op[(i,j)]
+
     def build_one_body(self, H1E, debug=False):
         '''
         build one body part of Hamiltonian using denmat operators.
@@ -417,6 +441,22 @@ class CI(object):
                 else:
                     #print(i,j,H1E[i,j])
                     self.Hone += H1E[i,j]*self.denmat_op[(i,j)]
+
+    def build_Hemb_for_grisb_cycle(self, V2E, spin_pen=0., sz_pen=0.0, debug=False):
+        '''
+        build the Hamiltonian and return Hamiltonian
+        '''
+        print('build one-body')
+        self.build_one_body_for_grisb_cycle()
+        print('build two-body')
+        if self.Htwo is None:
+            self.build_two_body(V2E)
+        print('one-body + two-body')
+        self.Ham = self.Hone + self.Htwo + spin_pen*self.S2 + sz_pen*self.Sz.dot(self.Sz)
+        print('done')
+#        assert(abs( (self.Ham - self.Ham.getH()).max() ) < 1e-12), 'Hamiltonian is not Hermitian! H.getH()-H='
+        if debug:
+            return self.Ham
 
     def build_Hemb(self, H1E, V2E, spin_pen=0., sz_pen=0.0, debug=False):
         '''
