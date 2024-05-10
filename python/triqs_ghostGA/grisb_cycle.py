@@ -645,11 +645,6 @@ def _grisb_step(sum_k, solvers, it, general_params,
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             print('Lambdac_%s='%sp)
             print(sum_k.Lambdac[sp])
-        quit()
-
-        if general_params['solver_type'] in ['cthyb', 'ctint', 'hubbardI', 'inchworm']:
-            solvers[icrsh].G0_freq << make_hermitian(solvers[icrsh].G0_freq)
-        sum_k.symm_deg_gf(solvers[icrsh].G0_freq, ish=icrsh)
 
          # store solver to h5 archive
         if general_params['store_solver'] and mpi.is_master_node():
@@ -657,8 +652,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
             archive['DMFT_input/solver/it_'+str(it)]['S_'+str(icrsh)] = solvers[icrsh].triqs_solver
 
         # store DMFT input directly in last_iter
-        if mpi.is_master_node():
-            archive['DMFT_results/last_iter']['G0_freq_{}'.format(icrsh)] = solvers[icrsh].G0_freq
+        #if mpi.is_master_node():
+        #    archive['DMFT_results/last_iter']['G0_freq_{}'.format(icrsh)] = solvers[icrsh].G0_freq
 
         # setup of measurement of chi(SzSz(tau) if requested
         #if general_params['measure_chi'] != 'none':
@@ -676,6 +671,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
             solvers[icrsh].solve(it=it)
             mpi.barrier()
             mpi.report('Actual time for solver: {:.2f} s'.format(timer() - start_time))
+
+        quit()
 
         # some printout of the obtained density matrices and some basic checks from the unsymmetrized solver output
         density_shell[icrsh] = np.real(solvers[icrsh].G_freq_unsym.total_density())

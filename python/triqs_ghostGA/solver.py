@@ -113,12 +113,37 @@ class SolverStructure:
             mpi.report('\n Using the full configuration interaction solver.')
 
             # Solve the impurity problem for icrsh shell
-            # *************************************
-            self.triqs_solver.solve(h_int=self.h_int, **{ **self.solver_params, **random_seed })
-            # *************************************
+            # construct single particle matrix
+            nimp = self.sum_k.Hsumk[self.icrsh]['up'].shape[0]
+            nbath = self.general_params['norb_bath']
+            eloc_spinfull = np.zeros((2*nimp,2*nimp),dtype=complex)
+            D_spinfull = np.zeros((2*nbath,2*nimp),dtype=complex)
+            Lambdac_spinfull = np.zeros((2*nbath,2*nbath),dtype=complex)
+            # Sz symmetry assumed
+            eloc_spinfull[::2,::2]= self.sum_k.Hsumk[self.icrsh]['up']
+            eloc_spinfull[1::2,1::2]= self.sum_k.Hsumk[self.icrsh]['down']
+            D_spinfull[::2,::2]= self.sum_k.D['up']
+            D_spinfull[1::2,1::2]= self.sum_k.D['down']
+            Lambdac_spinfull[::2,::2]= self.sum_k.Lambdac['up']
+            Lambdac_spinfull[1::2,1::2]= self.sum_k.Lambdac['down']
+            self.triqs_solver.build_h1e(eloc_spinfull, D_spinfull, Lambdac_spinfull, 0.0)
+            print('h1e_up=')
+            print(self.triqs_solver.h1e[::2,::2])
+            print('h1e_down=')
+            print(self.triqs_solver.h1e[1::2,1::2])
+            print('h_int=')
+            print(self.h_int)
+            self.triqs_solver.build_Hemb_for_grisb_cycle(self.h_int)
+            self.triqs_solver.solve_Hemb()
+            self.density_matrix = self.triqs_solver.calc_density_matrix()
+            print('density_matrix_up=')
+            print(self.density_matrix[::2,::2])
+            print('density_matrix_down=')
+            print(self.density_matrix[1::2,1::2])
+            quit()
 
             # call postprocessing
-            self._fci_postprocessing()
+            #self._fci_postprocessing()
 
         elif self.general_params['solver_type'] == 'block2_dmrg':
             raise NotImplementedError("block2 DMRG solver not implemeted!")
