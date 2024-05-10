@@ -21,17 +21,18 @@ from triqs.gf.tools import inverse
 
 # ghostGA
 from triqs_ghostGA.sumk_grisb import SumkGRISB
+from triqs_ghostGA.observables import (calc_dft_kin_en, add_dmft_observables, calc_bandcorr_man, write_obs,
+                                         add_dft_values_as_zeroth_iteration, write_header_to_file, prep_observables)
+from triqs_ghostGA.solver import SolverStructure
+from triqs_ghostGA import interaction_hamiltonian
+from triqs_ghostGA.utils_TH import funcMat, denR
+from triqs_ghostGA import results_to_archive
 
 # own modules
 from solid_dmft.version import solid_dmft_hash
 from solid_dmft.version import version as solid_dmft_version
-from triqs_ghostGA.observables import (calc_dft_kin_en, add_dmft_observables, calc_bandcorr_man, write_obs,
-                                         add_dft_values_as_zeroth_iteration, write_header_to_file, prep_observables)
-from triqs_ghostGA.solver import SolverStructure
 from solid_dmft.dmft_tools import convergence
 from solid_dmft.dmft_tools import formatter
-from triqs_ghostGA import interaction_hamiltonian
-from solid_dmft.dmft_tools import results_to_archive
 from solid_dmft.dmft_tools import afm_mapping
 from solid_dmft.dmft_tools import manipulate_chemical_potential as manipulate_mu
 from solid_dmft.dmft_tools import initial_self_energies as initial_sigma
@@ -510,6 +511,10 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         write_obs(observables, sum_k, general_params)
         # write convergence file
         convergence.prep_conv_file(general_params, sum_k)
+    elif mpi.is_master_node():
+        # read R and Lambda from archive
+        observables['R'] = archive['DMFT_results/last_iter/R']
+        observables['Lambda'] = archive['DMFT_results/last_iter/Lambda']
 
     # The not famous GRISB self consistency cycle
     is_converged = False
@@ -533,7 +538,6 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
         if is_converged:
             break
-    quit()
 
     if is_converged:
         mpi.report('*** Required convergence reached ***')
@@ -542,22 +546,22 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
     mpi.report('#'*80)
 
     # Starts the sampling dmft iterations if requested
-    if is_converged and general_params['sampling_iterations'] > 0:
-        mpi.report('*** Sampling now for {} iterations ***'.format(general_params['sampling_iterations']))
-        iteration_offset = it
+    #if is_converged and general_params['sampling_iterations'] > 0:
+    #    mpi.report('*** Sampling now for {} iterations ***'.format(general_params['sampling_iterations']))
+    #    iteration_offset = it
 
-        for it in range(iteration_offset + 1,
-                        iteration_offset + 1 + general_params['sampling_iterations']):
-            mpi.report('#'*80)
-            mpi.report('Running iteration: {} / {}'.format(it, iteration_offset+general_params['sampling_iterations']))
-            sum_k, solvers, observables, _ = _dmft_step(sum_k, solvers, it, general_params,
-                                                        solver_params, advanced_params, dft_params,
-                                                        h_int, archive, shell_multiplicity, E_kin_dft,
-                                                        observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy,
-                                                        is_converged=True, is_sampling=True)
+    #    for it in range(iteration_offset + 1,
+    #                    iteration_offset + 1 + general_params['sampling_iterations']):
+    #        mpi.report('#'*80)
+    #        mpi.report('Running iteration: {} / {}'.format(it, iteration_offset+general_params['sampling_iterations']))
+    #        sum_k, solvers, observables, _ = _dmft_step(sum_k, solvers, it, general_params,
+    #                                                    solver_params, advanced_params, dft_params,
+    #                                                    h_int, archive, shell_multiplicity, E_kin_dft,
+    #                                                    observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy,
+    #                                                    is_converged=True, is_sampling=True)
 
-        mpi.report('** Sampling finished ***')
-        mpi.report('#'*80)
+    #    mpi.report('** Sampling finished ***')
+    #    mpi.report('#'*80)
 
     mpi.barrier()
 
@@ -584,10 +588,10 @@ def _grisb_step(sum_k, solvers, it, general_params,
     # init local density matrices for observables
     density_tot = 0.0
     density_shell = np.zeros(sum_k.n_inequiv_shells)
-    density_mat = [None] * sum_k.n_inequiv_shells
-    density_mat_unsym = [None] * sum_k.n_inequiv_shells
+    density_mat = [{}] * sum_k.n_inequiv_shells
+    density_mat_unsym = [{}] * sum_k.n_inequiv_shells
     density_shell_pre = np.zeros(sum_k.n_inequiv_shells)
-    density_mat_pre = [None] * sum_k.n_inequiv_shells
+    density_mat_pre = [{}] * sum_k.n_inequiv_shells
 
     mpi.barrier()
 
@@ -617,7 +621,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #density_shell_pre[icrsh] = np.real(solvers[icrsh].G_freq.total_density())
         mpi.report('\n *** Correlated Shell type #{:3d} : '.format(icrsh)
                    + 'Estimated total charge of impurity problem = {:.6f}'.format(density_shell_pre[icrsh]))
-        #density_mat_pre[icrsh] = solvers[icrsh].G_freq.density()
+        R_pre_icrsh = deepcopy(observables['R'][icrsh])
+        Lambda_pre_icrsh = deepcopy(observables['Lambda'][icrsh])
         #mpi.report('Estimated density matrix:')
         #for key, value in sorted(density_mat_pre[icrsh].items()):
         #    for func, name in printed:
@@ -632,19 +637,19 @@ def _grisb_step(sum_k, solvers, it, general_params,
         sum_k.calc_Delta()
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             print('Delta_%s='%sp)
-            print(sum_k.Delta[sp])
+            print(sum_k.Delta[icrsh][sp])
 
         # Compute D
         sum_k.calc_D(observables['R'])
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             print('D_%s='%sp)
-            print(sum_k.D[sp])
+            print(sum_k.D[icrsh][sp])
 
         # Compute Lambda_c
         sum_k.calc_Lambdac(observables['R'], observables['Lambda'])
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             print('Lambdac_%s='%sp)
-            print(sum_k.Lambdac[sp])
+            print(sum_k.Lambdac[icrsh][sp])
 
          # store solver to h5 archive
         if general_params['store_solver'] and mpi.is_master_node():
@@ -672,15 +677,70 @@ def _grisb_step(sum_k, solvers, it, general_params,
             mpi.barrier()
             mpi.report('Actual time for solver: {:.2f} s'.format(timer() - start_time))
 
-        quit()
+        # parse density matrix to the grisb_cycle style structure
+        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+        for spin_channel in sorted(sum_k.gf_struct_solver[icrsh].keys()):
+            isp = int(sp=='down_0')# this needs to be changed in future
+            density_mat_pre[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
+                                                               isp:2*solvers[icrsh].nimp:2]
+            density_mat[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
+                                                           isp:2*solvers[icrsh].nimp:2]
+            density_mat_unsym[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
+                                                                 isp:2*solvers[icrsh].nimp:2]
+        # compute new R and Lambda
+        cdaggerf = solvers[icrsh].density_matrix[:2*solvers[icrsh].nimp,2*solvers[icrsh].nimp:]
+        ffdagger = solvers[icrsh].density_matrix[2*solvers[icrsh].nimp:,2*solvers[icrsh].nimp:]
+        ffdagger = (np.eye(2*solvers[icrsh].nbath,dtype=complex) - ffdagger).T
+        print("norm(ffdagger.T-Delta_p)=", np.linalg.norm(ffdagger[::2,::2].T-sum_k.Delta[icrsh]["up"]))
+        Delta_spinful = ffdagger.T
+        print("Delta new:")
+        print(Delta_spinful)
+        R_new_spinful = np.transpose(cdaggerf.dot(funcMat(Delta_spinful, denR)))
+        print("R_new=")
+        print(R_new_spinful)
+        #if not self.soc:
+        #    R_new = np.kron(R_new[::2,::2],np.eye(2))# symmetrize
+        #R_new = svd_truncate_R(R_new)
+        # Convert R_spinful and Delta_spinful to R and Lambda data structure
+        R_new_icrsh = deepcopy(observables['R'][icrsh])
+        Delta = {}
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            isp = int(sp=='down')# this needs to be changed in future
+            print(isp)
+            R_new_icrsh[sp] = R_new_spinful[isp::2,isp::2]
+            Delta[sp] = Delta_spinful[isp::2,isp::2]
+        print('R=')
+        print(R_new_icrsh)
+        print('R=')
+        print(observables['R'][icrsh])
+        Lambda_new_icrsh = {}
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            Lambda_new_icrsh[sp] = sum_k.calc_Lambda_icrsh_isp(R_new_icrsh[sp], sum_k.Lambdac[icrsh][sp], 
+                                        Delta[sp], sum_k.D[icrsh][sp], sum_k.H_list[icrsh][sp])
+        print('R_pre_icrsh=')
+        print(R_pre_icrsh)
+        print('R_new_icrsh=')
+        print(R_new_icrsh)
+        print('Lambda_pre_icrsh=')
+        print(Lambda_pre_icrsh)
+        print('Lambda_new_icrsh=')
+        print(Lambda_new_icrsh)
+        #if not self.soc:
+        #    Lambda_new = np.kron(Lambda_new[::2,::2],np.eye(2)) # symmetryize
+        diff_R, diff_Lambda = 0.0, 0.0
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            diff_R = np.abs(R_pre_icrsh[sp]-R_new_icrsh[sp]).max()
+            diff_Lambda = np.abs(Lambda_pre_icrsh[sp]-Lambda_new_icrsh[sp]).max()
+        diff = max(diff_R,diff_Lambda)
+        print('diff=', diff)
 
         # some printout of the obtained density matrices and some basic checks from the unsymmetrized solver output
-        density_shell[icrsh] = np.real(solvers[icrsh].G_freq_unsym.total_density())
-        density_tot += density_shell[icrsh]*shell_multiplicity[icrsh]
-        density_mat_unsym[icrsh] = solvers[icrsh].G_freq_unsym.density()
-        density_mat[icrsh] = solvers[icrsh].G_freq.density()
-        formatter.print_local_density(density_shell[icrsh], density_shell_pre[icrsh],
-                                      density_mat_unsym[icrsh], sum_k.SO)
+        #density_shell[icrsh] = np.real(solvers[icrsh].G_freq_unsym.total_density())
+        #density_tot += density_shell[icrsh]*shell_multiplicity[icrsh]
+        #density_mat_unsym[icrsh] = solvers[icrsh].G_freq_unsym.density()
+        #density_mat[icrsh] = solvers[icrsh].G_freq.density()
+        #formatter.print_local_density(density_shell[icrsh], density_shell_pre[icrsh],
+        #                              density_mat_unsym[icrsh], sum_k.SO)
 
         # update solver in h5 archive
         if general_params['store_solver'] and mpi.is_master_node():
@@ -690,10 +750,12 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #if general_params['dc'] and general_params['dc_type'] == 4:
         #    cpa_G_time << cpa_G_time + general_params['cpa_x'][icrsh] * solvers[icrsh].G_time
 
-        # mixing of R and Lambda if wanted from the second iteration on
-        if it > 1:
-            solvers[icrsh] = gf_mixer.mix_g0(solvers[icrsh], general_params, icrsh, archive,
-                                             G0_freq_previous[icrsh], it, sum_k.deg_shells[icrsh])
+        # mixing R and Lambda and update the R and Lambda in the observable class
+        mix = 0.4 # add it to the general_params
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            observables['R'][icrsh][sp] = (1.0-mix)*R_pre_icrsh[sp] + mix*R_new_icrsh[sp]
+            observables['Lambda'][icrsh][sp] = (1.0-mix)*Lambda_pre_icrsh[sp] + mix*Lambda_pre_icrsh[sp]
+        #quit()
 
     # Done with loop over impurities
 
@@ -709,7 +771,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
 
     # calculate new DC
     # for the hartree solver the DC potential will be formally set to zero as it is already present in the Sigma
-    if general_params['dc'] and general_params['dc_dmft']:
+    if general_params['dc'] and general_params['dc_grisb']:
         sum_k = initial_sigma.calculate_double_counting(sum_k, density_mat,
                                                         general_params, advanced_params)
     
@@ -723,7 +785,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
 
     # saving previous mu for writing to observables file
     previous_mu = sum_k.chemical_potential
-    sum_k = manipulate_mu.update_mu(general_params, sum_k, it, archive)
+#    sum_k = manipulate_mu.update_mu(general_params, sum_k, it, archive)
 
     # if we do a CSC calculation we need always an updated GAMMA file
     E_bandcorr = 0.0
@@ -734,31 +796,32 @@ def _grisb_step(sum_k, solvers, it, general_params,
         assert dft_irred_kpt_indices is None or dft_params['dft_code'] == 'vasp'
         deltaN, dens, E_bandcorr = sum_k.calc_density_correction(dm_type=dft_params['dft_code'],
                                                                  kpts_to_write=dft_irred_kpt_indices)
-    elif general_params['calc_energies']:
-        # for a one shot calculation we are using our own method
-        E_bandcorr = calc_bandcorr_man(general_params, sum_k, E_kin_dft)
+#    elif general_params['calc_energies']:
+#        # for a one shot calculation we are using our own method
+#        E_bandcorr = calc_bandcorr_man(general_params, sum_k, E_kin_dft)
 
     # Writes results to h5 archive
     results_to_archive.write(archive, sum_k, general_params, solver_params, solvers, it,
-                             is_sampling, previous_mu, density_mat_pre, density_mat, deltaN, dens)
+                             is_sampling, previous_mu, density_mat_pre, density_mat,
+                             observables['R'], observables['Lambda'], deltaN, dens)
 
     mpi.barrier()
 
     # calculate observables and write them to file
-    #if mpi.is_master_node():
-    #    print('\n *** calculation of observables ***')
-    #    observables = add_dmft_observables(observables,
-    #                                       general_params,
-    #                                       solver_params,
-    #                                       dft_energy,
-    #                                       it,
-    #                                       solvers,
-    #                                       h_int,
-    #                                       previous_mu,
-    #                                       sum_k,
-    #                                       density_mat,
-    #                                       shell_multiplicity,
-    #                                       E_bandcorr)
+    if mpi.is_master_node():
+        print('\n *** calculation of observables ***')
+        observables = add_dmft_observables(observables,
+                                           general_params,
+                                           solver_params,
+                                           dft_energy,
+                                           it,
+                                           solvers,
+                                           h_int,
+                                           previous_mu,
+                                           sum_k,
+                                           density_mat,
+                                           shell_multiplicity,
+                                           E_bandcorr)
 
     #    write_obs(observables, sum_k, general_params)
 
@@ -782,6 +845,10 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #else:
     #    # if convergency criteria was already reached don't overwrite it!
     #    is_converged = is_converged or is_now_converged
+    # use the current simple criterion
+    grisb_tol = 1e-5 # add grisb_tol to general_params
+    if diff < grisb_tol: # 
+        is_converged =True
 
     # Final prints
     #formatter.print_summary_observables(observables, sum_k.n_inequiv_shells,

@@ -75,11 +75,17 @@ class SolverStructure:
         self.h_int = h_int
         self.iteration_offset = iteration_offset
         self.solver_struct_ftps = solver_struct_ftps
+        self.nimp = self.sum_k.Hsumk[self.icrsh]['up'].shape[0]
+        self.nbath = self.general_params['norb_bath']
         # currently no solver requires random number
         #if solver_params.get("random_seed") is None:
         #    self.random_seed_generator = None
 
         if self.general_params['solver_type'] == 'fci':
+            # sets up necessary GF objects on ImFreq. we are not using it yet.
+            self.gf_struct = self.sum_k.gf_struct_solver_list[self.icrsh]
+            self._init_ImFreq_objects()
+            self._init_ReFreq_hartree()
 
             # sets up solver
             self.triqs_solver = self._create_fci_solver()
@@ -88,6 +94,9 @@ class SolverStructure:
 
         elif self.general_params['solver_type'] == 'block2_dmrg':
             raise NotImplementedError("block2 DMRG solver not implemeted!")
+            # sets up necessary GF objects on ImFreq. we are not using it yet.
+            #self._init_ImFreq_objects()
+            #self._init_ReFreq_objects()
             # sets up solver
             #self.triqs_solver = self._create_block2_solver()
             #self.git_hash = triqs_hartree_fock_hash
@@ -114,19 +123,17 @@ class SolverStructure:
 
             # Solve the impurity problem for icrsh shell
             # construct single particle matrix
-            nimp = self.sum_k.Hsumk[self.icrsh]['up'].shape[0]
-            nbath = self.general_params['norb_bath']
-            eloc_spinfull = np.zeros((2*nimp,2*nimp),dtype=complex)
-            D_spinfull = np.zeros((2*nbath,2*nimp),dtype=complex)
-            Lambdac_spinfull = np.zeros((2*nbath,2*nbath),dtype=complex)
+            eloc_spinful = np.zeros((2*self.nimp,2*self.nimp),dtype=complex)
+            D_spinful = np.zeros((2*self.nbath,2*self.nimp),dtype=complex)
+            Lambdac_spinful = np.zeros((2*self.nbath,2*self.nbath),dtype=complex)
             # Sz symmetry assumed
-            eloc_spinfull[::2,::2]= self.sum_k.Hsumk[self.icrsh]['up']
-            eloc_spinfull[1::2,1::2]= self.sum_k.Hsumk[self.icrsh]['down']
-            D_spinfull[::2,::2]= self.sum_k.D['up']
-            D_spinfull[1::2,1::2]= self.sum_k.D['down']
-            Lambdac_spinfull[::2,::2]= self.sum_k.Lambdac['up']
-            Lambdac_spinfull[1::2,1::2]= self.sum_k.Lambdac['down']
-            self.triqs_solver.build_h1e(eloc_spinfull, D_spinfull, Lambdac_spinfull, 0.0)
+            eloc_spinful[::2,::2]= self.sum_k.Hsumk[self.icrsh]['up']
+            eloc_spinful[1::2,1::2]= self.sum_k.Hsumk[self.icrsh]['down']
+            D_spinful[::2,::2]= self.sum_k.D[self.icrsh]['up']
+            D_spinful[1::2,1::2]= self.sum_k.D[self.icrsh]['down']
+            Lambdac_spinful[::2,::2]= self.sum_k.Lambdac[self.icrsh]['up']
+            Lambdac_spinful[1::2,1::2]= self.sum_k.Lambdac[self.icrsh]['down']
+            self.triqs_solver.build_h1e(eloc_spinful, D_spinful, Lambdac_spinful, 0.0)
             print('h1e_up=')
             print(self.triqs_solver.h1e[::2,::2])
             print('h1e_down=')
@@ -140,7 +147,7 @@ class SolverStructure:
             print(self.density_matrix[::2,::2])
             print('density_matrix_down=')
             print(self.density_matrix[1::2,1::2])
-            quit()
+            #quit()
 
             # call postprocessing
             #self._fci_postprocessing()
@@ -216,3 +223,95 @@ class SolverStructure:
         #self.Sigma_Refreq << self.triqs_solver.Sigma_w
 
         return
+
+    # ********************************************************************
+    # initialize Freq and Time objects
+    # ********************************************************************
+
+    def _init_ImFreq_objects(self):
+        r'''
+        Initialize all ImFreq objects
+        '''
+
+        # create all ImFreq instances
+        self.n_iw = self.general_params['n_iw']
+        self.G_freq = self.sum_k.block_structure.create_gf(ish=self.icrsh, gf_function=Gf, space='solver',
+                                                           mesh=self.sum_k.mesh)
+        # copy
+        self.Sigma_freq = self.G_freq.copy()
+        self.G0_freq = self.G_freq.copy()
+        self.G_freq_unsym = self.G_freq.copy()
+        self.Delta_freq = self.G_freq.copy()
+
+        # create all ImTime instances
+        self.n_tau = self.general_params['n_tau']
+        self.G_time = self.sum_k.block_structure.create_gf(ish=self.icrsh, gf_function=Gf, space='solver',
+                                                           mesh=MeshImTime(beta=self.general_params['beta'],
+                                                                           S='Fermion', n_tau=self.n_tau)
+                                                           )
+        # copy
+        self.Delta_time = self.G_time.copy()
+
+        # create all Legendre instances
+        if (self.general_params['solver_type'] == 'cthyb' and self.solver_params['measure_G_l']
+            or self.general_params['solver_type'] == 'cthyb' and  self.general_params['legendre_fit']
+            or self.general_params['solver_type'] == 'ctseg' and self.solver_params['measure_gl']
+            or self.general_params['solver_type'] == 'ctseg' and  self.general_params['legendre_fit']
+            or self.general_params['solver_type'] == 'hubbardI' and self.solver_params['measure_G_l']):
+
+            self.n_l = self.general_params['n_l']
+            self.G_l = self.sum_k.block_structure.create_gf(ish=self.icrsh, gf_function=Gf, space='solver',
+                                                            mesh=MeshLegendre(beta=self.general_params['beta'],
+                                                                              max_n=self.n_l, S='Fermion')
+                                                            )
+            # move original G_freq to G_freq_orig
+            self.G_time_orig = self.G_time.copy()
+
+        if self.general_params['solver_type'] in ['cthyb', 'hubbardI'] and self.solver_params['measure_density_matrix']:
+            self.density_matrix = None
+            self.h_loc_diagonalization = None
+
+        if self.general_params['solver_type'] in ['cthyb'] and self.general_params['measure_chi'] != 'none':
+            self.O_time = None
+
+    def _init_ReFreq_objects(self):
+        r'''
+        Initialize all ReFreq objects
+        '''
+
+        # create all ReFreq instances
+        self.n_w = self.general_params['n_w']
+        self.G_freq = self.sum_k.block_structure.create_gf(ish=self.icrsh, gf_function=Gf, space='solver',
+                                                           mesh=self.sum_k.mesh)
+        # copy
+        self.Sigma_freq = self.G_freq.copy()
+        self.G0_freq = self.G_freq.copy()
+        self.Delta_freq = self.G_freq.copy()
+        self.G_freq_unsym = self.G_freq.copy()
+
+        # create another Delta_freq for the solver, which uses different spin indices
+        n_orb = self.sum_k.corr_shells[self.icrsh]['dim']
+        n_orb = n_orb//2 if self.sum_k.corr_shells[self.icrsh]['SO'] else n_orb
+        gf = Gf(target_shape = (n_orb, n_orb), mesh=MeshReFreq(n_w=self.n_w, window=self.general_params['w_range']))
+
+        self.Delta_freq_solver = BlockGf(name_list =tuple([block[0] for block in self.gf_struct]), block_list = (gf, gf), make_copies = True)
+
+        # create all ReTime instances
+        # FIXME: dummy G_time, since time_steps will be recalculated during run
+        #time_steps = int(2 * self.solver_params['time_steps'] * self.solver_params['refine_factor']) if self.solver_params['n_bath'] != 0 else int(2 * self.solver_params['time_steps'])
+        time_steps = int(2 * 1 * self.solver_params['refine_factor']) if self.solver_params['n_bath'] != 0 else int(2 * 1)
+        self.G_time = self.sum_k.block_structure.create_gf(ish=self.icrsh, gf_function=Gf, space='solver',
+                                                           mesh=MeshReTime(n_t=time_steps+1,
+                                                           window=[0,time_steps*self.solver_params['dt']])
+                                                           )
+        
+    def _init_ReFreq_hartree(self):
+        r'''
+        Initialize all ReFreq objects
+        '''
+
+        # create all ReFreq instances
+        self.n_w = self.general_params['n_w']
+        self.Sigma_Refreq = self.sum_k.block_structure.create_gf(ish=self.icrsh, gf_function=Gf, space='solver',
+                                                                 mesh=MeshReFreq(n_w=self.n_w, window=self.general_params['w_range'])
+                                                                 )
