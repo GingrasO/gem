@@ -430,7 +430,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
     if general_params['solver_type'] in ['ftps']:
         G_loc_all_dft = sum_k.extract_G_loc(broadening=general_params['eta'], with_Sigma=False, mu=dft_mu)
     else:
-        G_loc_all_dft = sum_k.extract_G_loc(with_Sigma=False, mu=dft_mu)
+        G_loc_all_dft = sum_k.extract_G_loc( mu=dft_mu)
     density_mat_dft = [G_loc_all_dft[iineq].density() for iineq in range(sum_k.n_inequiv_shells)]
 
     for iineq in range(sum_k.n_inequiv_shells):
@@ -550,6 +550,19 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         
         if is_converged:
             break
+
+    #if mpi.is_master_node():
+    #compute Green's function
+    mesh_plot = MeshReFreq(window=general_params['w_range'],
+                           n_w=general_params['n_w'])
+    #sum_k.lattice_gf_qp(observables['R'], observables['Lambda'], 0, mu=None, broadening=0.05, mesh=mesh_plot)
+    Gphy = sum_k.extract_G_phy(observables['R'], observables['Lambda'], mu=None, broadening=0.05, mesh=mesh_plot, show_warnings=True)
+    if mpi.is_master_node():
+        if 'gGA_results' not in archive:
+            archive.create_group('gGA_results')
+        if 'Gphys' not in archive['gGA_results']:
+            archive['gGA_results'].create_group('Gphy')
+        archive['gGA_results']['Gphy'] = Gphy
 
     if is_converged:
         mpi.report('*** Required convergence reached ***')
