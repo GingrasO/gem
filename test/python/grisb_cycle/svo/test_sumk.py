@@ -14,7 +14,7 @@ beta = 500.
 #sumk_mesh = MeshReFreq(window=[-10,10], n_w=200)
 sumk_mesh = None
 
-sumk = SumkGRISB(hdf_file='svo.h5',
+sumk = SumkGRISB(hdf_file='svo.h5', nbath=3,
                 mesh=sumk_mesh, use_dft_blocks=False, beta=beta, h_field=0.0)
 
 mu = sumk.calc_mu(precision=0.001,beta=beta)
@@ -26,18 +26,23 @@ dm_test = sumk.density_matrix(method='using_gf')
 print('dm_test=')
 print(dm_test)
 
-R = np.eye(3,dtype=complex)
-Lambda = np.zeros((3,3),dtype=complex) - mu*np.eye(3)
+sumk.eff_atomic_levels()
+R = [{"up":np.eye(3,dtype=complex),"down":np.eye(3,dtype=complex)}]
+Lambda = sumk.Hsumk#np.zeros((3,3),dtype=complex) - mu*np.eye(3)
+print('rot_mat=')
+print(sumk.rot_mat)
+print('Hsumk=')
+print(sumk.Hsumk)
 T = 1/beta
 sumk.calc_rhoks(R,Lambda,T)
 #print(sumk.rhoks['up'][0,:,:])
 #print(sumk.rhoks['down'][0,:,:])
-sumk.calc_Delta(R,Lambda)
-print(sumk.Delta['up'])
-print(sumk.Delta['down'])
+sumk.calc_Delta()
+print(sumk.Delta[0]['up'])
+print(sumk.Delta[0]['down'])
 sumk.calc_D(R,Lambda)
-print(sumk.D['up'])
-print(sumk.D['down'])
+print(sumk.D[0]['up'])
+print(sumk.D[0]['down'])
 
 #ikarray = np.array(list(range(sumk.n_k)))
 #print(len(sumk.spin_names_to_ind[1]))#sumk.SO])

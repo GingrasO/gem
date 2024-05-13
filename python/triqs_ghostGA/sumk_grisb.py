@@ -19,13 +19,67 @@ class SumkGRISB(SumkDFT):
         for icrsh in range(self.n_corr_shells):
             for sp, isp in self.spin_names_to_ind[self.SO].items():
                 self.H_list[icrsh][sp] = Hermitian_list(self.nbath)[0]
+        # Compute local atomic levels
+        self.eff_atomic_levels()
+        # non-local part of the hopping matrix
+        self.calc_nonlocal_hopping()
+
+    def calc_nonlocal_hopping(self):
+        '''
+        Compute the non-local part of the hopping term
+        TODO: this routine will only work for a single-correlated shell. We stil need to generalize
+        the code below.
+        '''
+        ikarray = np.array(list(range(self.n_k)))
+        self.hopping_nloc = np.zeros(self.hopping.shape,dtype=self.hopping.dtype)
+        # we need the local potential in the original basis
+        self.eloc_orig = [{} for icrsh in range(self.n_corr_shells)]
+        for icrsh in range(self.n_corr_shells):
+            for sp, isp in self.spin_names_to_ind[self.SO].items():
+                self.eloc_orig[icrsh][sp] = np.dot( np.dot( self.rot_mat[icrsh], self.Hsumk[icrsh][sp] ), self.rot_mat[icrsh].conj().T)
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            for ik in mpi.slice_array(ikarray):
+                for icrsh in range(self.n_corr_shells):
+                    # local one-body in the original basis: Hsumk has been rotated to local coordinate
+                    #eloc_orig = np.dot( np.dot( self.rot_mat[icrsh], self.Hsumk[icrsh][sp] ), self.rot_mat[icrsh].conj().T)
+                    #print(eloc_orig)
+                    ind = self.spin_names_to_ind[self.corr_shells[icrsh]['SO']][sp]
+                    n_orb = self.n_orbitals[ik, ind]
+                    self.hopping_nloc[ik, ind, :, :] = self.hopping[ik, ind, 0:n_orb, 0:n_orb].copy()
+                    dim = self.corr_shells[icrsh]['dim']
+                    # TODO: the two lines below needs to be generalized to multicorrelated shell.
+                    # specifically we need to take care of the index:
+                    # icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim 
+                    # which we have to arange the starting slice of the matrix icrsh*dim properly.
+                    hmat = self.hopping[ik, ind, icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim].copy()
+                    self.hopping_nloc[ik, ind, icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim] = hmat - self.eloc_orig[icrsh][sp]
+                    #print(self.hopping_nloc[ik,ind,:,:])
+
+    def calc_R_Lambda_full(self, R, Lambda, ik, ind, sp):
+        '''
+        Construct full R and Lambda matrix in the full Wannier90 projection space.
+        TODO: this routine will only work for a single-correlated shell. We stil need to generalize
+        the code below.
+        '''
+        n_orb = self.n_orbitals[ik, ind]
+        R_full = np.eye(n_orb,dtype=complex)
+        Lambda_full = np.zeros((n_orb,n_orb),dtype=complex)
+        for icrsh in range(self.n_corr_shells):
+            dim = self.corr_shells[icrsh]['dim']
+            # TODO: the two lines below needs to be generalized to multicorrelated shell.
+            # specifically we need to take care of the index:
+            # icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim 
+            # which we have to arange the starting slice of the matrix icrsh*dim properly.
+            R_full[icrsh*n_orb:icrsh*n_orb+dim,icrsh*n_orb:icrsh*n_orb+dim] = R[icrsh][sp]
+            Lambda_full[icrsh*n_orb:icrsh*n_orb+dim,icrsh*n_orb:icrsh*n_orb+dim] = Lambda[icrsh][sp]
+        return R_full, Lambda_full
 
     def calc_rhoks(self, R, Lambda, T):
         '''
-        density matrix for each momentum. currently only consider one correlated shell.
-        TODO: self.rhoks = [{} for icrsh in range(self.n_corr_shells)]
+        density matrix for each momentum. NOTE: doesn't work for ghostGA yet.
         '''
         self.rhoks = [{} for icrsh in range(self.n_corr_shells)]
+        self.rhoks_full = {}
         ikarray = np.array(list(range(self.n_k)))
         #icrsh = 0
         for icrsh in range(self.n_corr_shells):
@@ -33,25 +87,30 @@ class SumkGRISB(SumkDFT):
             for sp, isp in self.spin_names_to_ind[self.SO].items():
                 self.rhoks[icrsh][sp] = np.zeros((self.n_k,Lambda[icrsh][sp].shape[0],
                                            Lambda[icrsh][sp].shape[1]),dtype=complex)
+                self.rhoks_full[sp] = np.zeros((self.n_k,self.hopping.shape[2],self.hopping.shape[3]),dtype=complex)
                 ind = self.spin_names_to_ind[
                             self.corr_shells[icrsh]['SO']][sp]
                 for ik in mpi.slice_array(ikarray):
                     #print('ik=', ik, 'isp=', isp, 'sp=', sp, self.spin_names_to_ind[self.SO][sp])
                     #print(self.hopping[ik,isp,:,:])
+                    R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, sp)
                     n_orb = self.n_orbitals[ik, ind]
                     #MMat = np.identity(n_orb, complex)
-                    MMat = self.hopping[
-                                ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+                    MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
                     projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
-                    MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
-                    self.rhoks[icrsh][sp][ik,:,:] = calc_nf(np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
-                                                     + Lambda[icrsh][sp]
-                                                     - self.chemical_potential*np.eye(Lambda[icrsh][sp].shape[0]) ,T).T
+                    #MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
+                    #self.rhoks[icrsh][sp][ik,:,:] = calc_nf(np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
+                    #                                 + Lambda[icrsh][sp]
+                    #                                 - self.chemical_potential*np.eye(Lambda[icrsh][sp].shape[0]) ,T).T
+                    self.rhoks_full[sp][ik,:,:] = calc_nf(np.dot(R_full, np.dot(MMat, R_full.conj().T ) )
+                                                         + Lambda_full - self.chemical_potential*np.eye(n_orb) , T ).T
+                    # TODO: the line below only works for normal GA. We need to think about how to
+                    # construct projmat that project out the correlated quasiparticle space.
+                    self.rhoks[icrsh][sp][ik,:,:] = np.dot(np.dot(projmat, self.rhoks_full[sp][ik,:,:]), projmat.conjugate().transpose())
 
     def calc_Delta(self):
         '''
-        The first k-summation for quasiparticle density matrix. currently only consider one correlated shell
-        TODO: self.Delta = [{} for icrsh in range(self.n_corr_shells)]
+        The first k-summation for quasiparticle density matrix. NOTE: doesn't work for ghostGA yet.
         '''
         self.Delta = [{} for icrsh in range(self.n_corr_shells)]
         ikarray = np.array(list(range(self.n_k)))
@@ -63,10 +122,9 @@ class SumkGRISB(SumkDFT):
                     self.Delta[icrsh][sp][:,:] += self.bz_weights[ik] * self.rhoks[icrsh][sp][ik,:,:]
                 #self.Delta[sp][:,:] = self.Delta[sp][:,:]/self.rhoks[sp].shape[0]
 
-    def calc_D(self, R):
+    def calc_D(self, R, Lambda):
         '''
-        The second k-sum for kinetic energy. currently only consider one correlated shell
-        TODO:
+        The second k-sum for kinetic energy. NOTE: doesn't work fo ghostGA yet.
         '''
         self.D = [{} for icrsh in range(self.n_corr_shells)]
         ikarray = np.array(list(range(self.n_k)))
@@ -78,15 +136,17 @@ class SumkGRISB(SumkDFT):
                 sum_ek_Rdagger_rhoks = np.zeros((self.rhoks[icrsh][sp].shape[1],
                                                  self.rhoks[icrsh][sp].shape[2]),dtype=complex)
                 for ik in mpi.slice_array(ikarray):
+                    R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, sp)
                     n_orb = self.n_orbitals[ik, ind]
                     #MMat = np.identity(n_orb, complex)
-                    MMat = self.hopping[
-                                ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+                    MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
                     projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
-                    MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
-                    sum_ek_Rdagger_rhoks[:,:] += self.bz_weights[ik]*MMatproj_nloc.dot(R[icrsh][sp].conj().T).dot(
-                                                 self.rhoks[icrsh][sp][ik,:,:].T)
-                #sum_ek_Rdagger_rhoks[:,:] = sum_ek_Rdagger_rhoks[:,:]/self.rhoks[sp].shape[0]
+                    #MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
+                    #sum_ek_Rdagger_rhoks[:,:] += self.bz_weights[ik]*MMatproj_nloc.dot(R[icrsh][sp].conj().T).dot(self.rhoks[icrsh][sp][ik,:,:].T)
+                    # TODO: Below line only works for RISB where the correlated quasiparticle part has # the same size as the correlated physical part. We need to take care of the second
+                    # projmat acting on the right of rhoks_full, when we added ghost orbitals.
+                    tmp = self.bz_weights[ik]*np.dot(np.dot(np.dot(np.dot(projmat, MMat), R_full.conjugate().transpose()) , self.rhoks_full[sp][ik,:,:].T), projmat.conjugate().transpose() ) 
+                    sum_ek_Rdagger_rhoks[:,:] += tmp
                 sqrt_Delta=funcMat(self.Delta[icrsh][sp], denR)
                 self.D[icrsh][sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta))
 
@@ -246,21 +306,33 @@ class SumkGRISB(SumkDFT):
             ind = ntoi[spn[ibl]]
             sp = spn[ibl]
             n_orb = self.n_orbitals[ik, ind]
-            for icrsh in range(self.n_corr_shells):
-                dim = self.corr_shells[icrsh]['dim']
-                MMat = self.hopping[
+            R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, sp)
+            MMat = self.hopping_nloc[
                                 ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
-                projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
-                MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
-                if isinstance(mesh, MeshImFreq):
-                    gf.data[:, :, :] = (idmat[ibl] * (mesh_values[:, None, None] + mu) #+ self.h_field*(1-2*ibl))
-                                        - np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
-                                        - Lambda[icrsh][sp] ) 
-                else:
-                    gf.data[:, :, :] = (idmat[ibl] *
-                                        (mesh_values[:, None, None] + mu + 1j*broadening)# + self.h_field*(1-2*ibl)
-                                        - np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
-                                        - Lambda[icrsh][sp] ) 
+            if isinstance(mesh, MeshImFreq):
+                gf.data[:, :, :] = (idmat[ibl] * (mesh_values[:, None, None] + mu) #+ self.h_field*(1-2*ibl))
+                                    - np.dot(R_full, np.dot(Mmat, R_full.conj().T ) ) 
+                                    - Lambda_full ) 
+            else:
+                gf.data[:, :, :] = (idmat[ibl] *
+                                    (mesh_values[:, None, None] + mu + 1j*broadening)# + self.h_field*(1-2*ibl)
+                                    - np.dot(R_full, np.dot(MMat, R_full.conj().T ) ) 
+                                    - Lambda_full ) 
+            #for icrsh in range(self.n_corr_shells):
+            #    dim = self.corr_shells[icrsh]['dim']
+            #    MMat = self.hopping[
+            #                    ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+            #    projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
+            #    #MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
+            #    if isinstance(mesh, MeshImFreq):
+            #        gf.data[:, :, :] = (idmat[ibl] * (mesh_values[:, None, None] + mu) #+ self.h_field*(1-2*ibl))
+            #                            - np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
+            #                            - Lambda[icrsh][sp] ) 
+            #    else:
+            #        gf.data[:, :, :] = (idmat[ibl] *
+            #                            (mesh_values[:, None, None] + mu + 1j*broadening)# + self.h_field*(1-2*ibl)
+            #                            - np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
+            #                            - Lambda[icrsh][sp] ) 
 
         G_latt_qp.invert()
         self.G_latt_qp = G_latt_qp
@@ -300,8 +372,26 @@ class SumkGRISB(SumkDFT):
             mesh = self.mesh
 
         # create G_loc to be returned in sumk space for all correlated shells. Trafo to solver block structure done later
-        G_loc = [self.block_structure.create_gf(ish=ish, mesh=mesh, space='sumk') for ish in range(self.n_corr_shells)]
+        #G_loc = [self.block_structure.create_gf(ish=ish, mesh=mesh, space='sumk') for ish in range(self.n_corr_shells)]
         #print(G_loc[0]['up'].data.shape)
+        # create G_loc in the Wannierized space including correlated and non-correlated orbitals
+        ntoi = self.spin_names_to_ind[self.SO]
+        spn = self.spin_block_names[self.SO]
+        # n_orbital doesn't depend on ik when using wannier90
+        block_structure = [list(range(self.n_orbitals[0, ntoi[sp]])) for sp in spn]
+        gf_struct = [(spn[isp], block_structure[isp])
+                     for isp in range(self.n_spin_blocks[self.SO])]
+        block_ind_list = [block for block, inner in gf_struct]
+        if isinstance(mesh, MeshImFreq):
+            glist = lambda: [Gf(mesh=mesh, target_shape=[len(inner),len(inner)])
+                             for block, inner in gf_struct]
+        else:
+            glist = lambda: [Gf(mesh=mesh, target_shape=[len(inner),len(inner)])
+                             for block, inner in gf_struct]
+        G_loc = BlockGf(name_list=block_ind_list,
+                            block_list=glist(), make_copies=False)
+        G_loc.zero()
+
 
         ikarray = np.array(list(range(self.n_k)))
         for ik in mpi.slice_array(ikarray):
@@ -310,16 +400,25 @@ class SumkGRISB(SumkDFT):
             else:
                 G_latt_qp = self.lattice_gf_qp( R, Lambda, ik=ik, mu=mu, broadening=broadening, mesh=mesh)
             G_latt_qp *= self.bz_weights[ik]
-            
-            for icrsh in range(self.n_corr_shells):
-                # init temporary storage
-                for bname, gf in G_loc[icrsh]:
-                    #print(G_latt_qp[bname].data.shape)
-                    gf.data[:,:,:] += np.einsum('ij,kjl,lm->kim', R[icrsh][bname].conj().T, G_latt_qp[bname].data, R[icrsh][bname])
+
+            #n_orb = self.n_orbitals[ik, ind]
+            for bname, gf in G_loc:
+                #print('bname=',bname)
+                #print(G_latt_qp[bname].data.shape)
+                ind = ntoi[bname]
+                R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, bname)
+                #sp = spn[ibl]
+                gf.data[:,:,:] += np.einsum('ij,kjl,lm->kim', R_full.conj().T, G_latt_qp[bname].data, R_full)
+            #for icrsh in range(self.n_corr_shells):
+            #    # init temporary storage
+            #    for bname, gf in G_loc[icrsh]:
+            #        #print(G_latt_qp[bname].data.shape)
+            #        gf.data[:,:,:] += np.einsum('ij,kjl,lm->kim', R[icrsh][bname].conj().T, G_latt_qp[bname].data, R[icrsh][bname])
 
         # Collect data from mpi
-        for icrsh in range(self.n_corr_shells):
-            G_loc[icrsh] << mpi.all_reduce(G_loc[icrsh])
+        G_loc << mpi.all_reduce(G_loc)
+        #for icrsh in range(self.n_corr_shells):
+        #    G_loc[icrsh] << mpi.all_reduce(G_loc[icrsh])
         mpi.barrier()
 
         return G_loc

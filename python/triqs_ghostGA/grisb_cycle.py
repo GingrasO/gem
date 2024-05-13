@@ -665,7 +665,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #    print(sum_k.Delta[icrsh][sp])
 
         # Compute D
-        sum_k.calc_D(observables['R'])
+        sum_k.calc_D(observables['R'], observables['Lambda'])
         #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
         #    print('D_%s='%sp)
         #    print(sum_k.D[icrsh][sp])

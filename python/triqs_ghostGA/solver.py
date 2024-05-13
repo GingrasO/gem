@@ -75,7 +75,7 @@ class SolverStructure:
         self.h_int = h_int
         self.iteration_offset = iteration_offset
         self.solver_struct_ftps = solver_struct_ftps
-        self.nimp = self.sum_k.Hsumk[self.icrsh]['up'].shape[0]
+        self.nimp = self.sum_k.eloc_orig[self.icrsh]['up'].shape[0]
         self.nbath = self.general_params['norb_bath']
         # currently no solver requires random number
         #if solver_params.get("random_seed") is None:
@@ -135,8 +135,8 @@ class SolverStructure:
             #print('Vdc=', Vdc)
             #print(self.sum_k.dc_imp[self.icrsh]['up'])
             #print(self.sum_k.dc_imp[self.icrsh]['down'])
-            eloc_spinful[::2,::2]= self.sum_k.Hsumk[self.icrsh]['up'] - self.sum_k.dc_imp[self.icrsh]['up']
-            eloc_spinful[1::2,1::2]= self.sum_k.Hsumk[self.icrsh]['down'] - self.sum_k.dc_imp[self.icrsh]['down']
+            eloc_spinful[::2,::2]= self.sum_k.eloc_orig[self.icrsh]['up'] - self.sum_k.dc_imp[self.icrsh]['up']
+            eloc_spinful[1::2,1::2]= self.sum_k.eloc_orig[self.icrsh]['down'] - self.sum_k.dc_imp[self.icrsh]['down']
             D_spinful[::2,::2]= self.sum_k.D[self.icrsh]['up']
             D_spinful[1::2,1::2]= self.sum_k.D[self.icrsh]['down']
             Lambdac_spinful[::2,::2]= self.sum_k.Lambdac[self.icrsh]['up']
@@ -148,7 +148,7 @@ class SolverStructure:
             #print(self.triqs_solver.h1e[1::2,1::2])
             #print('h_int=')
             #print(self.h_int)
-            self.triqs_solver.build_Hemb_for_grisb_cycle(self.h_int)
+            self.triqs_solver.build_Hemb_for_grisb_cycle(self.h_int, spin_pen=0.05)
             self.triqs_solver.solve_Hemb()
             self.density_matrix = self.triqs_solver.calc_density_matrix()
             #print('density_matrix_up=')
