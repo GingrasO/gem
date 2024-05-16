@@ -21,53 +21,41 @@ sumk_mesh = None
 
 sumk = SumkGRISB(hdf_file='nio.h5',
                 mesh=sumk_mesh, use_dft_blocks=False, beta=beta, h_field=0.0, nbath=5)
+sumk.chemical_potential = 13.3
 icrsh = 0
-eloc = [{}]
-eloc_full = {}
-enloc_full = {}
-for sp, isp in sumk.spin_names_to_ind[sumk.SO].items():
-    ind = sumk.spin_names_to_ind[
-                        sumk.corr_shells[icrsh]['SO']][sp]
-    eloc[icrsh][sp] = np.zeros((5,5),dtype=complex)
-    eloc_full[sp] = np.zeros((8,8),dtype=complex)
-    enloc_full[sp] = np.zeros((8,8),dtype=complex)
-    for ik in range(sumk.n_k):
-        eloc[icrsh][sp] += sumk.bz_weights[ik] * sumk.rot_mat[icrsh].conjugate().transpose().dot(sumk.hopping[ik,ind,:5,:5]).dot(sumk.rot_mat[icrsh])
-        eloc_full[sp] += sumk.bz_weights[ik] * sumk.hopping[ik,ind,:8,:8]
-        enloc_full[sp] += sumk.bz_weights[ik] * sumk.hopping_nloc[ik,ind,:8,:8]
-
-print('eloc=')
-print(eloc)
-print('Hsumk=')
-print(sumk.Hsumk)
-print('eloc_full=')
-print(eloc_full)
-print('enloc_full=')
-print(enloc_full)
+#eloc = [{}]
+#eloc_full = {}
+#enloc_full = {}
+#for sp, isp in sumk.spin_names_to_ind[sumk.SO].items():
+#    ind = sumk.spin_names_to_ind[
+#                        sumk.corr_shells[icrsh]['SO']][sp]
+#    eloc[icrsh][sp] = np.zeros((5,5),dtype=complex)
+#    eloc_full[sp] = np.zeros((8,8),dtype=complex)
+#    enloc_full[sp] = np.zeros((8,8),dtype=complex)
+#    for ik in range(sumk.n_k):
+#        eloc[icrsh][sp] += sumk.bz_weights[ik] * sumk.rot_mat[icrsh].conjugate().transpose().dot(sumk.hopping[ik,ind,:5,:5]).dot(sumk.rot_mat[icrsh])
+#        eloc_full[sp] += sumk.bz_weights[ik] * sumk.hopping[ik,ind,:8,:8]
+#        enloc_full[sp] += sumk.bz_weights[ik] * sumk.hopping_nloc[ik,ind,:8,:8]
+#
+#print('eloc=')
+#print(eloc)
+#print('Hsumk=')
+#print(sumk.Hsumk)
+#print('eloc_full=')
+#print(eloc_full)
+#print('enloc_full=')
+#print(enloc_full)
 #quit()
 
 mu = sumk.calc_mu(precision=0.001,beta=beta)
-print('mu=',mu)
 dm_test = sumk.density_matrix(method='using_gf')
 #print(sumk.gf_struct_sumk)
 #print(sumk.gf_struct_sumk)
 #print(sumk.hopping.shape)
-print('dm_test=')
-print(dm_test)
-
-#Gloc = sumk.extract_G_loc(broadening=0.1)
-#
-#mesh = Gloc[icrsh].mesh
-#mesh_values = np.linspace(mesh.w_min, mesh.w_max, len(mesh))
-#
-#plt.plot(mesh_values,-Gloc[icrsh]['up'].data[:,0,0].imag/np.pi,'b-',label='t2g')
-#plt.plot(mesh_values,-Gloc[icrsh]['up'].data[:,1,1].imag/np.pi,'b-')
-#plt.plot(mesh_values,-Gloc[icrsh]['up'].data[:,2,2].imag/np.pi,'b-')
-#plt.plot(mesh_values,-Gloc[icrsh]['up'].data[:,3,3].imag/np.pi,'r-',label='eg')
-#plt.plot(mesh_values,-Gloc[icrsh]['up'].data[:,4,4].imag/np.pi,'r-')
-#plt.axvline(0)
-#plt.legend()
-#plt.show()
+if mpi.is_master_node():
+    print('mu=',mu)
+    print('dm_test=')
+    print(dm_test)
 
 #sumk.eff_atomic_levels()
 #print('Hsumk=')
@@ -76,20 +64,22 @@ print(dm_test)
 #print(sumk.rot_mat)
 R = [{"up":np.eye(5,dtype=complex),"down":np.eye(5,dtype=complex)}]
 Lambda = sumk.eloc_orig#np.zeros((3,3),dtype=complex) - mu*np.eye(3)
-print('Hsumk=')
-print(sumk.Hsumk)
+if mpi.is_master_node():
+    print('Hsumk=')
+    print(sumk.Hsumk)
 T = 1/beta
 sumk.calc_rhoks( R,Lambda,T)
-#print(sumk.rhoks['up'][0,:,:])
-#print(sumk.rhoks['down'][0,:,:])
+if mpi.is_master_node():
+    print(sumk.rhoks[icrsh]['up'][12,:,:])
+    print(sumk.rhoks[icrsh]['down'][12,:,:])
 sumk.calc_Delta()
-print(sumk.Delta[icrsh]['up'])
-print(sumk.Delta[icrsh]['down'])
-#print(np.dot( np.dot(np.conjugate(sumk.rot_mat[icrsh]).transpose(), sumk.Delta[icrsh]['up']), sumk.rot_mat[icrsh] ) )
-#print(np.dot( np.dot(np.conjugate(sumk.rot_mat[icrsh]).transpose(), sumk.Delta[icrsh]['down']), sumk.rot_mat[icrsh] ) )
+if mpi.is_master_node():
+    print(sumk.Delta[icrsh]['up'])
+    print(sumk.Delta[icrsh]['down'])
 sumk.calc_D(R, Lambda)
-print(sumk.D[icrsh]['up'])
-print(sumk.D[icrsh]['down'])
+if mpi.is_master_node():
+    print(sumk.D[icrsh]['up'])
+    print(sumk.D[icrsh]['down'])
 
 ##ikarray = np.array(list(range(sumk.n_k)))
 ##print(len(sumk.spin_names_to_ind[1]))#sumk.SO])

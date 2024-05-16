@@ -108,6 +108,14 @@ class SumkGRISB(SumkDFT):
                     # construct projmat that project out the correlated quasiparticle space.
                     self.rhoks[icrsh][sp][ik,:,:] = np.dot(np.dot(projmat, self.rhoks_full[sp][ik,:,:]), projmat.conjugate().transpose())
 
+       # mpi reduce:
+        for ik in range(self.n_k):
+            for sp, isp in self.spin_names_to_ind[self.SO].items():
+                for icrsh in range(self.n_corr_shells):
+                    self.rhoks[icrsh][sp][ik,:,:] = mpi.all_reduce(self.rhoks[icrsh][sp][ik,:,:])
+                self.rhoks_full[sp][ik,:,:] = mpi.all_reduce(self.rhoks_full[sp][ik,:,:])
+
+
     def calc_Delta(self):
         '''
         The first k-summation for quasiparticle density matrix. NOTE: doesn't work for ghostGA yet.
@@ -121,6 +129,11 @@ class SumkGRISB(SumkDFT):
                 for ik in mpi.slice_array(ikarray):
                     self.Delta[icrsh][sp][:,:] += self.bz_weights[ik] * self.rhoks[icrsh][sp][ik,:,:]
                 #self.Delta[sp][:,:] = self.Delta[sp][:,:]/self.rhoks[sp].shape[0]
+
+        # mpi reduce:
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            for icrsh in range(self.n_corr_shells):
+                self.Delta[icrsh][sp][:,:] = mpi.all_reduce(self.Delta[icrsh][sp])           
 
     def calc_D(self, R, Lambda):
         '''
@@ -149,6 +162,10 @@ class SumkGRISB(SumkDFT):
                     sum_ek_Rdagger_rhoks[:,:] += tmp
                 sqrt_Delta=funcMat(self.Delta[icrsh][sp], denR)
                 self.D[icrsh][sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta))
+        # mpi reduce:
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            for icrsh in range(self.n_corr_shells):
+                self.D[icrsh][sp][:,:] = mpi.all_reduce(self.D[icrsh][sp])  
 
     def calc_Lambdac(self, R, Lambda):
         '''

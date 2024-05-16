@@ -528,6 +528,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         observables['R'] = archive['DMFT_results/last_iter/R']
         observables['Lambda'] = archive['DMFT_results/last_iter/Lambda']
 
+    observables = mpi.bcast(observables)
+
     # The not famous GRISB self consistency cycle
     is_converged = False
     for it in range(iteration_offset + 1, iteration_offset + n_iter + 1):
@@ -716,8 +718,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
         cdaggerf = solvers[icrsh].density_matrix[:2*solvers[icrsh].nimp,2*solvers[icrsh].nimp:]
         ffdagger = solvers[icrsh].density_matrix[2*solvers[icrsh].nimp:,2*solvers[icrsh].nimp:]
         ffdagger = (np.eye(2*solvers[icrsh].nbath,dtype=complex) - ffdagger).T
-        print("norm(ffdagger.T-Delta_p)_up=", np.linalg.norm(ffdagger[::2,::2].T-sum_k.Delta[icrsh]["up"]))
-        print("norm(ffdagger.T-Delta_p)_down=", np.linalg.norm(ffdagger[1::2,1::2].T-sum_k.Delta[icrsh]["down"]))
+        mpi.report("norm(ffdagger.T-Delta_p)_up= {:.2e}".format(np.linalg.norm(ffdagger[::2,::2].T-sum_k.Delta[icrsh]["up"])) )
+        mpi.report("norm(ffdagger.T-Delta_p)_down= {:.2e}".format(np.linalg.norm(ffdagger[1::2,1::2].T-sum_k.Delta[icrsh]["down"])) )
         Delta_spinful = ffdagger.T
         #print("Delta new:")
         #print(Delta_spinful)
@@ -756,7 +758,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
             diff_R = np.abs(R_pre_icrsh[sp]-R_new_icrsh[sp]).max()
             diff_Lambda = np.abs(Lambda_pre_icrsh[sp]-Lambda_new_icrsh[sp]).max()
         diff = max(diff_R,diff_Lambda)
-        print('diff=', diff)
+        mpi.report('diff= {:.2e}'.format(diff))
 
         # some printout of the obtained density matrices and some basic checks from the unsymmetrized solver output
         #density_shell[icrsh] = np.real(solvers[icrsh].G_freq_unsym.total_density())

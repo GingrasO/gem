@@ -11,6 +11,7 @@ from scipy.linalg import block_diag
 import numpy as np
 from numba import jit
 import h5py
+import triqs.utility.mpi as mpi
 
 Instance = None
 is_ci_initialized = False
@@ -246,17 +247,17 @@ class CI(object):
             self.basis = single_and_double_determinants(norb,reference_determinant,use_Sz=use_Sz)
 
         self.hsize = len(self.basis) # hilbert space size
-        print('size of basis=', len(self.basis), 'type of basis=', type(self.basis))
+        mpi.report('size of basis= {:d}'.format( len(self.basis) ))#, 'data type of basis=', self.basis.dtype)
         #print 'basis='
         #for bs in self.basis:
         #  print bs, self.strb.format(bs)
 
         if not is_ci_initialized:
             # build operators
-            print('build denmat_op')
+            mpi.report('build denmat_op')
+            mpi.report('build S2_op')
             self.build_denmat_op() # density matrix operators. TODO: enforcing hopping structure to speed up the process.
             #self.build_docc_op() # double occupancy
-            print('build S2_op')
             self.build_S2_op()# build total S2
 
             # create map between the system and local Hilbert space
@@ -446,14 +447,14 @@ class CI(object):
         '''
         build the Hamiltonian and return Hamiltonian
         '''
-        print('build one-body')
+        mpi.report('build one-body')
         self.build_one_body_for_grisb_cycle()
-        print('build two-body')
+        mpi.report('build two-body')
         if self.Htwo is None:
             self.build_two_body(V2E)
-        print('one-body + two-body')
+        mpi.report('one-body + two-body')
         self.Ham = self.Hone + self.Htwo + spin_pen*self.S2 + sz_pen*self.Sz.dot(self.Sz)
-        print('done')
+        mpi.report('done')
 #        assert(abs( (self.Ham - self.Ham.getH()).max() ) < 1e-12), 'Hamiltonian is not Hermitian! H.getH()-H='
         if debug:
             return self.Ham
@@ -462,14 +463,14 @@ class CI(object):
         '''
         build the Hamiltonian and return Hamiltonian
         '''
-        print('build one-body')
+        mpi.report('build one-body')
         self.build_one_body(H1E)
-        print('build two-body')
+        mpi.report('build two-body')
         if self.Htwo is None:
             self.build_two_body(V2E)
-        print('one-body + two-body')
+        mpi.report('one-body + two-body')
         self.Ham = self.Hone + self.Htwo + spin_pen*self.S2 + sz_pen*self.Sz.dot(self.Sz)
-        print('done')
+        mpi.report('done')
 #        assert(abs( (self.Ham - self.Ham.getH()).max() ) < 1e-12), 'Hamiltonian is not Hermitian! H.getH()-H='
         if debug:
             return self.Ham
@@ -664,7 +665,7 @@ class CI(object):
         '''
         diagonalize the Hamiltonian
         '''
-        print('diagonalizing num_eig=',num_eig)
+        mpi.report('diagonalizing num_eig= {:d}'.format(num_eig))
         vals, vecs = eigsh(self.Ham,k=num_eig,which=which,tol=tol)
         self.gs_wf = vecs[:,0]
         self.gs_ene = vals[0]
@@ -678,14 +679,15 @@ class CI(object):
                 if np.abs(self.e0 - self.evals[it]) < 1e-4:#1e-5:
                     self.deg += 1
                     it += 1
-        #if verbose > 0:
-        print('# Energy        S2        Sz')
-        for i in range(num_eig):
-            S2 = vecs[:,i].conj().T.dot(self.S2.dot(vecs[:,i]))
-            Sz = vecs[:,i].conj().T.dot(self.Sz.dot(vecs[:,i]))
-            print(vals[i], S2, Sz)
-            print('deg=',self.deg)
-            #print('energies=',vals)
+        if mpi.is_master_node():
+            print('# Energy        S2        Sz')
+            for i in range(num_eig):
+                S2 = vecs[:,i].conj().T.dot(self.S2.dot(vecs[:,i]))
+                Sz = vecs[:,i].conj().T.dot(self.Sz.dot(vecs[:,i]))
+                print(vals[i], S2, Sz)
+                print('deg=',self.deg)
+                #print('energies=',vals)
+
         return self.gs_wf, self.gs_ene
 
     def calc_density_matrix(self):
