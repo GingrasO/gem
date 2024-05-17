@@ -37,23 +37,27 @@ class SumkGRISB(SumkDFT):
         for icrsh in range(self.n_corr_shells):
             for sp, isp in self.spin_names_to_ind[self.SO].items():
                 self.eloc_orig[icrsh][sp] = np.dot( np.dot( self.rot_mat[icrsh], self.Hsumk[icrsh][sp] ), self.rot_mat[icrsh].conj().T)
+        if mpi.is_master_node():        
+            print('eloc_orig=')
+            print(self.eloc_orig)
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             for ik in mpi.slice_array(ikarray):
+                n_orb = self.n_orbitals[ik, isp]
+                self.hopping_nloc[ik, isp, :, :] = self.hopping[ik, isp, 0:n_orb, 0:n_orb].copy()
+                index = 0
                 for icrsh in range(self.n_corr_shells):
                     # local one-body in the original basis: Hsumk has been rotated to local coordinate
                     #eloc_orig = np.dot( np.dot( self.rot_mat[icrsh], self.Hsumk[icrsh][sp] ), self.rot_mat[icrsh].conj().T)
                     #print(eloc_orig)
-                    ind = self.spin_names_to_ind[self.corr_shells[icrsh]['SO']][sp]
-                    n_orb = self.n_orbitals[ik, ind]
-                    self.hopping_nloc[ik, ind, :, :] = self.hopping[ik, ind, 0:n_orb, 0:n_orb].copy()
                     dim = self.corr_shells[icrsh]['dim']
                     # TODO: the two lines below needs to be generalized to multicorrelated shell.
                     # specifically we need to take care of the index:
                     # icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim 
                     # which we have to arange the starting slice of the matrix icrsh*dim properly.
-                    hmat = self.hopping[ik, ind, icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim].copy()
-                    self.hopping_nloc[ik, ind, icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim] = hmat - self.eloc_orig[icrsh][sp]
+                    hmat = self.hopping[ik, isp, index:index+dim,index:index+dim].copy()
+                    self.hopping_nloc[ik, isp, index:index+dim,index:index+dim] = hmat - self.eloc_orig[icrsh][sp]
                     #print(self.hopping_nloc[ik,ind,:,:])
+                    index += dim
 
     def calc_R_Lambda_full(self, R, Lambda, ik, ind, sp):
         '''
@@ -64,14 +68,18 @@ class SumkGRISB(SumkDFT):
         n_orb = self.n_orbitals[ik, ind]
         R_full = np.eye(n_orb,dtype=complex)
         Lambda_full = np.zeros((n_orb,n_orb),dtype=complex)
+        index = 0
         for icrsh in range(self.n_corr_shells):
             dim = self.corr_shells[icrsh]['dim']
             # TODO: the two lines below needs to be generalized to multicorrelated shell.
             # specifically we need to take care of the index:
             # icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim 
             # which we have to arange the starting slice of the matrix icrsh*dim properly.
-            R_full[icrsh*n_orb:icrsh*n_orb+dim,icrsh*n_orb:icrsh*n_orb+dim] = R[icrsh][sp]
-            Lambda_full[icrsh*n_orb:icrsh*n_orb+dim,icrsh*n_orb:icrsh*n_orb+dim] = Lambda[icrsh][sp]
+            R_full[index:index+dim,index:index+dim] = R[icrsh][sp]
+            Lambda_full[index:index+dim,index:index+dim] = Lambda[icrsh][sp]
+            index += dim
+        #print(R_full)
+        #print(Lambda_full)
         return R_full, Lambda_full
 
     def calc_rhoks(self, R, Lambda, T):
@@ -133,7 +141,7 @@ class SumkGRISB(SumkDFT):
         # mpi reduce:
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             for icrsh in range(self.n_corr_shells):
-                self.Delta[icrsh][sp][:,:] = mpi.all_reduce(self.Delta[icrsh][sp])           
+                self.Delta[icrsh][sp][:,:] = mpi.all_reduce(self.Delta[icrsh][sp][:,:])           
 
     def calc_D(self, R, Lambda):
         '''

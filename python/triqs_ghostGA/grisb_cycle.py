@@ -639,6 +639,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #if general_params['dc'] and general_params['dc_type'] == 4:
     #    cpa_G_loc = gf_mixer.init_cpa(sum_k, solvers, general_params)
 
+    diff = 0 # Initialize difference between previous R and Lambda as 0
     # looping over inequiv shells and solving for each site seperately
     for icrsh in range(sum_k.n_inequiv_shells):
         # copy the block of G_loc into the corresponding instance of the impurity solver
@@ -757,8 +758,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
         for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
             diff_R = np.abs(R_pre_icrsh[sp]-R_new_icrsh[sp]).max()
             diff_Lambda = np.abs(Lambda_pre_icrsh[sp]-Lambda_new_icrsh[sp]).max()
-        diff = max(diff_R,diff_Lambda)
-        mpi.report('diff= {:.2e}'.format(diff))
+        diff += max(diff_R,diff_Lambda)
 
         # some printout of the obtained density matrices and some basic checks from the unsymmetrized solver output
         #density_shell[icrsh] = np.real(solvers[icrsh].G_freq_unsym.total_density())
@@ -781,6 +781,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
             observables['R'][icrsh][sp] = (1.0-general_params['grisb_mix'])*R_pre_icrsh[sp] + general_params['grisb_mix']*R_new_icrsh[sp]
             observables['Lambda'][icrsh][sp] = (1.0-general_params['grisb_mix'])*Lambda_pre_icrsh[sp] + general_params['grisb_mix']*Lambda_new_icrsh[sp]
         #quit()
+    diff /= sum_k.n_inequiv_shells # average the difference over shells
+    mpi.report('diff= {:.2e}'.format(diff))
 
     # Done with loop over impurities
 
