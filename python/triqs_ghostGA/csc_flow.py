@@ -35,12 +35,13 @@ import numpy as np
 from h5 import HDFArchive
 import triqs.utility.mpi as mpi
 
-from triqs_dft_tools.converters.wannier90 import Wannier90Converter
 from triqs_dft_tools.converters.vasp import VaspConverter
 from triqs_dft_tools.converters.plovasp.vaspio import VaspData
 import triqs_dft_tools.converters.plovasp.converter as plo_converter
 
+from triqs_ghostGA.wannier90 import Wannier90Converter
 from triqs_ghostGA.grisb_cycle import grisb_cycle
+
 from solid_dmft.dft_managers import vasp_manager as vasp
 from solid_dmft.dft_managers import qe_manager as qe
 
@@ -264,13 +265,13 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
                 iteration_offset = archive['DMFT_results']['iteration_count']
     iteration_offset = mpi.bcast(iteration_offset)
 
-    iter_dmft = iteration_offset+1
+    iter_grisb = iteration_offset+1
 
     # Runs DFT once and converter
     mpi.barrier()
     irred_indices = None
     start_time_dft = timer()
-    mpi.report('  solid_ghostGA: Running {}...'.format(dft_params['dft_code'].upper()))
+    mpi.report('  triqs_ghostGA: Running {}...'.format(dft_params['dft_code'].upper()))
 
     if dft_params['dft_code'] == 'qe':
         if iteration_offset == 0:
@@ -282,8 +283,7 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
 
     mpi.barrier()
     end_time_dft = timer()
-    mpi.report('  solid_dmft: DFT cycle took {:10.3f} seconds'.format(end_time_dft-start_time_dft))
-    quit()
+    mpi.report('  triqs_ghostGA: DFT cycle took {:10.3f} seconds'.format(end_time_dft-start_time_dft))
 
     # Now that everything is ready, starts DFT+DMFT loop
     while True:
@@ -295,40 +295,40 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
                     # TODO: implement
                     raise NotImplementedError('store_eigenvals not yet compatible with dft_code = qe')
                 _store_dft_eigvals(path_to_h5=general_params['seedname']+'.h5',
-                                   iteration=iter_dmft,
+                                   iteration=iter_grisb,
                                    projector_type=dft_params['projector_type'])
 
             # Reads the DFT energy
             if dft_params['dft_code'] == 'vasp':
                 dft_energy = vasp.read_dft_energy()
             elif dft_params['dft_code'] == 'qe':
-                dft_energy = qe.read_dft_energy(general_params['seedname'], iter_dmft)
+                dft_energy = qe.read_dft_energy(general_params['seedname'], iter_grisb)
         dft_energy = mpi.bcast(dft_energy)
 
-        mpi.report('', '#'*80, 'Calling dmft_cycle')
+        mpi.report('', '#'*80, 'Calling grisb_cycle')
 
         if mpi.is_master_node():
             start_time_dmft = timer()
 
         # Determines number of DMFT steps
-        if iter_dmft == 1:
-            iter_one_shot = general_params['n_iter_dmft_first']
-        elif iteration_offset > 0 and iter_dmft == iteration_offset + 1:
-            iter_one_shot = general_params['n_iter_dmft_per'] - (iter_dmft - 1
-                            - general_params['n_iter_dmft_first'])%general_params['n_iter_dmft_per']
+        if iter_grisb == 1:
+            iter_one_shot = general_params['n_iter_grisb_first']
+        #elif iteration_offset > 0 and iter_grisb == iteration_offset + 1:
+        #    iter_one_shot = general_params['n_iter_grisb_per'] - (iter_grisb - 1
+        #                    - general_params['n_iter_grisb_first'])%general_params['n_iter_grisb_per']
         else:
-            iter_one_shot = general_params['n_iter_dmft_per']
-        # Maximum total number of iterations is n_iter_dmft+iteration_offset
-        iter_one_shot = min(iter_one_shot,
-                            general_params['n_iter_dmft'] + iteration_offset - iter_dmft + 1)
+            iter_one_shot = general_params['n_iter_grisb_per']
+        # Maximum total number of iterations is n_iter_grisb+iteration_offset
+        #iter_one_shot = min(iter_one_shot,
+        #                    general_params['n_iter_grisb'] + iteration_offset - iter_grisb + 1)
 
         ############################################################
         # run the dmft_cycle
-        is_converged, sum_k = dmft_cycle(general_params, solver_params, advanced_params,
+        is_converged, sum_k = grisb_cycle(general_params, solver_params, advanced_params,
                                          dft_params, iter_one_shot, irred_indices, dft_energy)
         ############################################################
 
-        iter_dmft += iter_one_shot
+        iter_grisb += iter_one_shot
 
         if mpi.is_master_node():
             end_time_dmft = timer()
@@ -337,7 +337,7 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
             print('='*80 + '\n')
 
         # If all steps are executed or calculation is converged, finish DFT+DMFT loop
-        if is_converged or iter_dmft > general_params['n_iter_dmft'] + iteration_offset:
+        if is_converged or iter_grisb > general_params['n_iter_grisb'] + iteration_offset:
             break
 
         # Restarts DFT
@@ -350,7 +350,7 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
             _full_qe_run(general_params['seedname'], dft_params, 'update')
         elif dft_params['dft_code'] == 'vasp':
             # Determines number of DFT steps
-            if iter_dmft == general_params['n_iter_dmft_first'] + 1:
+            if iter_grisb == general_params['n_iter_grisb_first'] + 1:
                 n_iter_dft = dft_params['n_iter_first']
             else:
                 n_iter_dft = dft_params['n_iter']
@@ -359,6 +359,7 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
         mpi.barrier()
         end_time_dft = timer()
         mpi.report('  solid_dmft: DFT cycle took {:10.3f} seconds'.format(end_time_dft-start_time_dft))
+        quit()
 
     # Kills background VASP process for clean end
     if mpi.is_master_node() and dft_params['dft_code'] == 'vasp':

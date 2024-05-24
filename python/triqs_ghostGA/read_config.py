@@ -444,10 +444,10 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                          'used': True, 'default': False},
 
                                  'n_iter_grisb_first': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                                       'used': lambda params: params['general']['csc'], 'default': 10},
+                                                       'used': lambda params: params['general']['csc'], 'default': 50},
 
                                  'n_iter_grisb_per': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                                     'used': lambda params: params['general']['csc'], 'default': 2},
+                                                     'used': lambda params: params['general']['csc'], 'default': 10},
 
                                  'plo_cfg': {'used': lambda params: (params['general']['csc']
                                                                      and params['dft']['projector_type'] == 'plo'),

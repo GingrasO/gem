@@ -611,6 +611,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
     """
     #print('h_int=')
     #print(h_int)
+    print('density_required=',sum_k.density_required)
 
     # init local density matrices for observables
     density_tot = 0.0
@@ -659,25 +660,28 @@ def _grisb_step(sum_k, solvers, it, general_params,
 
         # Compute Delta
         #print(general_params['beta'])
-        #print(observables['R'])
-        #print(observables['Lambda'])
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('R_%s='%sp)
+            print(observables['R'][icrsh][sp])
+            print('Lambda_%s='%sp)
+            print(observables['Lambda'][icrsh][sp])
         sum_k.calc_rhoks(observables['R'], observables['Lambda'], 1./general_params['beta'])
         sum_k.calc_Delta()
-        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-        #    print('Delta_%s='%sp)
-        #    print(sum_k.Delta[icrsh][sp])
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('Delta_%s='%sp)
+            print(sum_k.Delta[icrsh][sp])
 
         # Compute D
         sum_k.calc_D(observables['R'], observables['Lambda'])
-        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-        #    print('D_%s='%sp)
-        #    print(sum_k.D[icrsh][sp])
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('D_%s='%sp)
+            print(sum_k.D[icrsh][sp])
 
         # Compute Lambda_c
         sum_k.calc_Lambdac(observables['R'], observables['Lambda'])
-        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
-        #    print('Lambdac_%s='%sp)
-        #    print(sum_k.Lambdac[icrsh][sp])
+        for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+            print('Lambdac_%s='%sp)
+            print(sum_k.Lambdac[icrsh][sp])
 
          # store solver to h5 archive
         if general_params['store_solver'] and mpi.is_master_node():
@@ -785,6 +789,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
     mpi.report('diff= {:.2e}'.format(diff))
 
     # Done with loop over impurities
+#    quit()
 
     if mpi.is_master_node():
         # Done. Now do post-processing:
@@ -818,11 +823,11 @@ def _grisb_step(sum_k, solvers, it, general_params,
     E_bandcorr = 0.0
     deltaN = None
     dens = None
-    if general_params['csc']:
-        # handling the density correction for fcsc calculations
-        assert dft_irred_kpt_indices is None or dft_params['dft_code'] == 'vasp'
-        deltaN, dens, E_bandcorr = sum_k.calc_density_correction(dm_type=dft_params['dft_code'],
-                                                                 kpts_to_write=dft_irred_kpt_indices)
+#    if general_params['csc']:
+#        # handling the density correction for fcsc calculations
+#        assert dft_irred_kpt_indices is None or dft_params['dft_code'] == 'vasp'
+#        deltaN, dens, E_bandcorr = sum_k.calc_density_correction(dm_type=dft_params['dft_code'],
+#                                                                 kpts_to_write=dft_irred_kpt_indices)
 #    elif general_params['calc_energies']:
 #        # for a one shot calculation we are using our own method
 #        E_bandcorr = calc_bandcorr_man(general_params, sum_k, E_kin_dft)

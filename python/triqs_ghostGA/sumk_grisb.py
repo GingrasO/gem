@@ -13,6 +13,20 @@ class SumkGRISB(SumkDFT):
         super().__init__(*args, **kwargs)
         # additional grisb parameters
         self.nbath = nbath
+        # read additional data u_total transformation matrix from bloch to wannier90 orbitals
+        if not isinstance(self.hdf_file, str):
+            mpi.report("Give a string for the hdf5 filename to read the input!")
+        else:
+            # additional properties to load
+            # soon bz_weights is depraced and replaced by kpt_weights, kpts_basis and kpts will become required to read soon
+            additional_things_to_read = ['u_total']
+            subgroup_present_additional, self.additional_values_not_read = self.read_input_from_hdf(subgrp=self.dft_data, 
+                                                                                things_to_read=additional_things_to_read)
+        #print(self.hdf_file)
+        #print('u_total=')
+        #print(self.u_total)
+        #print(self.additional_values_not_read)
+
         #print('number of bath orbital:', nbath)
         # Generic Hermitian matrix basis for ghostGA
         self.H_list = [{} for icrsh in range(self.n_corr_shells)]
@@ -40,10 +54,16 @@ class SumkGRISB(SumkDFT):
         if mpi.is_master_node():        
             print('eloc_orig=')
             print(self.eloc_orig)
+            print('Hsumk=')
+            print(self.Hsumk)
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             for ik in mpi.slice_array(ikarray):
                 n_orb = self.n_orbitals[ik, isp]
+                # u_total wannier90 transformation matrix from bloch to orbital with index [orbital, bloch]
+                u = self.u_total[0,ik,:n_orb,:n_orb]
+                # rotate to orbital basis
                 self.hopping_nloc[ik, isp, :, :] = self.hopping[ik, isp, 0:n_orb, 0:n_orb].copy()
+                #self.hopping_nloc[ik, isp, :, :] = np.dot( np.dot( u, self.hopping[ik, isp, 0:n_orb, 0:n_orb]), u.conj().T)
                 index = 0
                 for icrsh in range(self.n_corr_shells):
                     # local one-body in the original basis: Hsumk has been rotated to local coordinate
@@ -54,10 +74,15 @@ class SumkGRISB(SumkDFT):
                     # specifically we need to take care of the index:
                     # icrsh*dim:icrsh*dim+dim,icrsh*dim:icrsh*dim+dim 
                     # which we have to arange the starting slice of the matrix icrsh*dim properly.
-                    hmat = self.hopping[ik, isp, index:index+dim,index:index+dim].copy()
-                    self.hopping_nloc[ik, isp, index:index+dim,index:index+dim] = hmat - self.eloc_orig[icrsh][sp]
+                    #hmat = self.hopping_nloc[ik, isp, index:index+dim,index:index+dim].copy()
+                    #self.hopping_nloc[ik, isp, index:index+dim,index:index+dim] = hmat - self.eloc_orig[icrsh][sp]
                     #print(self.hopping_nloc[ik,ind,:,:])
+                    projmat = self.proj_mat[ik, isp, icrsh, 0:dim, 0:n_orb]
+                    self.hopping_nloc[ik,isp,:,:] -= np.dot( np.dot(projmat.conj().T, self.eloc_orig[icrsh][sp]),projmat) 
                     index += dim
+                #rotate back to bloch basis
+                #self.hopping_nloc[ik, isp, :, :] = np.dot( np.dot( u.conj().T,self.hopping_nloc[ik, isp, 0:n_orb, 0:n_orb]), u)
+
 
     def calc_R_Lambda_full(self, R, Lambda, ik, ind, sp):
         '''
@@ -103,18 +128,18 @@ class SumkGRISB(SumkDFT):
                     #print(self.hopping[ik,isp,:,:])
                     R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, sp)
                     n_orb = self.n_orbitals[ik, ind]
-                    #MMat = np.identity(n_orb, complex)
-                    MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
                     projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
-                    #MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
-                    #self.rhoks[icrsh][sp][ik,:,:] = calc_nf(np.dot(R[icrsh][sp], np.dot(MMatproj_nloc, R[icrsh][sp].conj().T ) ) 
-                    #                                 + Lambda[icrsh][sp]
-                    #                                 - self.chemical_potential*np.eye(Lambda[icrsh][sp].shape[0]) ,T).T
+                    # u_total wannier90 transformation matrix from bloch to orbital with index [orbital, bloch]
+                    u = self.u_total[0,ik,:n_orb,:n_orb]
+                    MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+                    # rotate to orbital basis
+                    MMat = np.dot(np.dot(u, MMat), u.conj().T)
                     self.rhoks_full[sp][ik,:,:] = calc_nf(np.dot(R_full, np.dot(MMat, R_full.conj().T ) )
                                                          + Lambda_full - self.chemical_potential*np.eye(n_orb) , T ).T
                     # TODO: the line below only works for normal GA. We need to think about how to
                     # construct projmat that project out the correlated quasiparticle space.
-                    self.rhoks[icrsh][sp][ik,:,:] = np.dot(np.dot(projmat, self.rhoks_full[sp][ik,:,:]), projmat.conjugate().transpose())
+                    rhoks_bloch = np.dot(np.dot(u.conj().T,self.rhoks_full[sp][ik,:,:]), u)
+                    self.rhoks[icrsh][sp][ik,:,:] = np.dot(np.dot(projmat, rhoks_bloch), projmat.conjugate().transpose())
 
        # mpi reduce:
         for ik in range(self.n_k):
@@ -159,14 +184,18 @@ class SumkGRISB(SumkDFT):
                 for ik in mpi.slice_array(ikarray):
                     R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, sp)
                     n_orb = self.n_orbitals[ik, ind]
-                    #MMat = np.identity(n_orb, complex)
-                    MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
                     projmat = self.proj_mat[ik, ind, icrsh, 0:dim, 0:n_orb]
+                    # u_total wannier90 transformation matrix from bloch to orbital with index [orbital, bloch]
+                    u = self.u_total[0,ik,:n_orb,:n_orb]
+                    MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+                    # rotate to orbital basis
+                    MMat = np.dot(np.dot(u, MMat), u.conj().T)
                     #MMatproj_nloc = np.dot(np.dot(projmat, MMat), projmat.conjugate().transpose()) - self.Hsumk[icrsh][sp]
                     #sum_ek_Rdagger_rhoks[:,:] += self.bz_weights[ik]*MMatproj_nloc.dot(R[icrsh][sp].conj().T).dot(self.rhoks[icrsh][sp][ik,:,:].T)
                     # TODO: Below line only works for RISB where the correlated quasiparticle part has # the same size as the correlated physical part. We need to take care of the second
                     # projmat acting on the right of rhoks_full, when we added ghost orbitals.
-                    tmp = self.bz_weights[ik]*np.dot(np.dot(np.dot(np.dot(projmat, MMat), R_full.conjugate().transpose()) , self.rhoks_full[sp][ik,:,:].T), projmat.conjugate().transpose() ) 
+                    tmp = self.bz_weights[ik]*np.dot(np.dot(np.dot(np.dot(np.dot( np.dot(projmat, u.conj().T), MMat), 
+                                                     R_full.conj().T) , self.rhoks_full[sp][ik,:,:].T), u), projmat.conj().T ) 
                     sum_ek_Rdagger_rhoks[:,:] += tmp
                 sqrt_Delta=funcMat(self.Delta[icrsh][sp], denR)
                 self.D[icrsh][sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta))
@@ -332,8 +361,11 @@ class SumkGRISB(SumkDFT):
             sp = spn[ibl]
             n_orb = self.n_orbitals[ik, ind]
             R_full, Lambda_full = self.calc_R_Lambda_full(R, Lambda, ik, ind, sp)
-            MMat = self.hopping_nloc[
-                                ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+            u = self.u_total[0,ik,:n_orb,:n_orb]
+            MMat = self.hopping_nloc[ik, ind, 0:n_orb, 0:n_orb] #- (1 - 2 * isp) * self.h_field * MMat
+            # rotate to orbital basis
+            MMat = np.dot(np.dot(u, MMat), u.conj().T)
+            
             if isinstance(mesh, MeshImFreq):
                 gf.data[:, :, :] = (idmat[ibl] * (mesh_values[:, None, None] + mu) #+ self.h_field*(1-2*ibl))
                                     - np.dot(R_full, np.dot(Mmat, R_full.conj().T ) ) 
