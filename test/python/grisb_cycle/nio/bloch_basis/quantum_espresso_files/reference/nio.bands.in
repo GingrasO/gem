@@ -1,0 +1,6 @@
+&BANDS
+   prefix  = 'nio',
+   outdir  = './out/',
+   filband = 'nio_bands.dat'
+   lsym    = .false.,
+/

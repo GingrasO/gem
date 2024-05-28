@@ -85,6 +85,9 @@ def main(argv=sys.argv):
                 shutil.copyfile(file, general_params['jobname']+'/'+os.path.basename(file))
     mpi.barrier()
 
+    print('HERE!!!!!!!!!!!!!!!!!!!!!!!!!')
+    quit()
+
     # Runs grisb_cycle
     grisb_cycle(general_params, solver_params, advanced_params,
                dft_params, general_params['n_iter_grisb'])
