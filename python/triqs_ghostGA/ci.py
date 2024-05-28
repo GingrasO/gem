@@ -391,7 +391,7 @@ class CI(object):
                 for k in range(Umatrix.shape[2]):
                     for l in range(Umatrix.shape[3]):
                         # check if l==j or i==k or U=0, if true it has 0 contribution
-                        if l==j or i==k or abs(Umatrix[i,j,k,l])<1e-12:
+                        if l==j or i==k or abs(Umatrix[i,j,k,l])<1e-8:
                             continue # 0 contribution
                         else:
                             #print(i,j,k,l,Umatrix[i,j,k,l])
@@ -419,7 +419,7 @@ class CI(object):
 
         for i in range(0,self.norb):
             for j in range(0,self.norb):
-                if np.abs(self.h1e[i,j])<1e-12:
+                if np.abs(self.h1e[i,j])<1e-8:
                     continue # 0 contribution
                 else:
                     #print(i,j,H1E[i,j])
@@ -437,7 +437,7 @@ class CI(object):
 
         for i in range(0,self.norb):
             for j in range(0,self.norb):
-                if np.abs(H1E[i,j])<1e-12:
+                if np.abs(H1E[i,j])<1e-8:
                     continue # 0 contribution
                 else:
                     #print(i,j,H1E[i,j])
