@@ -77,6 +77,8 @@ class SolverStructure:
         self.solver_struct_ftps = solver_struct_ftps
         self.nimp = self.sum_k.eloc_orig[self.icrsh]['up'].shape[0]
         self.nbath = self.general_params['norb_bath']
+        # initialize density matrix as zeros
+        self.density_matrix = np.zeros((2*(self.nimp+self.nbath),2*(self.nimp+self.nbath)),complex)
         # currently no solver requires random number
         #if solver_params.get("random_seed") is None:
         #    self.random_seed_generator = None

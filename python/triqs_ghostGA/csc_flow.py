@@ -359,7 +359,6 @@ def csc_flow_control(general_params, solver_params, dft_params, advanced_params)
         mpi.barrier()
         end_time_dft = timer()
         mpi.report('  solid_dmft: DFT cycle took {:10.3f} seconds'.format(end_time_dft-start_time_dft))
-        quit()
 
     # Kills background VASP process for clean end
     if mpi.is_master_node() and dft_params['dft_code'] == 'vasp':

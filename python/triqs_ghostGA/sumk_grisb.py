@@ -1,6 +1,6 @@
 from triqs_dft_tools.sumk_dft import *
 from triqs_ghostGA.utils_TH import denR, denRm1, ddenRm1, realHcombination, inverse_realHcombination, \
-     Hermitian_list, get_blocks, funcMat, calc_nf, dF
+     Hermitian_list, get_blocks, funcMat, calc_nf, dF, cut_small
 
 class SumkGRISB(SumkDFT):
     '''
@@ -50,7 +50,8 @@ class SumkGRISB(SumkDFT):
         self.eloc_orig = [{} for icrsh in range(self.n_corr_shells)]
         for icrsh in range(self.n_corr_shells):
             for sp, isp in self.spin_names_to_ind[self.SO].items():
-                self.eloc_orig[icrsh][sp] = np.dot( np.dot( self.rot_mat[icrsh], self.Hsumk[icrsh][sp] ), self.rot_mat[icrsh].conj().T)
+                self.eloc_orig[icrsh][sp] = cut_small( np.dot( np.dot( self.rot_mat[icrsh], self.Hsumk[icrsh][sp] ), 
+                                                              self.rot_mat[icrsh].conj().T), tol=1e-8)
         if mpi.is_master_node():        
             print('eloc_orig=')
             print(self.eloc_orig)
@@ -79,6 +80,7 @@ class SumkGRISB(SumkDFT):
                     #print(self.hopping_nloc[ik,ind,:,:])
                     projmat = self.proj_mat[ik, isp, icrsh, 0:dim, 0:n_orb]
                     self.hopping_nloc[ik,isp,:,:] -= np.dot( np.dot(projmat.conj().T, self.eloc_orig[icrsh][sp]),projmat) 
+                    self.hopping_nloc[ik,isp,:,:] = cut_small(self.hopping_nloc[ik,isp,:,:], tol=1e-8)
                     index += dim
                 #rotate back to bloch basis
                 #self.hopping_nloc[ik, isp, :, :] = np.dot( np.dot( u.conj().T,self.hopping_nloc[ik, isp, 0:n_orb, 0:n_orb]), u)
@@ -107,12 +109,17 @@ class SumkGRISB(SumkDFT):
         #print(Lambda_full)
         return R_full, Lambda_full
 
-    def calc_rhoks(self, R, Lambda, T):
+    def calc_rhoks(self, R, Lambda, T, mu=None):
         '''
         density matrix for each momentum. NOTE: doesn't work for ghostGA yet.
         '''
-        self.rhoks = [{} for icrsh in range(self.n_corr_shells)]
-        self.rhoks_full = {}
+        if mu is None:
+            mu = self.chemical_potential
+        #print('mu=',mu)
+        self.rhoks = [{} for icrsh in range(self.n_corr_shells)] # correlated quasiparticle density matrix
+        self.rhoks_full = {} # quasiparticle density matrix including correlated and noncorrelated parts
+        self.rhoks_phys_bloch = {} # physical density matrix  R^\dagger rho_qp(k) R in the bloch basis
+        self.hopping_qp = {} # quasiparticle hopping term without lambda
         ikarray = np.array(list(range(self.n_k)))
         #icrsh = 0
         for icrsh in range(self.n_corr_shells):
@@ -121,6 +128,8 @@ class SumkGRISB(SumkDFT):
                 self.rhoks[icrsh][sp] = np.zeros((self.n_k,Lambda[icrsh][sp].shape[0],
                                            Lambda[icrsh][sp].shape[1]),dtype=complex)
                 self.rhoks_full[sp] = np.zeros((self.n_k,self.hopping.shape[2],self.hopping.shape[3]),dtype=complex)
+                self.rhoks_phys_bloch[sp] = np.zeros((self.n_k,self.hopping.shape[2],self.hopping.shape[3]),dtype=complex)
+                self.hopping_qp[sp] = np.zeros((self.n_k,self.hopping.shape[2],self.hopping.shape[3]),dtype=complex)
                 ind = self.spin_names_to_ind[
                             self.corr_shells[icrsh]['SO']][sp]
                 for ik in mpi.slice_array(ikarray):
@@ -135,10 +144,12 @@ class SumkGRISB(SumkDFT):
                     # rotate to orbital basis
                     MMat = np.dot(np.dot(u, MMat), u.conj().T)
                     self.rhoks_full[sp][ik,:,:] = calc_nf(np.dot(R_full, np.dot(MMat, R_full.conj().T ) )
-                                                         + Lambda_full - self.chemical_potential*np.eye(n_orb) , T ).T
+                                                         + Lambda_full - mu*np.eye(n_orb) , T ).T
+                    self.hopping_qp[sp][ik,:,:] = np.dot(R_full, np.dot(MMat, R_full.conj().T ) ) + Lambda_full
                     # TODO: the line below only works for normal GA. We need to think about how to
-                    # construct projmat that project out the correlated quasiparticle space.
-                    rhoks_bloch = np.dot(np.dot(u.conj().T,self.rhoks_full[sp][ik,:,:]), u)
+                    # construct projmat that project out the correlated quasiparticle space including ghost orbitals.
+                    rhoks_bloch = np.dot( np.dot( u.conj().T, self.rhoks_full[sp][ik,:,:]), u)
+                    self.rhoks_phys_bloch[sp][ik,:,:] = np.dot( np.dot( R_full.conj().T, rhoks_bloch), R_full )
                     self.rhoks[icrsh][sp][ik,:,:] = np.dot(np.dot(projmat, rhoks_bloch), projmat.conjugate().transpose())
 
        # mpi reduce:
@@ -161,7 +172,7 @@ class SumkGRISB(SumkDFT):
                                                   self.rhoks[icrsh][sp].shape[2]),dtype=complex)
                 for ik in mpi.slice_array(ikarray):
                     self.Delta[icrsh][sp][:,:] += self.bz_weights[ik] * self.rhoks[icrsh][sp][ik,:,:]
-                #self.Delta[sp][:,:] = self.Delta[sp][:,:]/self.rhoks[sp].shape[0]
+                self.Delta[icrsh][sp][:,:] = cut_small(self.Delta[icrsh][sp][:,:], tol=1e-8)
 
         # mpi reduce:
         for sp, isp in self.spin_names_to_ind[self.SO].items():
@@ -198,7 +209,8 @@ class SumkGRISB(SumkDFT):
                                                      R_full.conj().T) , self.rhoks_full[sp][ik,:,:].T), u), projmat.conj().T ) 
                     sum_ek_Rdagger_rhoks[:,:] += tmp
                 sqrt_Delta=funcMat(self.Delta[icrsh][sp], denR)
-                self.D[icrsh][sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta))
+                self.D[icrsh][sp] = sum_ek_Rdagger_rhoks.dot(np.transpose(sqrt_Delta)) 
+                self.D[icrsh][sp] = cut_small( self.D[icrsh][sp], tol=1e-8)
         # mpi reduce:
         for sp, isp in self.spin_names_to_ind[self.SO].items():
             for icrsh in range(self.n_corr_shells):
@@ -213,6 +225,7 @@ class SumkGRISB(SumkDFT):
             for sp, isp in self.spin_names_to_ind[self.SO].items():
                 self.Lambdac[icrsh][sp] = self.calc_Lambdac_icrsh_isp(R[icrsh][sp], Lambda[icrsh][sp], 
                                         self.Delta[icrsh][sp], self.D[icrsh][sp], self.H_list[icrsh][sp])
+                self.Lambdac[icrsh][sp] = cut_small(self.Lambdac[icrsh][sp], tol=1e-8)
 
     def calc_Lambda(self, R, Lambdac):
         '''
@@ -223,19 +236,8 @@ class SumkGRISB(SumkDFT):
             for sp, isp in self.spin_names_to_ind[self.SO].items():
                 Lambda[icrsh][sp] = self.calc_Lambda_icrsh_isp(R[icrsh][sp], Lambdac[icrsh][sp], 
                                         self.Delta[icrsh][sp], self.D[icrsh][sp], self.H_list[icrsh][sp])
+                Lambda[icrsh][sp] = cut_small(Lambda[icrsh][sp], tol=1e-8)
         return Lambda
-
-    def calc_mu_grisb(self, R, Lambda):
-        '''
-        Override the sumk calc_mu for GRISB
-        '''
-        pass
-
-    def calc_density_correction(self):
-        '''
-        Overide the density correction for GRISB
-        '''
-        pass
 
     @staticmethod
     def calc_Lambdac_icrsh_isp(R, Lambda, Delta_p, D, H_list):
@@ -270,6 +272,370 @@ class SumkGRISB(SumkDFT):
             l[k]=-lc[k]-(tt+numpy.conjugate(tt)).real
         Lambda=realHcombination(l,H_list)
         return Lambda
+
+    def calc_mu_grisb(self, R, Lambda, precision=0.01, broadening=None, delta=0.5, max_loops=100, method="dichotomy", beta=None):
+        r"""
+        Searches for the chemical potential that gives the DFT total charge.
+
+        Parameters
+        ----------
+        precision : float, optional
+                    A desired precision of the resulting total charge.
+        broadening : float, optional
+                     Imaginary shift for the axis along which the real-axis GF is calculated.
+                     If not provided, broadening will be set to double of the distance between mesh points in 'mesh'.
+                     Only relevant for real-frequency GF.
+        max_loops : int, optional
+                    Number of dichotomy loops maximally performed.
+        
+        method : string, optional
+                    Type of optimization used:
+                        * dichotomy: usual bisection algorithm from the TRIQS library
+                        * newton: newton method, faster convergence but more unstable 
+                        * brent: finds bounds and proceeds with hyperbolic brent method, a compromise between speed and ensuring convergence
+        beta : float, optional, default = broadening
+                when using MeshReFreq this determines the temperature for the Fermi function
+                smearing when integrating G(w). If not given broadening will be used
+                (converted to beta)
+
+        Returns
+        -------
+        mu : float
+             Value of the chemical potential giving the DFT total charge
+             within specified precision.
+
+        """
+        if beta is None:
+            raise NotImplementedError("calc_mu_grisb required beta input.")
+        def find_bounds(function, x_init, delta_x, max_loops=1000):
+            mpi.report("Finding bounds on chemical potential")
+            x = x_init
+            # First find the bounds
+            y1 = function(x)
+            eps = np.sign(y1)
+            x1 = x
+            x2 = x1
+            y2 = y1
+
+            nbre_loop = 0
+            # abort the loop after maxiter is reached or when y1 and y2 have different sign
+            while (nbre_loop <= max_loops) and (y2*y1) > 0:
+                nbre_loop += 1
+                x1 = x2
+                y1 = y2
+
+                x2 -= eps*delta_x
+                y2 = function(x2)
+
+            if nbre_loop > (max_loops):
+                raise ValueError("The bounds could not be found")
+
+            # Make sure that x2 > x1
+            if x1 > x2:
+                x1, x2 = x2, x1
+                y1, y2 = y2, y1
+
+            mpi.report(f"mu_interval: [  {x1:.4f}  ; {x2:.4f} ]")
+            mpi.report(f"delta to target density interval: [ {y1:.4f} ; {y2:.4f} ]")
+            return x1, x2
+
+        # previous implementation
+
+        def F_bisection(mu): return self.total_density_grisb(R, Lambda, beta, mu=mu, broadening=broadening).real
+        density = self.density_required - self.charge_below
+        # using scipy.optimize
+
+        def F_optimize(mu):
+
+            mpi.report("Trying out mu = {}".format(str(mu)))
+            calc_dens = self.total_density_grisb(R, Lambda, beta, mu=mu, broadening=broadening).real - density
+            mpi.report(f"Target density = {density}; Delta to target = {calc_dens}")
+            return calc_dens
+
+        # check for lowercase matching for the method variable
+        if method.lower() == "dichotomy":
+            mpi.report("\nsumk calc_mu_grisb: Using dichtomy adjustment to find chemical potential\n")
+            self.chemical_potential = dichotomy.dichotomy(function=F_bisection,
+                                                          x_init=self.chemical_potential, y_value=density,
+                                                          precision_on_y=precision, delta_x=delta, max_loops=max_loops,
+                                                          x_name="Chemical Potential", y_name="Total Density",
+                                                          verbosity=3)[0]
+        elif method.lower() == "newton":
+            mpi.report("\nsumk calc_mu_grisb: Using Newton method to find chemical potential\n")
+            self.chemical_potential = newton(func=F_optimize,
+                                             x0=self.chemical_potential,
+                                             tol=precision, maxiter=max_loops,
+                                             )
+
+        elif method.lower() == "brent":
+            mpi.report("\nsumk calc_mu_grisb: Using Brent method to find chemical potential")
+            mpi.report("sumk calc_mu_grisb: Finding bounds \n")
+
+            mu_guess_0, mu_guess_1 = find_bounds(function=F_optimize,
+                                                 x_init=self.chemical_potential,
+                                                 delta_x=delta, max_loops=max_loops,
+                                                 )
+            mu_guess_1 += 0.01  # scrambles higher lying interval to avoid getting stuck
+            mpi.report("\nsumk calc_mu_grisb: Searching root with Brent method\n")
+            self.chemical_potential = brenth(f=F_optimize,
+                                             a=mu_guess_0,
+                                             b=mu_guess_1,
+                                             xtol=precision, maxiter=max_loops,
+                                             )
+
+        else:
+            raise ValueError(
+                f"sumk calc_mu_grisb: The selected method: {method}, is not implemented\n",
+                """
+                    Please check for typos or select one of the following:
+                        * dichotomy: usual bisection algorithm from the TRIQS library
+                        * newton: newton method, fastest convergence but more unstable 
+                        * brent: finds bounds and proceeds with hyperbolic brent method, a compromise between speed and ensuring convergence
+                    """
+            )
+
+        return self.chemical_potential
+
+
+    def calc_density_correction(self, filename=None, dm_type=None, spinave=False, kpts_to_write=None, broadening=None, beta=None):
+        r'''
+        Overide the density correction for GRISB
+        Calculates the charge density correction and stores it into a file.
+
+        The charge density correction is needed for charge-self-consistent DFT+DMFT calculations.
+        It represents a density matrix of the interacting system defined in Bloch basis
+        and it is calculated from the sum over Matsubara frequecies of the full GF,
+
+        ..math:: N_{\nu\nu'}(k) = \sum_{i\omega_{n}} G_{\nu\nu'}(k, i\omega_{n})
+
+        The density matrix for every `k`-point is stored into a file.
+
+        Parameters
+        ----------
+        filename : string
+                   Name of the file to store the charge density correction.
+        dm_type : string
+                   DFT code to write the density correction for. Options:
+                   'vasp', 'wien2k', 'elk' or 'qe'. Needs to be set for 'qe'
+        spinave : logical
+                   Elk specific and for magnetic calculations in DMFT only. 
+                   It averages the spin to keep the DFT part non-magnetic.            
+        kpts_to_write : iterable of int
+                   Indices of k points that are written to file. If None (default),
+                   all k points are written. Only implemented for dm_type 'vasp'
+        broadening : float, optional
+                     Imaginary shift for the axis along which the real-axis GF is calculated.
+                     If not provided, broadening will be set to double of the distance between mesh points in 'mesh'.
+                     Only relevant for real-frequency GF.
+        beta : float, optional, default = broadening
+                when using MeshReFreq this determines the temperature for the Fermi function
+                smearing when integrating G(w). If not given broadening will be used
+                (converted to beta)
+        Returns
+        -------
+        (deltaN, dens) : tuple
+                         Returns a tuple containing the density matrix `deltaN` and
+                         the corresponing total charge `dens`.
+
+        '''
+        #automatically set dm_type if required
+        if dm_type==None:
+            dm_type = self.dft_code
+
+        assert dm_type in ('qe'), "'dm_type' must be 'qe'"
+        #default file names
+        if filename is None:
+            if dm_type == 'vasp':
+                filename = 'GAMMA'
+            elif dm_type == 'qe':
+                filename = self.hdf_file
+
+
+        assert isinstance(filename, str), ("calc_density_correction: "
+                                              "filename has to be a string!")
+
+        assert kpts_to_write is None or dm_type == 'vasp', ('Selecting k-points only'
+                                                            +'implemented for vasp')
+
+        ntoi = self.spin_names_to_ind[self.SO]
+        spn = self.spin_block_names[self.SO]
+        dens = {sp: 0.0 for sp in spn}
+        band_en_correction = 0.0
+
+# Fetch Fermi weights and energy window band indices
+        if dm_type in ['vasp','qe']:
+            fermi_weights = 0
+            band_window = 0
+            if mpi.is_master_node():
+                with HDFArchive(self.hdf_file,'r') as ar:
+                    fermi_weights = ar['dft_misc_input']['dft_fermi_weights']
+                    band_window = ar['dft_misc_input']['band_window']
+            fermi_weights = mpi.bcast(fermi_weights)
+            band_window = mpi.bcast(band_window)
+
+# Convert Fermi weights to a density matrix
+            dens_mat_dft = {}
+            for sp in spn:
+                dens_mat_dft[sp] = [fermi_weights[ik, ntoi[sp], :].astype(complex) for ik in range(self.n_k)]
+
+
+        # Set up deltaN:
+        deltaN = {}
+        for sp in spn:
+            deltaN[sp] = [np.zeros([self.n_orbitals[ik, ntoi[sp]], self.n_orbitals[
+                                      ik, ntoi[sp]]], complex) for ik in range(self.n_k)]
+
+        ikarray = np.arange(self.n_k)
+        for ik in mpi.slice_array(ikarray):
+            #TODO: implement charge correction below using grisb density matrices.
+            for sp, isp in self.spin_names_to_ind[self.SO].items():
+                deltaN[sp][ik][:,:] = self.rhoks_phys_bloch[sp][ik,:,:].T
+                #TODO: the local contribution needs to be replaced using the embedding local density matrix.
+                #for icrsh in range(self.n_corr_shells):
+
+                dens[sp] += self.bz_weights[ik] * np.trace(deltaN[sp][ik][:,:])
+                if dm_type in ['vasp','qe']:
+# In 'vasp'-mode subtract the DFT density matrix
+                    nb = self.n_orbitals[ik, ntoi[sp]]
+                    diag_inds = np.diag_indices(nb)
+                    deltaN[sp][ik][diag_inds] -= dens_mat_dft[sp][ik][:nb]
+            
+                    if self.charge_mixing and self.deltaNOld is not None:
+                        G2 = np.sum(self.kpts_cart[ik,:]**2)
+                        # Kerker mixing
+                        mix_fac = self.charge_mixing_alpha * G2 / (G2 + self.charge_mixing_gamma**2)
+                        deltaN[sp][ik][diag_inds] = (1.0 - mix_fac) * self.deltaNOld[sp][ik][diag_inds] + mix_fac * deltaN[sp][ik][diag_inds]
+                    dens[sp] -= self.bz_weights[ik] * dens_mat_dft[sp][ik].sum().real
+                    isp = ntoi[sp]
+                    b1, b2 = band_window[isp][ik, :2]
+                    nb = b2 - b1 + 1
+                    assert nb == self.n_orbitals[ik, ntoi[sp]], "Number of bands is inconsistent at ik = %s"%(ik)
+                    # TODO: the band_en_correction needs to be modified
+                    band_en_correction += np.dot(deltaN[sp][ik], self.hopping[ik, isp, :nb, :nb]).trace().real * self.bz_weights[ik]
+
+            #G_latt = self.lattice_gf(
+            #    ik=ik, mu=self.chemical_potential, broadening=broadening)
+            #if dm_type == 'vasp' and self.proj_or_hk == 'hk':
+            #    # rotate the Green function into the DFT band basis
+            #    for bname, gf in G_latt:
+            #        G_latt_rot = gf.copy()
+            #        G_latt_rot << self.upfold(
+            #                ik, 0, bname, G_latt[bname], gf,shells='csc')
+            #
+            #        G_latt[bname] = G_latt_rot.copy()
+            #
+            #for bname, gf in G_latt:
+            #    deltaN[bname][ik] = G_latt[bname].density()
+            #
+            #    if isinstance(self.mesh, MeshImFreq):
+            #        dens[bname] += self.bz_weights[ik] * G_latt[bname].total_density()
+            #    else:
+            #        dens[bname] += self.bz_weights[ik] * G_latt[bname].total_density(beta)
+            #    if dm_type in ['vasp','qe']:
+# In 'vasp'-mode subtract the DFT density matrix
+            #        nb = self.n_orbitals[ik, ntoi[bname]]
+            #        diag_inds = np.diag_indices(nb)
+            #        deltaN[bname][ik][diag_inds] -= dens_mat_dft[bname][ik][:nb]
+            #
+            #        if self.charge_mixing and self.deltaNOld is not None:
+            #            G2 = np.sum(self.kpts_cart[ik,:]**2)
+            #            # Kerker mixing
+            #            mix_fac = self.charge_mixing_alpha * G2 / (G2 + self.charge_mixing_gamma**2)
+            #            deltaN[bname][ik][diag_inds] = (1.0 - mix_fac) * self.deltaNOld[bname][ik][diag_inds] + mix_fac * deltaN[bname][ik][diag_inds]
+            #        dens[bname] -= self.bz_weights[ik] * dens_mat_dft[bname][ik].sum().real
+            #        isp = ntoi[bname]
+            #        b1, b2 = band_window[isp][ik, :2]
+            #        nb = b2 - b1 + 1
+            #        assert nb == self.n_orbitals[ik, ntoi[bname]], "Number of bands is inconsistent at ik = %s"%(ik)
+            #        band_en_correction += np.dot(deltaN[bname][ik], self.hopping[ik, isp, :nb, :nb]).trace().real * self.bz_weights[ik]
+
+        # mpi reduce:
+        for bname in deltaN:
+            for ik in range(self.n_k):
+                deltaN[bname][ik] = mpi.all_reduce(deltaN[bname][ik])
+            dens[bname] = mpi.all_reduce(dens[bname])
+        self.deltaNOld = copy.copy(deltaN)
+        mpi.barrier()
+
+        band_en_correction = mpi.all_reduce(band_en_correction)
+
+        # now save to file:
+        if dm_type == 'vasp':
+            if kpts_to_write is None:
+                kpts_to_write = np.arange(self.n_k)
+            else:
+                assert np.min(kpts_to_write) >= 0 and np.max(kpts_to_write) < self.n_k
+
+            assert self.SP == 0, "Spin-polarized density matrix is not implemented"
+
+            if mpi.is_master_node():
+                with open(filename, 'w') as f:
+                    f.write(" %i  -1  ! Number of k-points, default number of bands\n"%len(kpts_to_write))
+                    for index, ik in enumerate(kpts_to_write):
+                        ib1 = band_window[0][ik, 0]
+                        ib2 = band_window[0][ik, 1]
+                        f.write(" %i  %i  %i\n"%(index + 1, ib1, ib2))
+                        for inu in range(self.n_orbitals[ik, 0]):
+                            for imu in range(self.n_orbitals[ik, 0]):
+                                valre = (deltaN['up'][ik][inu, imu].real + deltaN['down'][ik][inu, imu].real) / 2.0
+                                valim = (deltaN['up'][ik][inu, imu].imag + deltaN['down'][ik][inu, imu].imag) / 2.0
+                                f.write(" %.14f  %.14f"%(valre, valim))
+                            f.write("\n")
+
+        elif dm_type == 'qe':
+            if self.SP == 0:
+                mpi.report("SUMK calc_density_correction: WARNING! Averaging out spin-polarized correction in the density channel")
+
+            subgrp = 'dft_update'
+            delta_N = np.zeros([self.n_k, max(self.n_orbitals[:,0]), max(self.n_orbitals[:,0])], dtype=complex)
+            mpi.report(" %i  -1  ! Number of k-points, default number of bands\n"%(self.n_k))
+            for ik in range(self.n_k):
+                ib1 = band_window[0][ik, 0]
+                ib2 = band_window[0][ik, 1]
+                for inu in range(self.n_orbitals[ik, 0]):
+                    for imu in range(self.n_orbitals[ik, 0]):
+                        valre = (deltaN['up'][ik][inu, imu].real + deltaN['down'][ik][inu, imu].real) / 2.0
+                        valim = (deltaN['up'][ik][inu, imu].imag + deltaN['down'][ik][inu, imu].imag) / 2.0
+                        # write into delta_N
+                        delta_N[ik, inu, imu] = valre + 1j*valim
+            if mpi.is_master_node():
+                with HDFArchive(self.hdf_file, 'a') as ar:
+                    if not subgrp in ar:
+                        ar.create_group(subgrp)
+                    things_to_save = ['delta_N']
+                    for it in things_to_save:
+                        ar[subgrp][it] = locals()[it]
+
+        else:
+            raise NotImplementedError("Unknown density matrix type: '%s'"%(dm_type))
+
+        res = deltaN, dens
+
+        if dm_type in ['vasp', 'qe']:
+            res += (band_en_correction,)
+
+        return res
+
+
+    def total_density_grisb(self, R, Lambda, beta, mu=None, with_Sigma=True, with_dc=True, broadening=None):
+        '''
+        Compute the total quasiparticle density.
+        '''
+        self.calc_rhoks(R, Lambda, 1./beta, mu=mu)
+        dens = 0.0
+        ikarray = np.array(list(range(self.n_k)))
+        for sp, isp in self.spin_names_to_ind[self.SO].items():
+            for ik in mpi.slice_array(ikarray):
+                dens += self.bz_weights[ik] * np.trace(self.rhoks_full[sp][ik,:,:])
+
+        # collect data from mpi:
+        dens = mpi.all_reduce(dens)
+        mpi.barrier()
+
+        if abs(dens.imag) > 1e-20:
+            #print('den=',dens.real)
+            mpi.report("Warning: Imaginary part in density will be ignored ({})".format(str(abs(dens.imag))))
+        return dens.real
 
     def lattice_gf_qp(self, R, Lambda, ik, mu=None, broadening=None, mesh=None):
         r"""
@@ -368,7 +734,7 @@ class SumkGRISB(SumkDFT):
             
             if isinstance(mesh, MeshImFreq):
                 gf.data[:, :, :] = (idmat[ibl] * (mesh_values[:, None, None] + mu) #+ self.h_field*(1-2*ibl))
-                                    - np.dot(R_full, np.dot(Mmat, R_full.conj().T ) ) 
+                                    - np.dot(R_full, np.dot(MMat, R_full.conj().T ) ) 
                                     - Lambda_full ) 
             else:
                 gf.data[:, :, :] = (idmat[ibl] *
