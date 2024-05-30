@@ -22,7 +22,7 @@ from triqs.gf.tools import inverse
 # ghostGA
 from triqs_ghostGA.sumk_grisb import SumkGRISB
 from triqs_ghostGA.utils_TH import funcMat, denR, cut_small
-from triqs_ghostGA.observables import (calc_dft_kin_en, add_grisb_observables, calc_bandcorr_man, write_obs,
+from triqs_ghostGA.grisb_tools.observables import (calc_dft_kin_en, add_grisb_observables, calc_bandcorr_man, write_obs,
                                          add_dft_values_as_zeroth_iteration, write_header_to_file, prep_observables)
 from triqs_ghostGA.grisb_tools.solver import SolverStructure
 from triqs_ghostGA.grisb_tools import interaction_hamiltonian
@@ -261,7 +261,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
     sum_k = SumkGRISB(hdf_file=general_params['jobname']+'/'+general_params['seedname']+'.h5',
                       mesh=sumk_mesh, use_dft_blocks=False, h_field=general_params['h_field'],
-                      nbath=general_params['norb_bath'])
+                      nbaths=general_params['norb_baths'])
     
     iteration_offset = 0
 
@@ -513,11 +513,24 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         #print(observables['R'])
         #quit()
         for icrsh in range(sum_k.n_inequiv_shells):
-            for spin in sum_k.spin_block_names[sum_k.SO]:
-                n_orb = sum_k.corr_shells[icrsh]['dim']
-                observables['R'][icrsh][spin] = np.eye(general_params['norb_bath'],dtype=complex)
+            #for spin in sum_k.spin_block_names[sum_k.SO]:
+            np.random.seed(1234)
+            n_orb = sum_k.corr_shells[icrsh]['dim']
+            if general_params['norb_baths'][icrsh] == n_orb:
+                observables['R'][icrsh]['up'] = np.eye(general_params['norb_baths'][icrsh],dtype=complex)
+                observables['R'][icrsh]['down'] = np.eye(general_params['norb_baths'][icrsh],dtype=complex)
                 #observables['Lambda'][icrsh][spin] = np.zeros((general_params['norb_bath'],general_params['norb_bath']),dtype=complex)
-                observables['Lambda'][icrsh][spin] = sum_k.Hsumk[icrsh][spin]
+                observables['Lambda'][icrsh]['up'] = sum_k.Hsumk[icrsh]['up']
+                observables['Lambda'][icrsh]['down'] = sum_k.Hsumk[icrsh]['down']
+            else:
+                R0 = np.random.rand(general_params['norb_baths'][icrsh],n_orb)*0.9
+                observables['R'][icrsh]['up'] = R0
+                observables['R'][icrsh]['down'] = R0
+                Lambda0 = np.random.rand(general_params['norb_baths'][icrsh],general_params['norb_baths'][icrsh])*2.0
+                Lambda0 = (Lambda0 + Lambda0.T)/2 + dft_mu*np.eye(Lambda0.shape[0])
+                observables['Lambda'][icrsh]['up'] = Lambda0
+                observables['Lambda'][icrsh]['down'] = Lambda0
+
         print('Initial R =')
         print(observables['R'])
         print('Initial Lambda =')
@@ -615,8 +628,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #print(h_int)
     print('density_required=',sum_k.density_required)
     # compute new chemical potential
-    mu = sum_k.calc_mu_grisb(observables['R'], observables['Lambda'], precision=general_params['prec_mu'],
-                             method=general_params['calc_mu_method'], beta=general_params['beta'])
+#    mu = sum_k.calc_mu_grisb(observables['R'], observables['Lambda'], precision=general_params['prec_mu'],
+#                             method=general_params['calc_mu_method'], beta=general_params['beta'])
     #quit()
 
 
@@ -679,6 +692,9 @@ def _grisb_step(sum_k, solvers, it, general_params,
         #    print(observables['Lambda'][icrsh][sp])
         sum_k.calc_rhoks(observables['R'], observables['Lambda'], 1./general_params['beta'])
         sum_k.calc_Delta()
+        #Delta_sym = (sum_k.Delta[icrsh]['up']+sum_k.Delta[icrsh]['down'])/2.# symmetrize
+        #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+        #    sum_k.Delta[icrsh][sp] = cut_small(Delta_sym, tol=1e-8)
         #for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
         #    print('Delta_%s='%sp)
         #    print(sum_k.Delta[icrsh][sp])
@@ -880,15 +896,16 @@ def _grisb_step(sum_k, solvers, it, general_params,
 
     # Checks for convergence
     is_now_converged = convergence.check_convergence(sum_k.n_inequiv_shells, general_params, conv_obs)
-    print('is converged=', is_now_converged)
-    if is_now_converged is None:
-        is_converged = False
+    print('is_now_converged=', is_now_converged)
     # use the current simple criterion for one-shot
-    elif not general_params['csc'] and diff < general_params['grisb_tol']:  
+    if not general_params['csc'] and diff < general_params['grisb_tol']:  
         is_converged =True
+    elif is_now_converged is None:
+        is_converged = False
     else:
         # if convergency criteria was already reached don't overwrite it!
         is_converged = is_converged or is_now_converged
+    print('is_converged=', is_converged)
 
     # Final prints
     formatter.print_summary_observables(observables, sum_k.n_inequiv_shells,

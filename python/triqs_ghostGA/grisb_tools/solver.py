@@ -76,7 +76,7 @@ class SolverStructure:
         self.iteration_offset = iteration_offset
         self.solver_struct_ftps = solver_struct_ftps
         self.nimp = self.sum_k.eloc_orig[self.icrsh]['up'].shape[0]
-        self.nbath = self.general_params['norb_bath']
+        self.nbath = self.general_params['norb_baths'][self.icrsh]
         # initialize density matrix as zeros
         self.density_matrix = np.zeros((2*(self.nimp+self.nbath),2*(self.nimp+self.nbath)),complex)
         # currently no solver requires random number
@@ -191,7 +191,8 @@ class SolverStructure:
         Initialize cthyb solver instance
         '''
         from triqs_ghostGA.ci import CI
-        triqs_solver = CI(2*(self.general_params['norb_bath']+self.sum_k.corr_shells[self.icrsh]['dim']), use_Ntot=True, use_Sz=True, dtype=np.complex128)
+        triqs_solver = CI(2*(self.general_params['norb_baths'][self.icrsh]
+                             +self.sum_k.corr_shells[self.icrsh]['dim']), use_Ntot=True, use_Sz=True, dtype=np.complex128)
 
         return triqs_solver
 

@@ -576,7 +576,7 @@ def calc_bandcorr_man(R, Lambda, general_params, sum_k, E_kin_dft):
             #print(H_qp[spin][ik,:,:])
             #assert(np.allclose(H_ks[ik,0,:,:],H_qp[spin][ik,:,:]))
             #E_kin += np.trace(np.dot(H_ks[ik, 0, :nb, :nb], G_freq_lat_beta[spin][:, :]))
-            E_kin += np.trace(np.dot(H_qp[spin][ik, :nb, :nb], sum_k.rhoks_full[spin][ik,:, :].T))
+            E_kin += np.trace(np.dot(H_qp[spin][ik, :, :], sum_k.rhoks_full[spin][ik,:, :].T))
     E_kin = np.real(E_kin)
 
     # collect data and put into E_kin_dmft

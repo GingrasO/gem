@@ -106,7 +106,7 @@ solver_type : str
             * 'ci'
             * 'block2'
 
-norb_bath: int
+norb_baths: int
             number of bath orbital in gRISB
             
 n_iw : int, optional, default=1025
@@ -420,7 +420,7 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                  'solver_type': {'valid for': lambda x, _: x in ['fci', 'block2'],
                                                  'used': True},
 
-                                 'norb_bath': {'converter': int, 'used': True},
+                                 'norb_baths': {'converter': lambda s: list(map(int, s.split(','))), 'used': True},
 
                                  'n_iw': {'converter': int, 'valid for': lambda x, _: x > 0,
                                           'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 1025},
