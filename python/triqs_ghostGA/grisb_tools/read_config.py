@@ -104,6 +104,8 @@ solver_type : str
             type of solver chosen for the calculation, currently supports:
 
             * 'ci'
+            * 'pyscf_dmrg'
+            * 'pyscf_ccsd'
             * 'block2'
 
 norb_baths: int
@@ -397,7 +399,7 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                                  'used': True},
 
                                  'beta': {'converter': float, 'valid for': lambda x, _: x > 0,
-                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'block2']},
+                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2']},
 
                                  'n_iter_grisb': {'converter': int, 'valid for': lambda x, _: x >= 0, 'used': True},
 
@@ -417,26 +419,26 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                  'cpa_x': {'converter': lambda s: list(map(float, s.split(','))),
                                            'used': lambda params: params['general']['dc'] and params['general']['dc_type'] == 4},
 
-                                 'solver_type': {'valid for': lambda x, _: x in ['fci', 'block2'],
+                                 'solver_type': {'valid for': lambda x, _: x in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2'],
                                                  'used': True},
 
                                  'norb_baths': {'converter': lambda s: list(map(int, s.split(','))), 'used': True},
 
                                  'n_iw': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 1025},
+                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2'], 'default': 1025},
 
                                  'n_tau': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                           'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 10001},
+                                           'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2'], 'default': 10001},
 
                                  'n_w': {'converter': int, 'valid for': lambda x, _: x > 0,
-                                         'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': 5001},
+                                         'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2'], 'default': 5001},
 
                                  'w_range': {'converter': lambda s: tuple(map(float, s.split(','))),
                                              'valid for': lambda x, _: x[0] < x[1],
-                                             'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'], 'default': (-10, 10)},
+                                             'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2'], 'default': (-10, 10)},
 
                                  'eta': {'converter': float, 'valid for': lambda x, _: x >= 0,
-                                         'used': lambda params: params['general']['solver_type'] in ['fci', 'block2']},
+                                         'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2']},
 
                                  'diag_delta': {'converter': BOOL_PARSER, 'used': True, 'default': False},
 
@@ -548,12 +550,12 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                  # TODO: used for which solvers? Generalize to real freq. solvers without maxent?
                                  'mu_gap_gb2_threshold': {'converter': float,
                                                           'valid for': lambda x, _: x == 'none' or x > 0 or np.isclose(x, 0),
-                                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'block2'],
+                                                          'used': lambda params: params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2'],
                                                           'default': 'none'},
 
                                  'mu_gap_occ_deviation': {'converter': float,
                                                           'valid for': lambda x, _: x == 'none' or x > 0 or np.isclose(x, 0),
-                                                          'used': lambda params: (params['general']['solver_type'] in ['fci', 'block2']
+                                                          'used': lambda params: (params['general']['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd', 'block2']
                                                                                   and params['general']['mu_gap_gb2_threshold'] != 'none'),
                                                           'default': 'none'},
 
@@ -617,6 +619,20 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                 'tol': {'converter': float, 'valid for': lambda x, _: x >= 0,
                                               'used': lambda params: params['general']['solver_type'] in ['hartree'],
                                               'default': 1e-5},
+
+                                #
+                                # pyscf dmrg parameters
+                                #
+                                'maxM': {'converter': int, 'valid for': lambda x, _: x >= 0,
+                                           'used': lambda params: params['general']['solver_type'] in ['pyscf_dmrg'],
+                                           'default': 100},
+
+                                #
+                                # pyscf ccsd parameters
+                                #
+                                'restricted': {'converter': bool, 'valid for': lambda x, _: x >= 0,
+                                           'used': lambda params: params['general']['solver_type'] in ['pyscf_ccsd'],
+                                           'default': True},
 
                                 #
                                 # ftps parameters

@@ -94,6 +94,22 @@ class SolverStructure:
             #self.git_hash = triqs_hubbardI_hash
             #self.version = version
 
+        elif self.general_params['solver_type'] == 'pyscf_dmrg':
+            self.gf_struct = self.sum_k.gf_struct_solver_list[self.icrsh]
+            self._init_ImFreq_objects()
+            self._init_ReFreq_hartree()
+
+            #set up solver
+            self.triqs_solver = self._create_pyscf_dmrg_solver()
+
+        elif self.general_params['solver_type'] == 'pyscf_ccsd':
+            self.gf_struct = self.sum_k.gf_struct_solver_list[self.icrsh]
+            self._init_ImFreq_objects()
+            self._init_ReFreq_hartree()
+
+            #set up solver
+            self.triqs_solver = self._create_pyscf_ccsd_solver()
+
         elif self.general_params['solver_type'] == 'block2_dmrg':
             raise NotImplementedError("block2 DMRG solver not implemeted!")
             # sets up necessary GF objects on ImFreq. we are not using it yet.
@@ -162,6 +178,66 @@ class SolverStructure:
             # call postprocessing
             #self._fci_postprocessing()
 
+        elif self.general_params['solver_type'] == 'pyscf_dmrg':
+        
+            mpi.report('\n Using the pyscf dmrg solver.')
+
+            # Solve the impurity problem for icrsh shell
+            # construct single particle matrix
+            eloc_spinful = np.zeros((2*self.nimp,2*self.nimp),dtype=complex)
+            D_spinful = np.zeros((2*self.nbath,2*self.nimp),dtype=complex)
+            Lambdac_spinful = np.zeros((2*self.nbath,2*self.nbath),dtype=complex)
+            # Sz symmetry assumed
+            # put Vdc by hand. There's a minus sign difference from sumk_dft.calc_dc
+            #nnom = 1
+            #Vdc = -(self.general_params['U'][self.icrsh]+(self.nimp-1)*(self.general_params['U'][self.icrsh]
+            #        -2*self.general_params['J'][self.icrsh])+(self.nimp-1)*(self.general_params['U'][self.icrsh]
+            #        -3*self.general_params['J'][self.icrsh]))*(nnom-0.5)/(2*self.nimp-1)
+            #print('Vdc=', Vdc)
+            #print(self.sum_k.dc_imp[self.icrsh]['up'])
+            #print(self.sum_k.dc_imp[self.icrsh]['down'])
+            eloc_spinful[::2,::2]= self.sum_k.eloc_orig[self.icrsh]['up'] - self.sum_k.dc_imp[self.icrsh]['up']
+            eloc_spinful[1::2,1::2]= self.sum_k.eloc_orig[self.icrsh]['down'] - self.sum_k.dc_imp[self.icrsh]['down']
+            D_spinful[::2,::2]= self.sum_k.D[self.icrsh]['up']
+            D_spinful[1::2,1::2]= self.sum_k.D[self.icrsh]['down']
+            Lambdac_spinful[::2,::2]= self.sum_k.Lambdac[self.icrsh]['up']
+            Lambdac_spinful[1::2,1::2]= self.sum_k.Lambdac[self.icrsh]['down']
+
+            self.triqs_solver.build_Hemb(D_spinful, eloc_spinful, Lambdac_spinful, self.h_int, spin_pen=0.05)
+            self.triqs_solver.solve_Hemb(num_eig=2, verbose=False )
+            self.density_matrix = self.triqs_solver.calc_density_matrix()
+            self.E2loc = self.triqs_solver.compute_E2loc()
+
+        elif self.general_params['solver_type'] == 'pyscf_ccsd':
+        
+            mpi.report('\n Using the pyscf ccsd solver.')
+
+            # Solve the impurity problem for icrsh shell
+            # construct single particle matrix
+            eloc_spinful = np.zeros((2*self.nimp,2*self.nimp),dtype=complex)
+            D_spinful = np.zeros((2*self.nbath,2*self.nimp),dtype=complex)
+            Lambdac_spinful = np.zeros((2*self.nbath,2*self.nbath),dtype=complex)
+            # Sz symmetry assumed
+            # put Vdc by hand. There's a minus sign difference from sumk_dft.calc_dc
+            #nnom = 1
+            #Vdc = -(self.general_params['U'][self.icrsh]+(self.nimp-1)*(self.general_params['U'][self.icrsh]
+            #        -2*self.general_params['J'][self.icrsh])+(self.nimp-1)*(self.general_params['U'][self.icrsh]
+            #        -3*self.general_params['J'][self.icrsh]))*(nnom-0.5)/(2*self.nimp-1)
+            #print('Vdc=', Vdc)
+            #print(self.sum_k.dc_imp[self.icrsh]['up'])
+            #print(self.sum_k.dc_imp[self.icrsh]['down'])
+            eloc_spinful[::2,::2]= self.sum_k.eloc_orig[self.icrsh]['up'] - self.sum_k.dc_imp[self.icrsh]['up']
+            eloc_spinful[1::2,1::2]= self.sum_k.eloc_orig[self.icrsh]['down'] - self.sum_k.dc_imp[self.icrsh]['down']
+            D_spinful[::2,::2]= self.sum_k.D[self.icrsh]['up']
+            D_spinful[1::2,1::2]= self.sum_k.D[self.icrsh]['down']
+            Lambdac_spinful[::2,::2]= self.sum_k.Lambdac[self.icrsh]['up']
+            Lambdac_spinful[1::2,1::2]= self.sum_k.Lambdac[self.icrsh]['down']
+
+            self.triqs_solver.build_Hemb(D_spinful, eloc_spinful, Lambdac_spinful, self.h_int, spin_pen=0.05)
+            self.triqs_solver.solve_Hemb(num_eig=2, verbose=False, restrict=self.solver_params['restricted'])
+            self.density_matrix = self.triqs_solver.calc_density_matrix()
+            self.E2loc = self.triqs_solver.compute_E2loc()
+
         elif self.general_params['solver_type'] == 'block2_dmrg':
             raise NotImplementedError("block2 DMRG solver not implemeted!")
             # Solve the impurity problem for icrsh shell
@@ -188,7 +264,7 @@ class SolverStructure:
 
     def _create_fci_solver(self):
         r'''
-        Initialize cthyb solver instance
+        Initialize configulration interaction exact-diagonalization solver instance
         '''
         from triqs_ghostGA.ci import CI
         triqs_solver = CI(2*(self.general_params['norb_baths'][self.icrsh]
@@ -196,9 +272,39 @@ class SolverStructure:
 
         return triqs_solver
 
+    def _create_pyscf_dmrg_solver(self):
+        r'''
+        Initial pyscf dmrgscf solver instance
+        '''
+        import os
+        from pyscf import dmrgscf
+        from triqs_ghostGA.pyscf_solvers import Pyscf_dmrg
+        dmrgscf.settings.BLOCKEXE = os.popen("which block2main").read().strip()
+        dmrgscf.settings.MPIPREFIX = ''#mpirun -n 1 --bind-to none'
+
+        triqs_solver = Pyscf_dmrg(2*(self.general_params['norb_baths'][self.icrsh]
+                            +self.sum_k.corr_shells[self.icrsh]['dim']), 2*self.sum_k.corr_shells[self.icrsh]['dim']
+                            , 2*self.general_params['norb_baths'][self.icrsh], self.solver_params["maxM"])
+        
+        return triqs_solver
+    
+
+    def _create_pyscf_ccsd_solver(self):
+        r'''
+        Initial pyscf dmrgscf solver instance
+        '''
+
+        from triqs_ghostGA.pyscf_solvers import Pyscf_ccsd
+
+        triqs_solver = Pyscf_ccsd(2*(self.general_params['norb_baths'][self.icrsh]
+                            +self.sum_k.corr_shells[self.icrsh]['dim']), 2*self.sum_k.corr_shells[self.icrsh]['dim']
+                            , 2*self.general_params['norb_baths'][self.icrsh])
+        
+        return triqs_solver
+
     def _create_block2_solver(self):
         r'''
-        Initialize cthyb solver instance
+        Initialize block2 dmrg solver instance
         '''
         from triqs_cthyb.solver import Solver as cthyb_solver
         raise NotImplementedError("block2 DMRG solver not implemeted!")
