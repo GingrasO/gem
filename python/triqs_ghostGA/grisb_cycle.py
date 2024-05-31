@@ -527,7 +527,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
                 observables['R'][icrsh]['up'] = R0
                 observables['R'][icrsh]['down'] = R0
                 Lambda0 = np.random.rand(general_params['norb_baths'][icrsh],general_params['norb_baths'][icrsh])*2.0
-                Lambda0 = (Lambda0 + Lambda0.T)/2 + dft_mu*np.eye(Lambda0.shape[0])
+                Lambda0 = (Lambda0 + Lambda0.T)/2 #+ dft_mu*np.eye(Lambda0.shape[0])
                 observables['Lambda'][icrsh]['up'] = Lambda0
                 observables['Lambda'][icrsh]['down'] = Lambda0
 
@@ -628,8 +628,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #print(h_int)
     print('density_required=',sum_k.density_required)
     # compute new chemical potential
-#    mu = sum_k.calc_mu_grisb(observables['R'], observables['Lambda'], precision=general_params['prec_mu'],
-#                             method=general_params['calc_mu_method'], beta=general_params['beta'])
+    mu = sum_k.calc_mu_grisb(observables['R'], observables['Lambda'], precision=general_params['prec_mu'],
+                             method=general_params['calc_mu_method'], beta=general_params['beta'])
     #quit()
 
 
@@ -840,8 +840,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #sum_k.put_Sigma([solvers[icrsh].Sigma_freq for icrsh in range(sum_k.n_inequiv_shells)])
 
     # saving previous mu for writing to observables file
-    previous_mu = sum_k.chemical_potential
-#    sum_k = manipulate_mu.update_mu(general_params, sum_k, it, archive)
+    previous_mu = sum_k.chemical_potential*(1-general_params['mu_mix_const']) + previous_mu*general_params['mu_mix_const']
+    #sum_k = manipulate_mu.update_mu(general_params, sum_k, it, archive)
 
     # if we do a CSC calculation we need always an updated GAMMA file
     E_bandcorr = 0.0

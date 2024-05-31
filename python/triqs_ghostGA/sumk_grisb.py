@@ -294,7 +294,7 @@ class SumkGRISB(SumkDFT):
         Lambda=realHcombination(l,H_list)
         return Lambda
 
-    def calc_mu_grisb(self, R, Lambda, precision=0.01, broadening=None, delta=0.5, max_loops=100, method="dichotomy", beta=None):
+    def calc_mu_grisb(self, R, Lambda, precision=0.01, broadening=None, delta=0.5, max_loops=200, method="dichotomy", beta=None):
         r"""
         Searches for the chemical potential that gives the DFT total charge.
 
