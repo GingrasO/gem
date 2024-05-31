@@ -13,7 +13,7 @@ from timeit import default_timer as timer
 import triqs.utility.mpi as mpi
 
 # own modules
-from triqs_ghostGA.read_config import read_config
+from triqs_ghostGA.grisb_tools.read_config import read_config
 from triqs_ghostGA.grisb_cycle import grisb_cycle
 #from solid_dmft.csc_flow import csc_flow_control
 
