@@ -109,7 +109,7 @@ class SumkGRISB(SumkDFT):
         #print(n_orb,n_qp,n_orb_corr)
         R_full = np.zeros((n_qp+n_orb-n_orb_corr,n_orb),dtype=complex)
         n_ncorr = n_orb - n_orb_corr
-        R_full[-n_ncorr:,-n_ncorr:] = np.eye(n_ncorr,dtype=complex)
+        R_full[n_qp:,n_orb_corr:] = np.eye(n_ncorr,dtype=complex)
         Lambda_full = np.zeros((n_qp+n_orb-n_orb_corr,n_qp+n_orb-n_orb_corr),dtype=complex)
         indx_phy = 0
         indx_qp = 0
