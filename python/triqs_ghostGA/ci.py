@@ -703,6 +703,7 @@ class CI(object):
             for j in range(self.norb):
                 #denmat[i,j] = self.gs_wf.conj().T.dot(self.denmat_op[(i,j)].dot(self.gs_wf))
                 dm[i,j]=np.trace(self.evecs[:,:self.deg].conj().T.dot(self.denmat_op[(i,j)].dot(self.evecs[:,:self.deg])))/self.deg
+        self.dm = dm
         return dm
 
     def compute_Eloc(self):
@@ -713,6 +714,16 @@ class CI(object):
           Eloc: float. Total local energy.
         '''
         return self.gs_wf.conj().T.dot((self.Htwo+self.Honeloc).dot(self.gs_wf))
+
+    def compute_E1loc(self, nimp):
+        '''
+        Compute local energy including local one and two-body term from a given wavefunction.
+        Input:
+        Return:
+          Eloc: float. Total local energy.
+        '''
+        #return self.gs_wf.conj().T.dot((self.Htwo).dot(self.gs_wf))
+        return np.trace(self.h1e[:nimp,:nimp].dot(self.dm[:nimp,:nimp].T))
 
     def compute_E2loc(self):
         '''

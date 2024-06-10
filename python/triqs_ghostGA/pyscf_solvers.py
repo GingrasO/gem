@@ -121,6 +121,16 @@ class Pyscf_ccsd(object):
             self.dm = dm
             return dm
 
+    def compute_E1loc(self, nimp):
+        '''
+        Compute local energy including local one and two-body term from a given wavefunction.
+        Input:
+        Return:
+          Eloc: float. Total local energy.
+        '''
+        #return self.gs_wf.conj().T.dot((self.Htwo).dot(self.gs_wf))
+        return numpy.trace(self.h1[:nimp,:nimp].dot(self.dm[:nimp,:nimp].T))
+
     def compute_E2loc(self):
         eone = 2*numpy.einsum('ij,ij',self.h1,self.dm[::2,::2])
         etwo = self.e0 - eone
