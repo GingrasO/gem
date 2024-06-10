@@ -315,20 +315,36 @@ def add_grisb_observables(observables, general_params, solver_params, dft_energy
 
     if general_params['calc_energies']:
         # grisb interaction energy with E_int = two-body and one-body interaction energy
-        if (general_params['solver_type'] in ['fci']):
-            #E_int = [trace_rho_op(density_matrix[icrsh], h_int[icrsh], diag_local_ham[icrsh])
+        if (general_params['solver_type'] in ['fci', 'pyscf_dmrg', 'pyscf_ccsd']):
+            E_int = []
+            for icrsh in range(sum_k.n_inequiv_shells):
+                E_int_icrsh = solvers[icrsh].E2loc + solvers[icrsh].E1loc
+                E_Lambda = 0.0
+                for sp, isp in sum_k.spin_names_to_ind[sum_k.SO].items():
+                    E_Lambda += np.sum(observables['Lambda'][icrsh][sp]*sum_k.Delta[icrsh][sp])
+                E_int_icrsh -= E_Lambda
+                #print(solvers[icrsh].triqs_solver.h1e[:10:2,:10:2])
+                #print(solvers[icrsh].triqs_solver.dm[:10:2,:10:2])
+                #print(observables['Lambda'][icrsh]['up'])
+                #print(sum_k.Delta[icrsh]['up'])
+                #print(solvers[icrsh].E2loc, solvers[icrsh].E1loc, E_Lambda)
+                E_int.append(E_int_icrsh)
+            #print('E_int=', E_int)
+            #E_int = [solvers[icrsh].E2loc + solvers[icrsh].E1loc 
+            #         - np.sum(observables['Lambda'][icrsh]*sum_k.Delta[icrsh]) 
             #         for icrsh in range(sum_k.n_inequiv_shells)]
-            E_int = [0.0 for icrsh in range(sum_k.n_inequiv_shells)]
         else:
             warning = ( "!-------------------------------------------------------------------------------------------!\n"
-                        "! WARNING: calculating interaction energy using Migdal formula                              !\n"
-                        "! consider turning on measure density matrix to use the more stable trace_rho_op function   !\n"
+                        "! Solver not supported                                                                      !\n"
                         "!-------------------------------------------------------------------------------------------!" )
             print(warning)
             # calc energy for given S and G
-            E_int = [0.5 * np.real((solvers[icrsh].G_freq * solvers[icrsh].Sigma_freq).total_density())
-                     for icrsh in range(sum_k.n_inequiv_shells)]
+            #E_int = [0.5 * np.real((solvers[icrsh].G_freq * solvers[icrsh].Sigma_freq).total_density())
+            #         for icrsh in range(sum_k.n_inequiv_shells)]
+            raise
 
+        # the correlation energy for each shell in ghostGA is E_two_body_interaction + E_one_body - E_dc - E_Lambda
+        # TODO: need to figure out how to compute the dc_energy 
         for icrsh in range(sum_k.n_inequiv_shells):
             observables['E_int'][icrsh].append(shell_multiplicity[icrsh]*E_int[icrsh].real)
             E_corr_en += shell_multiplicity[icrsh] * (E_int[icrsh].real - sum_k.dc_energ[sum_k.inequiv_to_corr[icrsh]])
@@ -576,20 +592,21 @@ def calc_bandcorr_man(R, Lambda, general_params, sum_k, E_kin_dft):
             #print(H_qp[spin][ik,:,:])
             #assert(np.allclose(H_ks[ik,0,:,:],H_qp[spin][ik,:,:]))
             #E_kin += np.trace(np.dot(H_ks[ik, 0, :nb, :nb], G_freq_lat_beta[spin][:, :]))
-            E_kin += np.trace(np.dot(H_qp[spin][ik, :, :], sum_k.rhoks_full[spin][ik,:, :].T))
+            E_kin += np.trace(np.dot(H_qp[spin][ik, :, :], sum_k.rhoks_full[spin][ik,:, :].T))*sum_k.bz_weights[ik]
     E_kin = np.real(E_kin)
 
     # collect data and put into E_kin_dmft
     E_kin_dmft = mpi.all_reduce(E_kin)
     mpi.barrier()
     # E_kin should be divided by the number of k-points
-    E_kin_dmft = E_kin_dmft/num_kpts
+    E_kin_dmft = E_kin_dmft
+
+    E_bandcorr = E_kin_dmft - E_kin_dft
 
     if mpi.is_master_node():
         print('DFT Kinetic energy: '+str(E_kin_dft))
         print('Kinetic energy contribution dmft part: '+str(E_kin_dmft))
-
-    E_bandcorr = E_kin_dmft - E_kin_dft
+        print('Kinetic energy contribution from correlation: '+str(E_bandcorr))
 
     return E_bandcorr
 
