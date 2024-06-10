@@ -173,6 +173,8 @@ class SolverStructure:
             #print(self.density_matrix[::2,::2])
             #print('density_matrix_down=')
             #print(self.density_matrix[1::2,1::2])
+            self.E1loc = self.triqs_solver.compute_E1loc(2*self.nimp)
+            self.E2loc = self.triqs_solver.compute_E2loc()
             #quit()
 
             # call postprocessing
@@ -206,6 +208,7 @@ class SolverStructure:
             self.triqs_solver.build_Hemb(D_spinful, eloc_spinful, Lambdac_spinful, self.h_int, spin_pen=0.05)
             self.triqs_solver.solve_Hemb(num_eig=2, verbose=False )
             self.density_matrix = self.triqs_solver.calc_density_matrix()
+            self.E1loc = self.triqs_solver.compute_E1loc(2*self.nimp)
             self.E2loc = self.triqs_solver.compute_E2loc()
 
         elif self.general_params['solver_type'] == 'pyscf_ccsd':
@@ -236,6 +239,7 @@ class SolverStructure:
             self.triqs_solver.build_Hemb(D_spinful, eloc_spinful, Lambdac_spinful, self.h_int, spin_pen=0.05)
             self.triqs_solver.solve_Hemb(num_eig=2, verbose=False, restrict=self.solver_params['restricted'])
             self.density_matrix = self.triqs_solver.calc_density_matrix()
+            self.E1loc = self.triqs_solver.compute_E1loc(2*self.nimp)
             self.E2loc = self.triqs_solver.compute_E2loc()
 
         elif self.general_params['solver_type'] == 'block2_dmrg':
