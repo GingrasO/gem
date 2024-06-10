@@ -169,7 +169,19 @@ class SumkGRISB(SumkDFT):
                                                          + Lambda_full - mu*np.eye(Lambda_full.shape[0]) , T ).T
                     self.hopping_qp[sp][ik,:,:] = np.dot(R_full, np.dot(MMat, R_full.conj().T ) ) + Lambda_full
                     self.rhoks_phys_bloch[sp][ik,:,:] = np.dot( np.dot(np.dot( np.dot( u.conj().T, R_full.conj().T),
-                                                                         self.rhoks_full[sp][ik,:,:]), R_full ), u )
+                                                                         self.rhoks_full[sp][ik,:,:].T), R_full ), u )
+                    #print(ik)
+                    #assert(np.allclose(np.linalg.eigh(self.hopping[ik,ind,:,:])[0],
+                    #                   np.linalg.eigh(np.dot(R_full, np.dot(MMat, R_full.conj().T )) + Lambda_full)[0],atol=1e-5))
+                    #assert(np.allclose( np.dot(np.dot(u, self.hopping[ik, ind,:,:]), u.conj().T), 
+                    #                    np.dot(R_full, np.dot(MMat, R_full.conj().T )) + Lambda_full, atol=1e-5))
+                    #print(self.rhoks_full[sp][ik,:,:])
+                    #print(np.dot(np.dot(u.conj().T,calc_nf(self.hopping[ik,ind,:,:],T)),u))
+                    #assert(np.allclose(self.rhoks_phys_bloch[sp][ik,:,:],
+                    #       #np.allclose(np.dot(np.dot(u.conj().T,self.rhoks_full[sp][ik,:,:].T),u),
+                    #       calc_nf(self.hopping[ik,ind,:,:],T),atol=1e-3))
+                    #assert(np.allclose(self.rhoks_full[sp][ik,:,:],#self.rhoks_phys_bloch[sp][ik,:,:],
+                    #                   np.dot(np.dot(u,calc_nf(self.hopping[ik,ind,:,:],T)),u.conj().T).T,atol=1e-3))
                     self.rhoks[icrsh][sp][ik,:,:] = self.rhoks_full[sp][ik,indx_qp:indx_qp+dim_qp,indx_qp:indx_qp+dim_qp]
             indx_qp += dim_qp
 
@@ -368,7 +380,9 @@ class SumkGRISB(SumkDFT):
         n_orb_corr = 0
         for icrsh in range(self.n_corr_shells):
             n_orb_corr += self.corr_shells[icrsh]['dim']
-        density = self.density_required - self.charge_below + n_qp - n_orb
+        density = self.density_required - self.charge_below + n_qp - n_orb_corr
+        mpi.report('density_qp={:.2f}'.format(density))
+    
         # using scipy.optimize
 
         def F_optimize(mu):
@@ -423,7 +437,7 @@ class SumkGRISB(SumkDFT):
         return self.chemical_potential
 
 
-    def calc_density_correction(self, filename=None, dm_type=None, spinave=False, kpts_to_write=None, broadening=None, beta=None):
+    def calc_density_correction(self, density_mat_from_emb, observables, E_kin_dft, filename=None, dm_type=None, spinave=False, kpts_to_write=None, broadening=None, beta=None):
         r'''
         Overide the density correction for GRISB
         Calculates the charge density correction and stores it into a file.
@@ -438,6 +452,12 @@ class SumkGRISB(SumkDFT):
 
         Parameters
         ----------
+        density_mat_from_emb: dict
+                   Embedding density matrix.
+        observables: dict
+                   Observables.
+        E_kin_dft: float
+                   kinetic energy from DFT
         filename : string
                    Name of the file to store the charge density correction.
         dm_type : string
@@ -504,6 +524,9 @@ class SumkGRISB(SumkDFT):
             for sp in spn:
                 dens_mat_dft[sp] = [fermi_weights[ik, ntoi[sp], :].astype(complex) for ik in range(self.n_k)]
 
+            #if mpi.is_master_node():
+            #    print('dens_mat_dft=')
+            #    print(dens_mat_dft['up'][:])
 
         # Set up deltaN:
         deltaN = {}
@@ -515,9 +538,22 @@ class SumkGRISB(SumkDFT):
         for ik in mpi.slice_array(ikarray):
             #TODO: implement charge correction below using grisb density matrices.
             for sp, isp in self.spin_names_to_ind[self.SO].items():
-                deltaN[sp][ik][:,:] = self.rhoks_phys_bloch[sp][ik,:,:].T
+                n_orb = self.n_orbitals[ik, isp]
+                deltaN[sp][ik][:,:] = self.rhoks_phys_bloch[sp][ik,:,:]
                 #TODO: the local contribution needs to be replaced using the embedding local density matrix.
-                #for icrsh in range(self.n_corr_shells):
+                for icrsh in range(self.n_corr_shells):
+                    dim = self.corr_shells[icrsh]['dim']
+                    #ind = self.spin_names_to_ind[self.corr_shells[icrsh]['SO']][sp]
+                    #R_full, Lambda_full = self.calc_R_Lambda_full(observables['R'], observables['Lambda'], ik, ind, sp)
+                    projmat = self.proj_mat[ik, isp, icrsh, 0:dim, 0:n_orb]
+                    density_mat_from_qp = np.dot( np.dot(observables['R'][icrsh][sp].conj().T ,self.Delta[icrsh][sp] ), observables['R'][icrsh][sp])
+                    deltaN[sp][ik][:,:] -= np.dot(np.dot(projmat.conj().T, density_mat_from_qp), projmat)
+                    deltaN[sp][ik][:,:] += np.dot(np.dot(projmat.conj().T, density_mat_from_emb[icrsh][sp+'_0']), projmat)
+                    #below is used to check U=0 case quasiparticle and embedding density matrix should be identicle
+                    #print('icrsh=',icrsh)
+                    #print(density_mat_from_qp)
+                    #print(density_mat_from_emb[icrsh][sp+'_0'])
+                    #assert(np.allclose(density_mat_from_qp,density_mat_from_emb[icrsh][sp+'_0'],atol=1e-5))
 
                 dens[sp] += self.bz_weights[ik] * np.trace(deltaN[sp][ik][:,:])
                 if dm_type in ['vasp','qe']:
@@ -537,43 +573,8 @@ class SumkGRISB(SumkDFT):
                     nb = b2 - b1 + 1
                     assert nb == self.n_orbitals[ik, ntoi[sp]], "Number of bands is inconsistent at ik = %s"%(ik)
                     # TODO: the band_en_correction needs to be modified
-                    band_en_correction += np.dot(deltaN[sp][ik], self.hopping[ik, isp, :nb, :nb]).trace().real * self.bz_weights[ik]
-
-            #G_latt = self.lattice_gf(
-            #    ik=ik, mu=self.chemical_potential, broadening=broadening)
-            #if dm_type == 'vasp' and self.proj_or_hk == 'hk':
-            #    # rotate the Green function into the DFT band basis
-            #    for bname, gf in G_latt:
-            #        G_latt_rot = gf.copy()
-            #        G_latt_rot << self.upfold(
-            #                ik, 0, bname, G_latt[bname], gf,shells='csc')
-            #
-            #        G_latt[bname] = G_latt_rot.copy()
-            #
-            #for bname, gf in G_latt:
-            #    deltaN[bname][ik] = G_latt[bname].density()
-            #
-            #    if isinstance(self.mesh, MeshImFreq):
-            #        dens[bname] += self.bz_weights[ik] * G_latt[bname].total_density()
-            #    else:
-            #        dens[bname] += self.bz_weights[ik] * G_latt[bname].total_density(beta)
-            #    if dm_type in ['vasp','qe']:
-# In 'vasp'-mode subtract the DFT density matrix
-            #        nb = self.n_orbitals[ik, ntoi[bname]]
-            #        diag_inds = np.diag_indices(nb)
-            #        deltaN[bname][ik][diag_inds] -= dens_mat_dft[bname][ik][:nb]
-            #
-            #        if self.charge_mixing and self.deltaNOld is not None:
-            #            G2 = np.sum(self.kpts_cart[ik,:]**2)
-            #            # Kerker mixing
-            #            mix_fac = self.charge_mixing_alpha * G2 / (G2 + self.charge_mixing_gamma**2)
-            #            deltaN[bname][ik][diag_inds] = (1.0 - mix_fac) * self.deltaNOld[bname][ik][diag_inds] + mix_fac * deltaN[bname][ik][diag_inds]
-            #        dens[bname] -= self.bz_weights[ik] * dens_mat_dft[bname][ik].sum().real
-            #        isp = ntoi[bname]
-            #        b1, b2 = band_window[isp][ik, :2]
-            #        nb = b2 - b1 + 1
-            #        assert nb == self.n_orbitals[ik, ntoi[bname]], "Number of bands is inconsistent at ik = %s"%(ik)
-            #        band_en_correction += np.dot(deltaN[bname][ik], self.hopping[ik, isp, :nb, :nb]).trace().real * self.bz_weights[ik]
+                    #band_en_correction += np.dot(deltaN[sp][ik], self.hopping[ik, isp, :nb, :nb]).trace().real * self.bz_weights[ik]
+                    band_en_correction += np.trace(np.dot(self.hopping_qp[sp][ik, :, :], self.rhoks_full[sp][ik,:, :].T))* self.bz_weights[ik]
 
         # mpi reduce:
         for bname in deltaN:
@@ -583,7 +584,22 @@ class SumkGRISB(SumkDFT):
         self.deltaNOld = copy.copy(deltaN)
         mpi.barrier()
 
+
         band_en_correction = mpi.all_reduce(band_en_correction)
+        band_en_correction = band_en_correction - E_kin_dft
+
+        if mpi.is_master_node():
+            print('E_kin_dft=', E_kin_dft)
+            #print('rhoks_phys_bloch')
+            #print(self.rhoks_phys_bloch[sp][:,:,:].T)
+            #for ik in range(self.n_k):
+            #    print(deltaN['up'][ik])
+            #    print('absmax(deltaN[ik=%d])='%(ik))
+            #    print(np.max(np.abs(deltaN['up'][ik])))
+            print('absmax(deltaN)=')
+            print(np.max(np.abs(deltaN['up'][ik])))
+            print('band_en_correction=', band_en_correction)
+        quit()
 
         # now save to file:
         if dm_type == 'vasp':

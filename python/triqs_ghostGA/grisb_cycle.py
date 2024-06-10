@@ -331,11 +331,11 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
     #quit()
 
 
-    # calculate E_kin_dft for one shot calculations
-    if not general_params['csc'] and general_params['calc_energies']:
-        E_kin_dft = calc_dft_kin_en(general_params, sum_k, dft_mu)
-    else:
-        E_kin_dft = None
+    # calculate E_kin_dft for one shot calculations and CSC (Should be OK)
+    #if not general_params['csc'] and general_params['calc_energies']:
+    E_kin_dft = calc_dft_kin_en(general_params, sum_k, dft_mu)
+    #else:
+    #    E_kin_dft = None
 
     # check for previous broyden data oterhwise initialize it:
     #if mpi.is_master_node() and  general_params['g0_mix_type'] == 'broyden':
@@ -626,7 +626,7 @@ def _grisb_step(sum_k, solvers, it, general_params,
     """
     #print('h_int=')
     #print(h_int)
-    print('density_required=',sum_k.density_required)
+    mpi.report('density_required={:.4f}'.format(sum_k.density_required))
     # compute new chemical potential
     mu = sum_k.calc_mu_grisb(observables['R'], observables['Lambda'], precision=general_params['prec_mu'],
                              method=general_params['calc_mu_method'], beta=general_params['beta'])
@@ -636,10 +636,10 @@ def _grisb_step(sum_k, solvers, it, general_params,
     # init local density matrices for observables
     density_tot = 0.0
     density_shell = np.zeros(sum_k.n_inequiv_shells)
-    density_mat = [{}] * sum_k.n_inequiv_shells
-    density_mat_unsym = [{}] * sum_k.n_inequiv_shells
+    density_mat = [{} for icrsh in range(sum_k.n_inequiv_shells)]#[{}] * sum_k.n_inequiv_shells
+    density_mat_unsym = [{} for icrsh in range(sum_k.n_inequiv_shells)]#[{}] * sum_k.n_inequiv_shells
     density_shell_pre = np.zeros(sum_k.n_inequiv_shells)
-    density_mat_pre = [{}] * sum_k.n_inequiv_shells
+    density_mat_pre = [{} for icrsh in range(sum_k.n_inequiv_shells)]#[{}] * sum_k.n_inequiv_shells
 
     mpi.barrier()
 
@@ -788,11 +788,14 @@ def _grisb_step(sum_k, solvers, it, general_params,
         density_shell[icrsh] = np.real(np.trace( solvers[icrsh].density_matrix[:2*solvers[icrsh].nimp,:2*solvers[icrsh].nimp] ) )
         density_tot += density_shell[icrsh]*shell_multiplicity[icrsh]
         for spin_channel in sorted(sum_k.gf_struct_solver[icrsh].keys()):
+            #mpi.report('spinchannel=',spin_channel)
             isp = int(spin_channel=='down_%d'%(icrsh))
             density_mat[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
                                                            isp:2*solvers[icrsh].nimp:2]
             density_mat_unsym[icrsh][spin_channel] = solvers[icrsh].density_matrix[isp:2*solvers[icrsh].nimp:2,
                                                                  isp:2*solvers[icrsh].nimp:2]
+        print('density_mat=')
+        print(density_mat)
         formatter.print_local_density(density_shell[icrsh], density_shell_pre[icrsh],
                                       density_mat_unsym[icrsh], sum_k.SO)
 
@@ -840,7 +843,10 @@ def _grisb_step(sum_k, solvers, it, general_params,
     #sum_k.put_Sigma([solvers[icrsh].Sigma_freq for icrsh in range(sum_k.n_inequiv_shells)])
 
     # saving previous mu for writing to observables file
-    previous_mu = sum_k.chemical_potential*(1-general_params['mu_mix_const']) + previous_mu*general_params['mu_mix_const']
+    #if it > 1:
+    #    previous_mu = sum_k.chemical_potential*(1-general_params['mu_mix_const']) + previous_mu*general_params['mu_mix_const']
+    #else:
+    previous_mu = sum_k.chemical_potential
     #sum_k = manipulate_mu.update_mu(general_params, sum_k, it, archive)
 
     # if we do a CSC calculation we need always an updated GAMMA file
@@ -850,11 +856,13 @@ def _grisb_step(sum_k, solvers, it, general_params,
     if general_params['csc']:
         # handling the density correction for fcsc calculations
         assert dft_irred_kpt_indices is None or dft_params['dft_code'] == 'vasp'
-        deltaN, dens, E_bandcorr = sum_k.calc_density_correction(dm_type=dft_params['dft_code'],
+        deltaN, dens, E_bandcorr = sum_k.calc_density_correction(density_mat, observables, E_kin_dft, dm_type=dft_params['dft_code'],
                                                                  kpts_to_write=dft_irred_kpt_indices)
     elif general_params['calc_energies']:
         # for a one shot calculation we are using our own method
-        E_bandcorr = calc_bandcorr_man(observables['R'], observables['Lambda'], general_params, sum_k, E_kin_dft)
+        deltaN, dens, E_bandcorr = sum_k.calc_density_correction(density_mat, observables, E_kin_dft, dm_type='qe',#dft_params['dft_code'],
+                                                                 kpts_to_write=dft_irred_kpt_indices)
+        #E_bandcorr = calc_bandcorr_man(observables['R'], observables['Lambda'], general_params, sum_k, E_kin_dft)
 
     # Writes results to h5 archive
     results_to_archive.write(archive, sum_k, general_params, solver_params, solvers, it,
