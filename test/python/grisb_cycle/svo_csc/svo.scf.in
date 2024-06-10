@@ -16,8 +16,8 @@
    ecutwfc            = 60.0,
    ecutrho            = 720.0,
    occupations        = 'smearing',
-   degauss            = 0.02,
-   smearing           = 'm-p',
+   degauss            = 0.0015,
+   smearing           = 'f-d',
 / 
 &electrons 
    conv_thr           = 1.0d-10,

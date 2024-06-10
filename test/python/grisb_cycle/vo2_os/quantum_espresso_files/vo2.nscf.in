@@ -1,5 +1,5 @@
 &CONTROL
-  calculation = 'scf'
+  calculation = 'nscf'
   etot_conv_thr =   6.0000000000d-05
   forc_conv_thr =   1.0000000000d-04
   outdir = './out/'

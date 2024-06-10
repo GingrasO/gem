@@ -18,7 +18,8 @@
   nosym = .false.
   ntyp = 2
   occupations = 'smearing'
-  smearing = 'cold'
+  smearing = 'f-d'
+  degauss = 0.0015
 /
 &ELECTRONS
   conv_thr =   4.0000000000d-10

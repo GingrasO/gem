@@ -18,7 +18,8 @@
   nosym = .false.
   ntyp = 2
   occupations = 'smearing'
-  smearing = 'cold'
+  smearing = 'f-d'
+  degauss = 0.0015
   nosym          = .true.,
 /
 &ELECTRONS
