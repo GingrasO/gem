@@ -137,6 +137,8 @@ class Grisb(object):
             #self.edsolver.set_tolerances(("E","rho"),(1e-5,5e-3))
         elif self.edsolver.type == "PySCFCCSD":
             self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
+        elif self.edsolver.type == "Block2NSZ":
+            self.edsolver.build_Hemb(self.D, self.eloc- mu*np.eye(self.nimp), self.Lambda_c, self.Utensor, spin_pen=spin_pen)
         else:
             raise ValueError("only Full ED, CI, and HCI are supported")
             # TODO: Replace whole if-clause by edsolver.prolog(self) implemented by
