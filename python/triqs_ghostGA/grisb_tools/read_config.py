@@ -152,6 +152,10 @@ dc : bool, optional, default=True
             dc correction on yes or no?
 calc_energies : bool, optional, default=False, not compatible with 'ftps' solver
             calc energies explicitly within the grisb loop
+charge_tol: float, optional, default=1e-3
+            dft+gGA charge density tolerance
+energy_tol: float, optional, default=1e-5
+            dft+gGA energy tolerance
 block_threshold : float, optional, default=1e-05
             threshold for finding block structures in the input data (off-diag yes or no)
 block_suppress_orbital_symm : bool, optional, default=False
@@ -480,6 +484,14 @@ PROPERTIES_PARAMS = {'general': {'seedname': {'used': True},
                                                'used': True, 'default': 0.5},
                                             
                                 'grisb_tol': {'converter': float,
+                                               'valid for': lambda x, _: x >= 0,
+                                               'used': True, 'default': 1e-5},
+
+                                'charge_tol': {'converter': float,
+                                               'valid for': lambda x, _: x >= 0,
+                                               'used': True, 'default': 1e-3},
+                                            
+                                'energy_tol': {'converter': float,
                                                'valid for': lambda x, _: x >= 0,
                                                'used': True, 'default': 1e-5},
 

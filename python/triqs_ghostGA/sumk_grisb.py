@@ -599,7 +599,7 @@ class SumkGRISB(SumkDFT):
             print('absmax(deltaN)=')
             print(np.max(np.abs(deltaN['up'][ik])))
             print('band_en_correction=', band_en_correction)
-        quit()
+        #quit()
 
         # now save to file:
         if dm_type == 'vasp':
@@ -644,7 +644,7 @@ class SumkGRISB(SumkDFT):
                 with HDFArchive(self.hdf_file, 'a') as ar:
                     if not subgrp in ar:
                         ar.create_group(subgrp)
-                    things_to_save = ['delta_N']
+                    things_to_save = ['delta_N', 'band_en_correction']
                     for it in things_to_save:
                         ar[subgrp][it] = locals()[it]
 
@@ -655,6 +655,7 @@ class SumkGRISB(SumkDFT):
 
         if dm_type in ['vasp', 'qe']:
             res += (band_en_correction,)
+        #quit()
 
         return res
 

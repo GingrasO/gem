@@ -2,6 +2,7 @@
 compile_commands.json
 *.h5
 *.dat
+*.out
 *.gnu
 *.txt
 *.swp
@@ -14,6 +15,7 @@ doc/sphinxext/
 build/
 build*/
 CMakeFiles
+CRASH
 __pycache__/
 *.coverage
 julia/pyjuliapkg/
