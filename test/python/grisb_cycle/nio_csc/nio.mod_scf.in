@@ -12,7 +12,6 @@
   verbosity = 'high'
 /
 &SYSTEM
-  degauss =   1.4699723600d-02
   ecutrho =   6.0000000000d+02
   ecutwfc =   7.5000000000d+01
   ibrav = 0
