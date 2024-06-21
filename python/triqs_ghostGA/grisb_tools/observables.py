@@ -34,7 +34,7 @@ import triqs.utility.mpi as mpi
 from triqs.gf import Gf, MeshImTime
 from triqs.atom_diag import trace_rho_op
 from triqs.gf.descriptors import Fourier
-from triqs_ghostGA import solver
+from triqs_ghostGA.grisb_tools import solver
 
 def prep_observables(h5_archive, sum_k):
     """
