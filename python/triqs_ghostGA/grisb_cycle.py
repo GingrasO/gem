@@ -327,9 +327,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
                                broadening=general_params['eta'])
     else:
         dft_mu = sum_k.calc_mu(precision=general_params['prec_mu'], method=general_params['calc_mu_method'])
-    print('dft_mu=', dft_mu)
-    #quit()
-
+    mpi.report('dft_mu={:2.8f}'.format(dft_mu))
 
     # calculate E_kin_dft for one shot calculations and CSC (Should be OK)
     #if not general_params['csc'] and general_params['calc_energies']:
@@ -545,6 +543,17 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
     observables = mpi.bcast(observables)
 
+    # need to close archive before entering _grisb
+    if mpi.is_master_node():
+        del archive
+        # The line before is useful for debugging unclosed hdf5 archive
+        #import h5py
+        #print('here')
+        #fh5 = h5py.File('nio.h5','r')
+        #fh5.close()
+
+    mpi.report('here1?')
+
     # Initialize the convergence flags to false
     is_converged = False
     if general_params['csc']:
@@ -552,6 +561,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         is_energy_converged = False
         #load previous density and energy correction
         try:
+            band_en_correction_old = None
             if mpi.is_master_node():
                 with HDFArchive(sum_k.hdf_file, 'r') as ar:
                     band_en_correction_old = ar['dft_update']['band_en_correction']
@@ -559,6 +569,7 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         except:
             band_en_correction_old = 0.0
         try:
+            deltaN_old = None
             if mpi.is_master_node():
                 with HDFArchive(sum_k.hdf_file, 'r') as ar:
                     deltaN_old = ar['dft_update']['delta_N']
@@ -571,7 +582,9 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
             #for sp in spn:
             #    deltaN_old[sp] = [np.zeros([sum_k.n_orbitals[ik, ntoi[sp]], sum_k.n_orbitals[
             #                            ik, ntoi[sp]]], complex) for ik in range(sum_k.n_k)]
-            
+
+    mpi.report('here2?')
+
     # The not famous GRISB self consistency cycle            
     for it in range(iteration_offset + 1, iteration_offset + n_iter + 1):
 
@@ -584,16 +597,17 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
         mpi.report('#'*80)
         mpi.report('Running iteration: {} / {}'.format(it, iteration_offset + n_iter))
+
         (sum_k, solvers,
          observables, is_converged) = _grisb_step(sum_k, solvers, it, general_params,
                                                  solver_params, advanced_params, dft_params,
-                                                 h_int, archive, shell_multiplicity, E_kin_dft,
+                                                 #h_int, archive, shell_multiplicity, E_kin_dft,
+                                                 h_int, shell_multiplicity, E_kin_dft,
                                                  observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy, density_mat_dft,
                                                  is_converged, is_sampling=False)
-        
         if is_converged:
             break
-
+        
     #load and check charge and energy convergence
     if general_params['csc']:
         try:
@@ -625,42 +639,24 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
             is_charge_converged = True
             is_energy_converged = True
 
-    #if mpi.is_master_node():
     #compute Green's function
     mesh_plot = MeshReFreq(window=general_params['w_range'],
                            n_w=general_params['n_w'])
     #sum_k.lattice_gf_qp(observables['R'], observables['Lambda'], 0, mu=None, broadening=0.05, mesh=mesh_plot)
     Gphy = sum_k.extract_G_phy(observables['R'], observables['Lambda'], mu=None, broadening=0.05, mesh=mesh_plot, show_warnings=True)
     if mpi.is_master_node():
-        if 'gGA_results' not in archive:
-            archive.create_group('gGA_results')
-        if 'Gphys' not in archive['gGA_results']:
-            archive['gGA_results'].create_group('Gphy')
-        archive['gGA_results']['Gphy'] = Gphy
+        with HDFArchive(sum_k.hdf_file, 'a') as archive:
+            if 'gGA_results' not in archive:
+                archive.create_group('gGA_results')
+            if 'Gphys' not in archive['gGA_results']:
+               archive['gGA_results'].create_group('Gphy')
+            archive['gGA_results']['Gphy'] = Gphy
 
     if is_converged:
         mpi.report('*** Required convergence reached ***')
     else:
         mpi.report('** All requested iterations finished ***')
     mpi.report('#'*80)
-
-    # Starts the sampling dmft iterations if requested
-    #if is_converged and general_params['sampling_iterations'] > 0:
-    #    mpi.report('*** Sampling now for {} iterations ***'.format(general_params['sampling_iterations']))
-    #    iteration_offset = it
-
-    #    for it in range(iteration_offset + 1,
-    #                    iteration_offset + 1 + general_params['sampling_iterations']):
-    #        mpi.report('#'*80)
-    #        mpi.report('Running iteration: {} / {}'.format(it, iteration_offset+general_params['sampling_iterations']))
-    #        sum_k, solvers, observables, _ = _dmft_step(sum_k, solvers, it, general_params,
-    #                                                    solver_params, advanced_params, dft_params,
-    #                                                    h_int, archive, shell_multiplicity, E_kin_dft,
-    #                                                    observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy,
-    #                                                    is_converged=True, is_sampling=True)
-
-    #    mpi.report('** Sampling finished ***')
-    #    mpi.report('#'*80)
 
     mpi.barrier()
 
@@ -676,7 +672,8 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
 
 def _grisb_step(sum_k, solvers, it, general_params,
                solver_params, advanced_params, dft_params,
-               h_int, archive, shell_multiplicity, E_kin_dft,
+               #h_int, archive, shell_multiplicity, E_kin_dft,
+               h_int, shell_multiplicity, E_kin_dft,
                observables, conv_obs, Op_list, dft_irred_kpt_indices, dft_energy, density_mat_dft,
                is_converged, is_sampling):
     """
@@ -684,6 +681,9 @@ def _grisb_step(sum_k, solvers, it, general_params,
     Question: How should I organized R and Lambda? They shouldn't belong to the solver class.
               They should go to the sum_k class
     """
+    if mpi.is_master_node():
+        archive = HDFArchive(general_params['jobname']+'/'+general_params['seedname']+'.h5', 'a')
+
     #print('h_int=')
     #print(h_int)
     mpi.report('density_required={:.4f}'.format(sum_k.density_required))
@@ -691,7 +691,6 @@ def _grisb_step(sum_k, solvers, it, general_params,
     mu = sum_k.calc_mu_grisb(observables['R'], observables['Lambda'], precision=general_params['prec_mu'],
                              method=general_params['calc_mu_method'], beta=general_params['beta'])
     #quit()
-
 
     # init local density matrices for observables
     density_tot = 0.0
@@ -925,9 +924,10 @@ def _grisb_step(sum_k, solvers, it, general_params,
         E_bandcorr = calc_bandcorr_man(observables['R'], observables['Lambda'], general_params, sum_k, E_kin_dft)
 
     # Writes results to h5 archive
-    results_to_archive.write(archive, sum_k, general_params, solver_params, solvers, it,
-                             is_sampling, previous_mu, density_mat_pre, density_mat,
-                             observables['R'], observables['Lambda'], deltaN, dens)
+    if mpi.is_master_node():
+        results_to_archive.write(archive, sum_k, general_params, solver_params, solvers, it,
+                                 is_sampling, previous_mu, density_mat_pre, density_mat,
+                                 observables['R'], observables['Lambda'], deltaN, dens)
 
     mpi.barrier()
 
@@ -989,5 +989,8 @@ def _grisb_step(sum_k, solvers, it, general_params,
     print('density_mat_dft=')
     print(density_mat_dft)
     #print(sum_k.rhoks_phys_bloch)
+
+    if mpi.is_master_node():
+        del archive
 
     return sum_k, solvers, observables, is_converged
