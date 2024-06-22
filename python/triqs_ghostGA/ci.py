@@ -5,8 +5,8 @@
 #######################################################
 from triqs_ghostGA.basis import * #table_ep, table_es
 from scipy.sparse import csc_matrix, lil_matrix
-#from scipy.sparse.linalg import eigsh
-from primme import eigsh
+from scipy.sparse.linalg import eigsh
+#from primme import eigsh
 from scipy.linalg import block_diag
 import numpy as np
 from numba import jit
@@ -661,7 +661,7 @@ class CI(object):
         #print(row_ind, col_ind, data)
         return csc_matrix( (data, (row_ind, col_ind)), shape=(self.hsize,self.hsize),dtype=self.data_type)
 
-    def solve_Hemb(self,num_eig=2,which='SA',tol=1e-12, verbose=0):
+    def solve_Hemb(self,num_eig=1,which='SA',tol=1e-8, verbose=0):
         '''
         diagonalize the Hamiltonian
         '''
