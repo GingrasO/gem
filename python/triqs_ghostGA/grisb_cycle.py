@@ -552,38 +552,34 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
         #fh5 = h5py.File('nio.h5','r')
         #fh5.close()
 
-    mpi.report('here1?')
-
     # Initialize the convergence flags to false
     is_converged = False
     if general_params['csc']:
         is_charge_converged = False
         is_energy_converged = False
-        #load previous density and energy correction
-        try:
-            band_en_correction_old = None
-            if mpi.is_master_node():
-                with HDFArchive(sum_k.hdf_file, 'r') as ar:
-                    band_en_correction_old = ar['dft_update']['band_en_correction']
-            band_en_correction_old = mpi.bcast(band_en_correction_old)
-        except:
-            band_en_correction_old = 0.0
-        try:
-            deltaN_old = None
-            if mpi.is_master_node():
-                with HDFArchive(sum_k.hdf_file, 'r') as ar:
-                    deltaN_old = ar['dft_update']['delta_N']
-            deltaN_old = mpi.bcast(deltaN_old)
-        except:
-            #deltaN_old = {}
-            ntoi = sum_k.spin_names_to_ind[sum_k.SO]
-            spn = sum_k.spin_block_names[sum_k.SO]
-            deltaN_old = np.zeros((sum_k.n_k,sum_k.n_orbitals[0, ntoi[spn[0]]],sum_k.n_orbitals[0, ntoi[spn[0]]]),dtype=complex)
+#        #load previous density and energy correction
+#        try:
+#            band_en_correction_old = None
+#            if mpi.is_master_node():
+#                with HDFArchive(sum_k.hdf_file, 'r') as ar:
+#                    band_en_correction_old = ar['dft_update']['band_en_correction']
+#            band_en_correction_old = mpi.bcast(band_en_correction_old)
+#        except:
+#            band_en_correction_old = 0.0
+#        try:
+#            deltaN_old = None
+#            if mpi.is_master_node():
+#                with HDFArchive(sum_k.hdf_file, 'r') as ar:
+#                    deltaN_old = ar['dft_update']['delta_N']
+#            deltaN_old = mpi.bcast(deltaN_old)
+#        except:
+#            #deltaN_old = {}
+#            ntoi = sum_k.spin_names_to_ind[sum_k.SO]
+#            spn = sum_k.spin_block_names[sum_k.SO]
+#            deltaN_old = np.zeros((sum_k.n_k,sum_k.n_orbitals[0, ntoi[spn[0]]],sum_k.n_orbitals[0, ntoi[spn[0]]]),dtype=complex)
             #for sp in spn:
             #    deltaN_old[sp] = [np.zeros([sum_k.n_orbitals[ik, ntoi[sp]], sum_k.n_orbitals[
             #                            ik, ntoi[sp]]], complex) for ik in range(sum_k.n_k)]
-
-    mpi.report('here2?')
 
     # The not famous GRISB self consistency cycle            
     for it in range(iteration_offset + 1, iteration_offset + n_iter + 1):
@@ -609,35 +605,35 @@ def grisb_cycle(general_params, solver_params, advanced_params, dft_params,
             break
         
     #load and check charge and energy convergence
-    if general_params['csc']:
-        try:
-            band_en_correction = None
-            if mpi.is_master_node():
-                with HDFArchive(sum_k.hdf_file, 'r') as ar:
-                    band_en_correction = ar['dft_update']['band_en_correction']
-            band_en_correction = mpi.bcast(band_en_correction)
-            print('band_en_correction=',band_en_correction)
-        except:
-            print('the sumk_grisb should output the band_en_correction_old')
-            raise
-        try:
-            deltaN = None
-            if mpi.is_master_node():
-                with HDFArchive(sum_k.hdf_file, 'r') as ar:
-                    deltaN = ar['dft_update']['delta_N']
-                #print(deltaN)
-                #print(deltaN_old)
-            deltaN = mpi.bcast(deltaN)
-        except:
-            print('the sumk_grisb should output the deltaN')
-            raise
-        energy_diff = np.abs(band_en_correction_old -band_en_correction).real
-        charge_diff = np.max(np.abs(deltaN-deltaN_old))
-        mpi.report('########################## charge_diff={:.6f}'.format(charge_diff) + 
-                   ' energy_diff={:.6f} #########################'.format(energy_diff))
-        if ( energy_diff < general_params['charge_tol'] and charge_diff < general_params['energy_tol'] ):
-            is_charge_converged = True
-            is_energy_converged = True
+#    if general_params['csc']:
+#        try:
+#            band_en_correction = None
+#            if mpi.is_master_node():
+#                with HDFArchive(sum_k.hdf_file, 'r') as ar:
+#                    band_en_correction = ar['dft_update']['band_en_correction']
+#            band_en_correction = mpi.bcast(band_en_correction)
+#            print('band_en_correction=',band_en_correction)
+#        except:
+#            print('the sumk_grisb should output the band_en_correction_old')
+#            raise
+#        try:
+#            deltaN = None
+#            if mpi.is_master_node():
+#                with HDFArchive(sum_k.hdf_file, 'r') as ar:
+#                    deltaN = ar['dft_update']['delta_N']
+#                #print(deltaN)
+#                #print(deltaN_old)
+#            deltaN = mpi.bcast(deltaN)
+#        except:
+#            print('the sumk_grisb should output the deltaN')
+#            raise
+#        energy_diff = np.abs(band_en_correction_old -band_en_correction).real
+#        charge_diff = np.max(np.abs(deltaN-deltaN_old))
+#        mpi.report('########################## charge_diff={:.6f}'.format(charge_diff) + 
+#                   ' energy_diff={:.6f} #########################'.format(energy_diff))
+#        if ( energy_diff < general_params['charge_tol'] and charge_diff < general_params['energy_tol'] ):
+#            is_charge_converged = True
+#            is_energy_converged = True
 
     #compute Green's function
     mesh_plot = MeshReFreq(window=general_params['w_range'],
