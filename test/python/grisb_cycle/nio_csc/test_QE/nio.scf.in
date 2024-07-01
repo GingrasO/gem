@@ -18,7 +18,7 @@
   ntyp = 2
   occupations = 'smearing'
   smearing = 'f-d'
-  degauss = 0.0015
+  degauss = 0.05
 /
 &ELECTRONS
   conv_thr =   4.0000000000d-10

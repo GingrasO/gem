@@ -19,6 +19,7 @@
   occupations = 'smearing'
   smearing = 'f-d'
   degauss = 0.0015
+  dmft = .true.
   nosym          = .true.,
 /
 &ELECTRONS

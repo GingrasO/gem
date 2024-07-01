@@ -1,3 +1,4 @@
+import triqs
 import subprocess
 
 mpi_arguments = ['/opt/homebrew/bin/mpirun', '-np', '4', 'pw.x', '-nk', '4']
@@ -8,3 +9,11 @@ qe_result = subprocess.run(mpi_arguments, stdin=inp, env=env_vars, capture_outpu
                                    text=True, shell=False)
 print(qe_result.stderr)
 print(qe_result.stdout)
+
+out = open(f'nio.mod_scf.out', 'w')
+err = open(f'nio.mod_scf.err', 'w')
+
+output = qe_result.stdout
+error = qe_result.stderr
+out.writelines(output)
+err.writelines(error)

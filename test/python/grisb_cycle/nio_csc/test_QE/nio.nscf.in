@@ -18,7 +18,8 @@
   ntyp = 2
   occupations = 'smearing'
   smearing = 'f-d'
-  degauss = 0.0015
+  degauss = 0.05
+  dmft = .true.
   nosym          = .true.,
 /
 &ELECTRONS

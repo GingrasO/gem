@@ -20,7 +20,7 @@
   ntyp = 2
   occupations = 'smearing'
   smearing = 'f-d'
-  degauss = 0.0015
+  degauss = 0.05
   dmft = .true.
   dmft_prefix = 'nio'
   nosym          = .true.,
