@@ -24,12 +24,12 @@ cmake_policy(VERSION 3.20)
 
 # ############
 # Define Project
-project(triqs_ghostGA VERSION 3.2.0 LANGUAGES C CXX)
+project(triqs_ghostGA VERSION 3.3.0 LANGUAGES C CXX)
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 
 # ############
 # Load TRIQS and CPP2PY
-find_package(TRIQS 3.2 REQUIRED)
+find_package(TRIQS 3.3 REQUIRED)
 
 # Get the git hash & print status
 triqs_get_git_hash_of_source_dir(PROJECT_GIT_HASH)
