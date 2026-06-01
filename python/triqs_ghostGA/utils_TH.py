@@ -862,11 +862,11 @@ def cut_small(mat, tol=1.0e-10):
     return mat_return
 
 def spin_symmetrize(A, tol=1e-12):
-    """Symmetrize spin up and dn, i.e compute matrix :math:`A^\mathrm{sym}` such that
+    """Symmetrize spin up and dn, i.e compute matrix :math:`A^\\mathrm{sym}` such that
 
     .. math::
 
-      A^\mathrm{sym}_{ij} = \\frac{1}{2} (A_{2i,2j} + A_{2i+1,2j+1})
+      A^\\mathrm{sym}_{ij} = \\frac{1}{2} (A_{2i,2j} + A_{2i+1,2j+1})
 
     Parameters
     ------------

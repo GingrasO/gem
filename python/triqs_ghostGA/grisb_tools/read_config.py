@@ -21,7 +21,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 ################################################################################
-"""
+r"""
 Provides the read_config function to read the config file
 
 Reads the config file (default grisb_config.ini) with python's configparser

@@ -186,7 +186,7 @@ def build_two_body_ijkl_csc_2(i, j, k, l, basis, bit_max, norb, debug=False):
 
 @jit(nopython=True)
 def build_rholoc_onfly(basis,gs_wf,rholoc,bipart_smap):
-    '''
+    r'''
     Compute local reduced many-body density matrix onfly (without storing |\phi><\phi|)
     '''
     for i in range(len(basis)):
@@ -351,7 +351,7 @@ class CI(object):
         return trlocM
 
     def enlarge_loc2sys(self,M):
-        '''
+        r'''
         enlarge a local matrix M to system Hilbert space, i.e., the operation M \otimes I.
         Input:
           M: numpy.array
@@ -364,7 +364,7 @@ class CI(object):
         return Msys
 
     def enlarge_env2sys(self,M):
-        '''
+        r'''
         enlarge a environment matrix M to system Hilbert space, i.e., the operation M \otimes I.
         Input:
           M: numpy.array
@@ -476,7 +476,7 @@ class CI(object):
             return self.Ham
 
     def build_denmat_op(self,debug=False):
-        '''
+        r'''
         build the density matrix operators into a dictionary.
         denmat_op: key: tuple (i,j) indicating the orbital i and j.
                    element: scipy.sparse.csc_matrix storing the operator C^\dagger_i C_j
@@ -590,7 +590,7 @@ class CI(object):
     #        self.docc_op[i] = csc_matrix( (data, indices, indptr), shape=(self.hsize,self.hsize),dtype=self.data_type)
 
     def build_docc_op(self,i,debug=False):
-        '''
+        r'''
         build the double occupancy operators into a dictionary.
         denmat_op: key: int i indicating the orbital i (even number).
                    element: scipy.sparse.csc_matrix storing the operator C^\dagger_{i}C_{i}C^\dagger_{i+1}C_{i+1}
@@ -691,7 +691,7 @@ class CI(object):
         return self.gs_wf, self.gs_ene
 
     def calc_density_matrix(self):
-        '''
+        r'''
         Compute denstiy matrix.
         Input:
           dtype: data dtype
@@ -736,7 +736,7 @@ class CI(object):
         return np.trace(self.evecs[:,:self.deg].conj().T.dot(self.Htwo.dot(self.evecs[:,:self.deg])))/self.deg
 
     def compute_denmat_from_phi(self,phi):
-        '''
+        r'''
         Compute denstiy matrix.
         Input:
           dtype: data dtype
@@ -750,7 +750,7 @@ class CI(object):
         return denmat
 
     def compute_rholoc_onfly(self):
-        '''
+        r'''
         Compute local reduced many-body density matrix onfly (without storing |\phi><\phi|)
         '''
         no = 2**(self.norb//2)# special case for single-orbital#int(np.log2(ns))
