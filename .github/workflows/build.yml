@@ -31,7 +31,7 @@ jobs:
         wget -O /tmp/llvm.sh https://apt.llvm.org/llvm.sh && sudo chmod +x /tmp/llvm.sh && sudo /tmp/llvm.sh 15 &&
         sudo apt-get install
         clang-15
-        g++-12
+        g++-14
         gfortran
         hdf5-tools
         libblas-dev
