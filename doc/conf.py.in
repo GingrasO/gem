@@ -21,7 +21,11 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               'myst_parser',
               'matplotlib.sphinxext.plot_directive',
-              'numpydoc']
+              'numpydoc',
+              'sphinxcontrib.bibtex']
+
+bibtex_bibfiles = ['@CMAKE_CURRENT_SOURCE_DIR@/references.bib']
+bibtex_default_style = 'unsrt'
 
 myst_enable_extensions = [
     "amsmath",
@@ -44,19 +48,30 @@ source_suffix = '.rst'
 
 # Turn on sphinx.ext.autosummary
 autosummary_generate = True
-autosummary_imported_members=False
+autosummary_imported_members = False
+
+# Mock optional heavy dependencies so Sphinx can import all modules
+autodoc_mock_imports = [
+    'juliacall', 'julia',
+    'edipack2triqs', 'mpi4py',
+    'block2', 'pyblock2',
+    'pyscf',
+    'primme',
+]
 
 project = '@PROJECT_NAME@'
 version = '@PROJECT_VERSION@'
 
 # this makes the current project version available as var in every rst file
-rst_epilog = """
+rst_epilog = f"""
 .. |PROJECT_VERSION| replace:: {version}
-""".format(
-version = version,
-)
+.. |PROJECT_NAME| replace:: {project}
+.. |bold_project_name| replace:: **{project}**
+"""
 
-copyright = '2018-2021 The Simons Foundation, authors: A. Hampel, O. Parcollet, D. Simons, H. Strand, N. Wentzell'
+
+
+copyright = '2026 The Simons Foundation, authors: S. Giuli, O. Gingras'
 
 mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=default"
 templates_path = ['@CMAKE_CURRENT_SOURCE_DIR@/_templates']
@@ -72,7 +87,6 @@ html_favicon = '@CMAKE_CURRENT_SOURCE_DIR@/_static/triqs_logo/triqs_favicon.ico'
 # options for the the rtd theme
 html_theme_options = {
     'logo_only': False,
-    'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
     'vcs_pageview_mode': '',

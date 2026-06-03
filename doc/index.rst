@@ -1,33 +1,34 @@
 .. _welcome:
 
-triqs_ghostGA
-*************
+TRIQS / |PROJECT_NAME| - Ghost Embedding Method
+***************
 
-.. sidebar:: triqs_ghostGA |PROJECT_VERSION|
+.. sidebar:: |PROJECT_NAME| |PROJECT_VERSION|
 
-   This is the homepage of triqs_ghostGA |PROJECT_VERSION|.
-   For changes see the :ref:`changelog page <changelog>`.
-      
-      .. image:: _static/logo_github.png
-         :width: 75%
-         :align: center
-         :target: https://github.com/triqs/triqs_ghostGA
+   Latest release: |PROJECT_VERSION|
+
+   .. image:: _static/logo_github.png
+      :width: 75%
+      :align: center
+      :target: https://github.com/TRIQS/gem
 
 
-An example application using cpp2py and :ref:`TRIQS <triqslibs:welcome>`.
+|bold_project_name| is a Python implementation of the ghost Gutzwiller Approximation (ghost-GA) 
+and its finite-temperature extension.
 
-This documentation is generated based on `rst <https://de.wikipedia.org/wiki/ReStructuredText>`_ files
-and the comments in the sources and headers.
+It provides a general and flexible implementation to solve lattice Hamiltonians with local interactions.
+It supports different impurity solvers and provide a template to create your own solver.
 
-Learn how to use triqs_ghostGA in the :ref:`documentation`.
 
-    
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Contents
 
    install
    documentation
+   user_guide
+   references
    issues
    ChangeLog.md
    about

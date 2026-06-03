@@ -7,7 +7,7 @@ module GGMPSSolver
     using StatsBase
     using LinearAlgebra
     using Observers
-    using ITensors.HDF5
+    using HDF5
     using DataFrames
 
     ##backend functionality
@@ -16,6 +16,7 @@ module GGMPSSolver
     include("observer.jl")
     ##interface functionality
     include("driver.jl")
+    include("MPS_julia_codes.jl")
 
     export
         #from driver.jl
