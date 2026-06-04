@@ -29,10 +29,6 @@ Dependencies
 | Solver | Extra packages required |
 |--------|------------------------|
 | `SimpleED` | *(none beyond core)* |
-| `PySCF` | [pyscf](https://pyscf.org) |
-| `PyBlock2` | [pyblock2](https://block2.readthedocs.io), block2 |
-| `EDIpack` | [edipack2triqs](https://github.com/edipack/edipack2triqs), mpi4py |
-| `MPS` (ITensor) | [juliacall](https://juliapy.github.io/PythonCall.jl), Julia ≥ 1.9, ITensors.jl — see `README_JULIA.txt` |
 
 ### Testing
 
