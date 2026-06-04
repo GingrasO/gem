@@ -93,16 +93,7 @@ Available solvers:
 
 * **SimpleED** (:mod:`~gem.solvers.simple_ed`) — lightweight exact
   diagonalisation, no extra dependencies.
-* **PySCF** (:mod:`~gem.solvers.pyscf_solvers`) — quantum chemistry
-  methods via `PySCF <https://pyscf.org>`_.
-* **PyBlock2** (:mod:`~gem.solvers.pyblock2`) — DMRG via the
-  `block2 <https://block2.readthedocs.io>`_ library.
-* **EDIpack** (:mod:`~gem.solvers.edipack`) — parallel exact
-  diagonalisation via EDIpack2.
-* **MPS/ITensor** (:mod:`~gem.solvers.mps`) — tensor-network solver
-  using ITensors.jl through juliacall.
-* **SVD Solver** (:mod:`~gem.solvers.svd_solver2`) — low-rank SVD
-  compression of the hybridisation function.
+
 
 Utilities
 =========

@@ -37,16 +37,6 @@ When using a solver different from ``SimpleED`` please make sure to cite the app
 +=============+===============================================================+
 | SimpleED    | *(none)*                                                      |
 +-------------+---------------------------------------------------------------+
-| PySCF       | `pyscf <https://pyscf.org>`_                                  |
-+-------------+---------------------------------------------------------------+
-| PyBlock2    | `pyblock2 <https://block2.readthedocs.io>`_, block2           |
-+-------------+---------------------------------------------------------------+
-| EDIpack     | `edipack2triqs <https://github.com/edipack/edipack2triqs>`_,  |
-|             | mpi4py                                                        |
-+-------------+---------------------------------------------------------------+
-| MPS/ITensor | `juliacall <https://juliapy.github.io/PythonCall.jl>`_,       |
-|             | Julia ≥ 1.9, ITensors.jl — see ``README_JULIA.txt``           |
-+-------------+---------------------------------------------------------------+
 
 Testing
 -------
