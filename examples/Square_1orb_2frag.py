@@ -90,21 +90,8 @@ for iU, U in enumerate(U_list):
     fragmentB = Fragment(nimp, nbath, eloc, Utensor, edsolverB, Lambda=Lambda0, R=R0, verbose=2)
 
     for it in range(itmax):
-        Dtot, ERDtot = lattice.solve_qp([fragmentA, fragmentB],T=T)
+        lattice.solve_qp([fragmentA, fragmentB],T=T)
 
-        #print('ERD_tot:')
-        #print(ERDtot.real)
-        #print('sum ERDtot:',np.sum(ERDtot))
-
-        #print('Delta_qp_A',fragmentA.Delta_qp.real)
-        #print('Delta_qp_A',fragmentA.Delta_qp.imag)
-        #print('Delta_qp_B',fragmentB.Delta_qp.real)
-        #print('Delta_qp_B',fragmentB.Delta_qp.imag)
-
-        #print('ERD_A',fragmentA.ERD.real)
-        #print('ERD_A',fragmentA.ERD.imag)
-        #print('ERD_B',fragmentB.ERD.real)
-        #print('ERD_B',fragmentB.ERD.imag)
 
         fragmentA.update_hybridization(T=T)
         fragmentB.update_hybridization(T=T)

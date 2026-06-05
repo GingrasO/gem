@@ -11,7 +11,7 @@ This example maps out the finite-temperature antiferromagnetic (AFM)
 phase diagram of the single-orbital Hubbard model on the square lattice.
 For each value of :math:`U`, the staggered magnetisation :math:`|m|` is
 tracked as a function of temperature :math:`T`, sweeping from low to
-high :math:`T` on a linear grid.  The result is a dataset from which
+high :math:`T` on a logarithmic grid.  The result is a dataset from which
 the critical temperature :math:`T_c(U)` can be extracted, tracing the
 boundary between the AFM ordered phase and the paramagnetic phase in the
 :math:`(U, T)` plane.
@@ -28,16 +28,14 @@ We import the necessary modules::
     import h5py
 
 The square-lattice setup follows the same structure as
-:ref:`example_square_afm`, but we use a larger bath (``B = 3`` orbitals
-per spin channel) for better accuracy at finite temperature, and a finer
-k-grid (``Nk = 200``) to resolve the Fermi surface::
+:ref:`example_square_afm`::
 
     B     = 3
     nimp  = 2
     nbath = nimp * B
     ntot  = nimp + nbath
 
-    Nk = 200
+    Nk = 100
     Kx = np.linspace(-np.pi, np.pi, Nk, endpoint=False)
     Ky = np.linspace(-np.pi, np.pi, Nk, endpoint=False)
     t  = 0.25

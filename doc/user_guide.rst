@@ -307,6 +307,7 @@ Examples
    :maxdepth: 1
 
    examples/bethe_1orb
+   examples/triangular_triqs
    examples/square_afm
    examples/square_phase
 

@@ -171,7 +171,7 @@ The following figures show the double occupancy :math:`\langle n_\uparrow n_\dow
 staggered magnetisation :math:`m` as a function of :math:`U` for the
 square-lattice Hubbard model at zero temperature.
 
-.. image:: ./images/Example_2_fig_1.png
+.. image:: ./images/Example_3_fig_1.png
    :width: 80%
    :align: center
 
