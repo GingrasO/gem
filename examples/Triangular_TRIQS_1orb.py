@@ -9,6 +9,7 @@ from gem.fragment import Fragment
 from gem.lattice import Lattice
 from gem.solvers.simple_ed import SimpleED
 import time
+import matplotlib.pyplot as plt
 
 import numpy as np
 
@@ -43,10 +44,12 @@ H_t = TBLattice(
 
 # Build the k-grid
 Nk=64
-kmesh = H_t.get_kmesh(Nk)
+kmesh = H_t.get_kmesh((Nk,Nk,1))
+kpts = np.array(list(kmesh.values()))
 
 # List of H(k) matrices on the triangular-lattice BZ
-Hk_list = [H_t.fourier(k) for k in kmesh]
+Hk_list = np.array([ np.kron(H_t.fourier(k),np.eye(2)) for k in kpts])
+print('Hk_list:',Hk_list.shape)
 
 lattice = Lattice(Hk_list)
 
@@ -56,6 +59,8 @@ tol = 1e-5
 spin_pen=1.0
 T = 0.0
 mu = 0.0
+fit_mu = True
+n_target = 1.0
 
 Lambda0 = None
 R0 = None
@@ -84,9 +89,17 @@ for iU, U in enumerate(U_list):
         fragment.update_hybridization(T=T)
 
         fragment.impose_spin_SU2_symmetry()
+        
 
         fragment.solve_impurity(mu, T=T, num_eig=10, spin_pen=spin_pen)
 
+        if( (abs( fragment.nfill-n_target)>1e-3) and fit_mu ):
+            print('fit_mu:')
+            mu_new = lattice.fit_mu( n_target , [fragment], T=0.0, mu_old=mu, mode='imp', ntol=1e-4)
+            print(' --> mu=',mu_new)
+            mu=mu_new
+        
+        
         Lambda_old = fragment.Lambda.copy()
         R_old = fragment.R.copy()
 
@@ -112,12 +125,10 @@ for iU, U in enumerate(U_list):
         print(f"iteration: {it}  diff={diff}")
 
         if (diff < tol and it > 2) or it == itmax - 1:
-            print(f'Lambda eigvals: {L_eval_new}')
-            print(f'Fragment energy: {fragment.E2loc}')
+            print(f'Fragment density: {fragment.nfill}' )
             print(f"----- ghost-RISB converged with diff={diff} -----")
             break
 
-    deg_states.append(fragment.solver.Tstates)
 
     Z = fragment.compute_Z()
     print(f'Done with U={U} returning Z={np.diag(Z.real)}')
@@ -129,21 +140,5 @@ for iU, U in enumerate(U_list):
 
 plt.figure()
 plt.plot(U_list, Z_list)
-plt.savefig('Z_vs_U_B{B}.png', dpi=100)
+plt.savefig('trZ_vs_U_B{B}.png', dpi=100)
 plt.show()
-
-plt.figure()
-plt.plot(U_list, deg_states)
-plt.savefig('deg_vs_U_B{B}.png', dpi=100)
-plt.show()
-
-
-
-for iter in range(itmax):
-    lattice.solve_qp([fragment], T=T)
-    fragment.update_hybridization(T=T)
-    # fragment.impose_spin_SU2_symmetry()
-    fragment.solve_impurity(mu, T=T, num_eig=10, spin_pen=spin_pen)
-    fragment.update_self_energy(T=T)
-    #fragment.impose_spin_SU2_symmetry()
-    # CHECK CONVERGENCE
