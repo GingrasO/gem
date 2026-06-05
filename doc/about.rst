@@ -4,5 +4,4 @@ About gem
 *******************
 
 
-
-Written and maintained by S. Giuli, T.-H. Lee and O. Gingras.
+The code has been written by S.Giuli, T.-H. Lee, Y.-X. Yao, N. Lanatà and O. Gingras.
