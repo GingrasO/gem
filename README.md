@@ -7,6 +7,11 @@
 >
 > Use at your own risk and verify results independently.
 
+-----
+
+> **Disclaimer:** The software will have soon a paper associated to it. In the meantime, if you use it for your own research, please cite Ref. [1,2]
+>
+
 About
 -----
 
