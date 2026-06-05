@@ -133,7 +133,8 @@ function(check_option_python command_str name)
   endif()
 endfunction()
 
-check_option_python("import block2" "Block2")
+# lines for optional solvers, to be uncommented when the corresponding solver is implemented and added as a dependency
+#check_option_python("import block2" "Block2")
 
 # #############
 # Debian Package
