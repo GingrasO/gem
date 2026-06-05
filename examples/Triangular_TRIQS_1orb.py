@@ -139,6 +139,11 @@ for iU, U in enumerate(U_list):
     Z_list.append(Z[0,0].real)
 
 plt.figure()
-plt.plot(U_list, Z_list)
-plt.savefig('trZ_vs_U_B{B}.png', dpi=100)
+plt.plot(U_list, Z_list,marker='.')
+plt.ylabel('Z')
+plt.xlabel('U/t')
+plt.xlim(0,None)
+plt.ylim(0,1)
+plt.tight_layout()
+plt.savefig(f'trZ_vs_U_B{B}.png', dpi=100)
 plt.show()
