@@ -110,6 +110,10 @@ class SimpleED(object):
         sz_pen   = self.solver_params.get('sz_pen',   0) if sz_pen   is None else sz_pen
         sx_pen   = self.solver_params.get('sx_pen',   0) if sx_pen   is None else sx_pen
         sy_pen   = self.solver_params.get('sy_pen',   0) if sy_pen   is None else sy_pen
+        if( spin_pen != 0.0 or sz_pen != 0.0 or sx_pen != 0.0 or sy_pen != 0.0:):
+            warnings.warn(
+                "A spin penalty had been passed. Remember to use this ONLY from T=0 calculations," \
+                "otherwise the boltzmann weights will be wrong at T>0.")
 
         print('build one-body')
         self.build_h1e(eloc, D, Lambdac, mu, verbose=verbose)
