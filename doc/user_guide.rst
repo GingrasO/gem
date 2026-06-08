@@ -21,18 +21,14 @@ The Ghost Gutzwiller Approximation
 ------------------------------------
 
 The Gutzwiller approximation (GA) is a variational method for lattice models of
-strongly correlated electrons with local interaction :cite:`Gutzwiller1965,Bunemann1998`.
+strongly correlated electrons with local interaction :cite:`Gutzwiller1965`.
 The trial state is obtained by applying a linear map :math:`\hat{P} = \prod_i \hat{P}_i`
 (often called a projector, despite not being one strictly speaking) to an uncorrelated Slater
 determinant :math:`|\Psi_0\rangle`.
 Each on-site operator :math:`\hat{P}_i` re-weights the local many-body configurations,
-suppressing or enhancing occupancies relative to the non-interacting reference.
-This method provided the first explanation for the Mott transition :cite:`Mott1968` via a
-renormalization of the hopping parameters thanks to Brinkmann and Rice :cite:`BrinkmanRice1970`.
-Many slave-particle mean-field formulations, most notably Kotliar–Ruckenstein and
-rotationally invariant slave-boson (RISB) approaches, are equivalent at the saddle-point level
-to the multiorbital Gutzwiller approximation, differing mainly in the auxiliary-field representation
-of the same variational energy functional :cite:`KotliarRuckenstein1986,Lechermann2007,BuenemannGebhard2007`.
+suppressing or enhancing occupancies relative to the non-interacting reference and
+provided the first explanation for the Mott transition via a
+renormalization of the hopping parameters.
 
 The standard GA is limited because its embedding Hamiltonian is an *interacting*
 single-impurity model with at most one bath orbital per correlated orbital.
@@ -47,7 +43,7 @@ levels that is a multiple :math:`B` of the physical ones.
 * At :math:`B = 1` the method reduces to the standard GA.
 * As :math:`B \to \infty` it has been proved that the method converges to DMFT :cite:`Giuli2026`.
 * For finite :math:`B > 1` it provides a controlled, systematically improvable
-  approximation :cite:`Lee2023`.
+  approximation.
 
 The variational parameters are the bath hybridisation matrix and the on-site embedding energies.
 One of the key advantages of this method is that its self-consistency is rooted in static

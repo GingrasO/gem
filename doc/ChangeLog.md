@@ -9,5 +9,5 @@ gem version 0.1.0 is the first release for this project.
 * Impurity solvers provided: SimpleED.
 * Sphinx documentation with API reference, intallation guide, and used guide.
 
-We thank all contributors: S. Giuli, T.-H. Lee, O. Gingras.
+We thank all contributors: S. Giuli, T.-H. Lee, Y.-X. Yao, N. Lanatà and O. Gingras.
 
