@@ -94,7 +94,7 @@ Results
 Performing the sweep over :math:`U` and plotting the resulting :math:`Z(U)` curve, we can clearly see the Mott transition and the difference in critical interaction
 between the standard GA (:math:`B=1`, orange) and ghost GA (:math:`B > 1` , in this case :math:`B=3`, blue ):
 
-.. image:: ./images/Example_1_fig_1.png
+.. image:: ./images/ex01_fig_1.png
    :width: 50%
    :align: center
 
@@ -107,7 +107,7 @@ The lattice Green's function is computed from the lattice object via the method 
 
 The resulting spectral functions for the different values of :math:`U` are shown in the following figure:
 
-.. image:: ./images/Example_1_fig_2.png
+.. image:: ./images/ex01_fig_2.png
    :width: 100%
    :align: center
 

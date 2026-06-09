@@ -160,6 +160,6 @@ shape of the :math:`Z(U)` curve more accurately than the standard
 Gutzwiller approximation (:math:`B = 1`).
 
 
-.. image:: ./images/Example_2_fig_1.png
+.. image:: ./images/ex02_fig_1.png
    :width: 80%
    :align: center
