@@ -114,6 +114,24 @@ Note that the initial guess for :math:`\Lambda_B` is set to minus the
 guess for :math:`\Lambda_A`, encoding the antiferromagnetic ansatz from
 the start.
 
+Enforcing magnetisation along the z-axis
+---------------------------------------
+
+To ensure that the magnetisation is along the z-axis, we set to zero the spin-off-diagonal elements
+of the matrices :math:`R`, :math:`\Lambda`, :math:`D` and :math:`\Lambda_c` at each iteration::
+
+    for fragment in [fragmentA, fragmentB]:
+
+        fragment.R[1::2, 0::2] = 0.0
+        fragment.R[0::2, 1::2] = 0.0
+        fragment.Lambda[1::2, 0::2] = 0.0
+        fragment.Lambda[0::2, 1::2] = 0.0
+        fragment.D[1::2, 0::2] = 0.0    
+        fragment.D[0::2, 1::2] = 0.0
+        fragment.Lambda_c[1::2, 0::2] = 0.0
+        fragment.Lambda_c[0::2, 1::2] = 0.0
+
+
 Storing results
 ---------------
 
