@@ -220,7 +220,7 @@ different values of :math:`U` is shown below.  The critical temperature
    :align: center
 
 The critical temperatures :math:`T_c(U)` are shown below together with data extracted from DMFT.
-We can see clearly that already :math:`B=3` reproduces faithfully the AFM dome of DMFT.
+We can see clearly that already :math:`B=3` reproduces faithfully the AFM dome of DMFT extracted from Phys. Rev. B 83, 085102 (2011).
 
 
 .. image:: ./images/ex04_fig_2.png
