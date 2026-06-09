@@ -302,8 +302,8 @@ Examples
 .. toctree::
    :maxdepth: 1
 
-   examples/bethe_1orb
-   examples/triangular_triqs
-   examples/square_afm
-   examples/square_phase
+   examples/ex01_bethe_1orb
+   examples/ex02_triangular_triqs
+   examples/ex03_square_afm
+   examples/ex04_square_phase
 
