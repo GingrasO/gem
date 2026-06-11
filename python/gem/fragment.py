@@ -202,6 +202,21 @@ class Fragment():
         self.E2loc = self.solver.compute_E2loc()
         E = self.E1loc + self.E2loc
         return E
+    
+    def compute_self_energy(self, z, mu=0.0):
+        """
+        Compute the self-energy from the analytical formula.
+
+        :param z: complex. Real or matsubara frequency for self-energy
+        """
+        m, nu = self.R.shape
+        I_m = np.eye(m, dtype=complex)
+        I_nu = np.eye(nu, dtype=complex)
+        Ainv = np.linalg.inv(z*I_m - self.Lambda)
+        M = self.R.conj().T @ Ainv @ self.R
+        
+        return (z)*I_nu - np.linalg.inv(M) - self.eloc + mu*I_nu
+
 
     def compute_Z(self, mu=0.0, z0=0.0, h=1e-8):
         """
