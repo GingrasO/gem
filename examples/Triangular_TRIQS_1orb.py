@@ -138,6 +138,11 @@ for iU, U in enumerate(U_list):
     R0 = fragment.R.copy()
     Z_list.append(Z[0,0].real)
 
+#Here we show how to interface GEM with TRIQS by passing the self-energy coming from GEM into a TRQIS Green's function object
+
+#Initialize the mesh
+
+
 plt.figure()
 plt.plot(U_list, Z_list,marker='.')
 plt.ylabel('Z')

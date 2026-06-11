@@ -109,11 +109,11 @@ fig1.savefig('B3_mag_vs_T.png', dpi=150)
 
 # ── Figure 2: Tc in the T–U plane ─────────────────────────────────────────────
 fig2, ax2 = plt.subplots(figsize=(6, 5))
-ax2.errorbar(fit_U, fit_Tc, yerr=fit_Tc_e,label=r'\mathcal{B}=3',
-             fmt='o-', capsize=5, color='tab:blue', linewidth=1.5, markersize=7)
+ax2.errorbar(fit_U, fit_Tc, yerr=fit_Tc_e,label=r'$\mathcal{B}$=3',
+             fmt='o-', capsize=5, color='mediumblue', linewidth=1.5, markersize=7)
 ax2.fill_between(fit_U, fit_Tc - fit_Tc_e, fit_Tc + fit_Tc_e,
                  alpha=0.2, color='tab:blue')
-ax2.plot(2*DMFT_U,2*DMFT_T,marker='x',color='black',label='DMFT', markersize=10)
+ax2.plot(2*DMFT_U,2*DMFT_T,marker='s',color='firebrick',label='DMFT', markersize=10)
 ax2.set_xlabel('U', fontsize=13)
 ax2.set_ylabel('$T_c$', fontsize=13)
 ax2.set_title('Critical temperature vs U  (B=3)', fontsize=12)
