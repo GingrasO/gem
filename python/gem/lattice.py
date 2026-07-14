@@ -197,7 +197,7 @@ class Lattice():
         for ek,wk in zip(self.eks, self.wks):
             Hk_qp = self.Rtot @ ek @ self.Rtot.T.conj() + self.Ltot
             Dk = calc_nf(Hk_qp,Tuse).T
-            ekin += wk*np.sum( ( np.dot(self.Rtot, np.dot(ek, self.Rtot.T.conj() ) ) ) * Dk.T )
+            ekin += wk*np.sum( ( np.dot(self.Rtot, np.dot(ek, self.Rtot.T.conj() ) ) ) * Dk )
         return ekin
 
     def compute_functional(self, Fragments_list , T=1e-2):
