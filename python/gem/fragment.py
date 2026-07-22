@@ -95,6 +95,7 @@ class Fragment():
         #Create Hermitian list here and store
         #maybe with a variable nspin being 1 or 2 so that [::nspin] always stride properly
         self.H_list,self.tH_list=Hermitian_list(nbath)
+        self.Hs_list,self.tHs_list=Hermitian_list(nbath//2)
 
         if(self.verb>1):
             print('initial R matrix =')
@@ -139,12 +140,13 @@ class Fragment():
         self.nfill  = np.trace( self.denMat[:self.nimp,:self.nimp] )
         self.E2loc  = self.solver.compute_E2loc()
 
-    def update_self_energy(self, T=0.0, move_pen=1e-6):
+    def update_self_energy(self, T=0.0, move_pen=1e-6, use_Sz=False):
         '''
         This function update the self-energy parameters Lambda and R
 
         :param T: float. Temperature.
         :param move_pen: float. Penalty for moving the self-energy parameters.
+        :param use_Sz: bool. Whether to use Sz as a good quantum number.
 
         Return:
             R: ndarray. Updated self-energy parameter R.
@@ -154,41 +156,68 @@ class Fragment():
         fdagf = self.denMat[self.nimp:,self.nimp:]
         self.Delta_aim = np.eye(self.nbath) - fdagf
 
+        sstep = 2 if use_Sz else 1
+        L_s=[]; R_s=[]
         if T > 0.0:
-            L_new, R_new = update_self_energy_thermal_penalty(self.Lambda, self.R, self.Lambda_c, self.D,
-                                                              fdagf, cdagf,
-                                                              beta=1/T, alpha=move_pen, method="dF")
+            for spin in range(sstep):
+                L_new, R_new = update_self_energy_thermal_penalty(self.Lambda[spin::sstep,spin::sstep], self.R[spin::sstep,spin::sstep],
+                                                                self.Lambda_c[spin::sstep,spin::sstep], self.D[spin::sstep,spin::sstep],
+                                                                fdagf[spin::sstep,spin::sstep], cdagf[spin::sstep,spin::sstep],
+                                                                beta=1/T, alpha=move_pen, method="dF")
+                L_s.append(L_new); R_s.append(R_new)
         elif T == 0.0:
-            R_new = np.transpose( cdagf.dot( funcMat(self.Delta_aim, denR)) )
-            L_new = calc_Lambda( R_new, self.Lambda_c, self.Delta_aim, self.D, self.H_list )
+            hlist = self.Hs_list if use_Sz else self.H_list
+            for spin in range(sstep):
+                R_new = np.transpose( cdagf[spin::sstep,spin::sstep].dot( funcMat(self.Delta_aim[spin::sstep,spin::sstep], denR)) )
+                L_new = calc_Lambda( R_new, self.Lambda_c[spin::sstep,spin::sstep],
+                                    self.Delta_aim[spin::sstep,spin::sstep], self.D[spin::sstep,spin::sstep], hlist )
+                L_s.append(L_new); R_s.append(R_new)
         else:
             raise ValueError("Temperature T must be non-negative")
-        self.R = R_new.copy()
-        self.Lambda = L_new.copy()
+        
+        self.R = np.kron( R_s[0], np.eye(2) )
+        self.Lambda = np.kron( L_s[0], np.eye(2) )
+        if(sstep==2):
+            self.R[1::2,1::2] = R_s[1]
+            self.Lambda[1::2,1::2] = L_s[1]
         return self.R, self.Lambda
 
-    def update_hybridization(self, T=0.0, move_pen=1e-6):
+    def update_hybridization(self, T=0.0, move_pen=1e-6, use_Sz=False):
         '''
         This function update the hybridization parameters Lambda_c and D
 
         :param T: float. Temperature.
         :param move_pen: float. Penalty for moving the hybridization parameters.
+        :param use_Sz: bool. Whether to use Sz as a good quantum number.
 
         Return:
             D: ndarray. Updated hybridization parameter D.
             Lambda_c: ndarray. Updated hybridization parameter Lambda_c.
         '''
+        sstep = 2 if use_Sz else 1
+        D_s=[]; Lc_s=[]
         if T > 0.0:
-            Lc_new, D_new = update_hybridization_thermal_penalty(self.Lambda_c, self.D, self.Lambda, self.R,
-                                                                 self.Delta_qp, self.ERD.T,
-                                                                 beta=1/T, alpha=move_pen, method="dF")
+            for spin in range(sstep):
+                Lc_new, D_new = update_hybridization_thermal_penalty(self.Lambda_c[spin::sstep,spin::sstep], self.D[spin::sstep,spin::sstep],
+                                                                     self.Lambda[spin::sstep,spin::sstep], self.R[spin::sstep,spin::sstep],
+                                                                     self.Delta_qp[spin::sstep,spin::sstep], self.ERD.T[spin::sstep,spin::sstep],
+                                                                     beta=1/T, alpha=move_pen, method="dF")
+                Lc_s.append(Lc_new); D_s.append(D_new)
         elif T == 0.0:
-            D_new = np.dot(funcMat(self.Delta_qp, denR),np.transpose(self.ERD))
-            Lc_new = calc_Lambda_c(self.R, self.Lambda, self.Delta_qp, D_new, self.H_list)
+            hlist = self.Hs_list if use_Sz else self.H_list
+            for spin in range(sstep):
+                D_new = np.dot(funcMat(self.Delta_qp[spin::sstep,spin::sstep], denR),np.transpose(self.ERD[spin::sstep,spin::sstep]))
+                Lc_new = calc_Lambda_c(self.R[spin::sstep,spin::sstep], self.Lambda[spin::sstep,spin::sstep],
+                                       self.Delta_qp[spin::sstep,spin::sstep], D_new[spin::sstep,spin::sstep], hlist)
+                Lc_s.append(Lc_new); D_s.append(D_new)
         else:
             raise ValueError("Temperature T must be non-negative")
-        self.D = D_new.copy()
-        self.Lambda_c = Lc_new.copy()
+        
+        self.D = np.kron( D_s[0], np.eye(2) )
+        self.Lambda_c = np.kron( Lc_s[0], np.eye(2) )
+        if(sstep==2):
+            self.D[1::2,1::2] = D_s[1]
+            self.Lambda_c[1::2,1::2] = Lc_s[1]
         return self.D, self.Lambda_c
     
     def compute_energy(self):
