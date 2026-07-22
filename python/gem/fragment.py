@@ -175,8 +175,8 @@ class Fragment():
         else:
             raise ValueError("Temperature T must be non-negative")
         
-        self.R = np.kron( R_s[0], np.eye(2) )
-        self.Lambda = np.kron( L_s[0], np.eye(2) )
+        self.R = np.kron( R_s[0], np.eye(sstep) )
+        self.Lambda = np.kron( L_s[0], np.eye(sstep) )
         if(sstep==2):
             self.R[1::2,1::2] = R_s[1]
             self.Lambda[1::2,1::2] = L_s[1]
@@ -208,13 +208,13 @@ class Fragment():
             for spin in range(sstep):
                 D_new = np.dot(funcMat(self.Delta_qp[spin::sstep,spin::sstep], denR),np.transpose(self.ERD[spin::sstep,spin::sstep]))
                 Lc_new = calc_Lambda_c(self.R[spin::sstep,spin::sstep], self.Lambda[spin::sstep,spin::sstep],
-                                       self.Delta_qp[spin::sstep,spin::sstep], D_new[spin::sstep,spin::sstep], hlist)
+                                       self.Delta_qp[spin::sstep,spin::sstep], D_new, hlist)
                 Lc_s.append(Lc_new); D_s.append(D_new)
         else:
             raise ValueError("Temperature T must be non-negative")
         
-        self.D = np.kron( D_s[0], np.eye(2) )
-        self.Lambda_c = np.kron( Lc_s[0], np.eye(2) )
+        self.D = np.kron( D_s[0], np.eye(sstep) )
+        self.Lambda_c = np.kron( Lc_s[0], np.eye(sstep) )
         if(sstep==2):
             self.D[1::2,1::2] = D_s[1]
             self.Lambda_c[1::2,1::2] = Lc_s[1]
