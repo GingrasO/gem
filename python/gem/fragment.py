@@ -5,8 +5,8 @@
 ###########################################
 
 import numpy as np
-from .utility.utilities import Hermitian_list, funcMat, denR, calc_Lambda, calc_Lambda_c
-from .utility.delta_fit import update_self_energy_thermal_penalty, update_hybridization_thermal_penalty
+from .utilities import Hermitian_list, funcMat, denR, calc_Lambda, calc_Lambda_c
+from .delta_fit import update_self_energy_thermal_penalty, update_hybridization_thermal_penalty
 
 
 class Fragment():

@@ -13,7 +13,7 @@ import time
 
 from .fragment import Fragment
 from .lattice import Lattice
-from .utility.utilities import calc_nf, calc_Fermi
+from .utilities import calc_nf
 
 class Gdmft(object):
     """This is a class representation of a ghost-RISB object (with DMFT-like algorithm).

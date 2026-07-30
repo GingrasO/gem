@@ -7,8 +7,8 @@ import numpy as np
 from scipy.linalg import block_diag
 from scipy.optimize import brentq, bisect
 from .fragment import Fragment
-from .utility.utilities import calc_nf, calc_Fermi
-from .utility.delta_fit import build_H
+from .utilities import calc_nf, calc_Fermi
+from .delta_fit import build_H
 from numba import jit
 
 
@@ -153,7 +153,7 @@ class Lattice():
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
         if T < 0.0: raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-2,T)
+        Tuse=np.maximum(1e-2,T) # TO BE SOLVED
         nimp_tot = sum(F.nimp for F in Fragments_list)
         nbath_tot = sum(F.nbath for F in Fragments_list)
 
