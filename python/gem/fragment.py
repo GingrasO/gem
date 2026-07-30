@@ -102,7 +102,7 @@ class Fragment():
         self.H_list,self.tH_list=Hermitian_list(nbath)
         self.Hs_list,self.tHs_list=Hermitian_list(nbath//2)
 
-        if(self.verb>1):
+        if(self.verb>2):
             print('initial R matrix =')
             print(self.R)
             print('initial Lambda matrix =')

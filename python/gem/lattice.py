@@ -172,7 +172,6 @@ class Lattice():
                 ekvals = np.linalg.eigvalsh(Hk_qp)
                 dens += np.sum(calc_Fermi(ekvals/T))*wk
             return dens/np.sum(wk_qp)
-        print('start_qp_dens:',qp_density( 0.0, Tuse, self.Ltot, self.Rtot, self.eks, self.wks))
 
         nqp_target = 0.5*(nbath_tot-nimp_tot) + n_target
         try:
