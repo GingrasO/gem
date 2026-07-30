@@ -18,10 +18,13 @@
 import numpy as np
 
 def logo():
-    logo = """
-╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┬ ┬┌─┐┌─┐┌┬┐ ┌─┐┌─┐
- ║ ╠╦╝║║═╬╗╚═╗  │╶┐├─┤│ │└─┐ │ -│╶┐├─┤
- ╩ ╩╚═╩╚═╝╚╚═╝  └─┘┴ ┴└─┘└─┘ ┴  └─┘┴ ┴
-TRIQS: Ghost-Gutzwiller solver
+    logo =
+"""
+╔╦╗╦═╗╦╔═╗ ╔═╗   ╔═╗╔═╗╔╦╗
+ ║ ╠╦╝║║═╬╗╚═╗ - ║ ╦║╣ ║║║
+ ╩ ╩╚═╩╚═╝╚╚═╝   ╚═╝╚═╝╩ ╩
+TRIQS: Ghost Embedding Method (GEM)
 """
     return logo
+'''
+   
