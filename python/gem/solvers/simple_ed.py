@@ -132,10 +132,10 @@ class SimpleED(object):
         # rebuild two-body only when V2E changes (shared across sectors)
         rebuild_two = (self.Htwo_list[0] is None) or np.any(V2E != self.V2E)
         if rebuild_two:
-            print('build two-body')
+            if(verbose > 0): print('build two-body')
             self.V2E = V2E.copy()
 
-        print('one-body + two-body')
+        if(verbose > 0): print('one-body + two-body')
         self.Ham_list = []
         for s in range(len(self.sectors)):
             basis_s     = self.basis_list[s]
@@ -162,7 +162,6 @@ class SimpleED(object):
             self.Htwo = self.Htwo_list[0]
             self.Ham  = self.Ham_list[0]
 
-        print('done')
         if debug:
             return self.Ham_list
 
@@ -183,7 +182,7 @@ class SimpleED(object):
 
         for s, Ham_s in enumerate(self.Ham_list):
             hsize_s = self.hsize_list[s]
-            print(f'Sector {s}: diagonalising (dim={hsize_s})')
+            if(verbose > 0): print(f'Sector {s}: diagonalising (dim={hsize_s})')
             if hsize_s < 4000:
                 vals, vecs = eigh(Ham_s.toarray())
             else:
