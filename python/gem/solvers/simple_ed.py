@@ -45,6 +45,17 @@ class SimpleED(object):
     def __init__(self, norb, use_Ntot=False, use_Sz=False,
                  dtype=np.complex128, N_sector=None, Sz_sector=None,
                  solver_params=None, **kwargs):
+        '''
+        Initialize the solver with the given number of orbitals and symmetry settings.
+
+        :param norb: int. Total number of spin-orbital levels in the embedding Hamiltonian.
+        :param use_Ntot: bool, optional. Whether to exploit particle-number conservation (default: False).
+        :param use_Sz: bool, optional. Whether to exploit Sz conservation (default: False).
+        :param dtype: Data type for the solver.
+        :param N_sector: int, optional. Particle-number sector to solve if use_Ntot is True (default: None).
+        :param Sz_sector: int, optional. Sz sector to solve if use_Sz is True (default: None).
+        :param solver_params: dict, optional. Parameters for the solver (default: None).
+        '''
         # backward compat: Nparticle into N_sector, will be removed after hearing from others
         if 'Nparticle' in kwargs:
             warnings.warn("Nparticle is deprecated, use N_sector instead.",
