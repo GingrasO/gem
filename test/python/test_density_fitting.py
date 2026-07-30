@@ -4,7 +4,6 @@ import unittest
 import numpy as np
 
 from gem.gdmft import *
-#from gem.utility.e_list import EList_SemiCircular
 from gem.solvers.simple_ed import SimpleED
 
 

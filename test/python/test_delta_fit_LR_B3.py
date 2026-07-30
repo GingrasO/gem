@@ -1,9 +1,7 @@
 import unittest
 from pathlib import Path
-
 import numpy as np
-
-from gem.utility.delta_fit import (
+from gem.delta_fit import (
     pack_params,
     residual_LR,
     jacobian_LR,
@@ -16,8 +14,8 @@ from gem.utility.delta_fit import (
 size = 1
 B = 3
 Bsize = int(B * size)
-beta = 100
-noise = 3e-3
+beta = 100.0
+noise = 1e-3
 data_dir = Path(__file__).parent / "delta_fit" / "input_data" / "B3"
 
 

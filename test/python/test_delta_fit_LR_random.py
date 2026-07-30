@@ -1,8 +1,6 @@
 import unittest
-
 import numpy as np
-
-from gem.utility.delta_fit import (
+from gem.delta_fit import (
     pack_params,
     residual_LR,
     jacobian_LR,
@@ -15,16 +13,18 @@ from gem.utility.delta_fit import (
 size = 1
 B = 3
 Bsize = int(B * size)
-beta = 100
+beta = 100.0
 noise = 1e-3
 
 
 def random_hermitian(n: int, rng: np.random.Generator, scale: float = 1.0) -> np.ndarray:
+    """Random complex Hermitian matrix of shape (n, n)."""
     A = (rng.standard_normal((n, n)) + 1j * rng.standard_normal((n, n))) * scale + np.diag(np.linspace(-1.5, 1.5, n, endpoint=True))
     return 0.5 * (A + A.T.conj())
 
 
 def random_complex(shape, rng: np.random.Generator, scale: float = 1.0) -> np.ndarray:
+    """Random complex array."""
     return (rng.standard_normal(shape) + 1j * rng.standard_normal(shape)) * scale+ np.ones( (B,1) )/np.sqrt(B)
 
 

@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
-
-from gem.utility.delta_fit import (
+from gem.delta_fit import (
     pack_params,
     residual_LR,
     residual_LcD,

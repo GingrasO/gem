@@ -3,14 +3,13 @@ from pathlib import Path
 
 import numpy as np
 
-from gem.utility.delta_fit import (
+from gem.delta_fit import (
     pack_params,
     residual_LcD,
     jacobian_LcD,
     build_H,
     F_of_H,
     solve_F_dF_LcD_with_movement,
-    update_hybridization_thermal_penalty,
 )
 
 # --- Configuration ---

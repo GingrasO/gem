@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from gem.utility.delta_fit import pack_params, unpack_params
+from gem.delta_fit import pack_params, unpack_params
 
 
 class TestPackUnpackParams(unittest.TestCase):

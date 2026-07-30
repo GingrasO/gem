@@ -3,7 +3,7 @@
 import unittest
 
 from gem.gdmft import *
-from gem.utility.utilities import U_matrix_kanamori
+from gem.utilities import U_matrix_kanamori
 import numpy as np
 import h5py
 from gem.solvers.simple_ed import SimpleED
