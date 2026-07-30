@@ -12,9 +12,17 @@ class Lattice():
     Class for the lattice part to solve the quasiparticle problem
     '''
     def __init__(self,
-                 ek_list: np.ndarray, wk_list: np.ndarray = None,
-                 verbose=0
-                  ):
+                 ek_list: np.ndarray, wk_list: np.ndarray = None, verbose=0
+                 ):
+        """  
+        Initialize the Lattice class with the given parameters.
+
+        :param ek_list: ndarray. List of one-body electronic Hamiltonian terms.
+        :param wk_list: ndarray, optional. Weights for each ek value (default: uniform weights).
+        :param verbose: int, optional. Level of verbosity (default: 0).
+
+        """
+        
         if not isinstance(verbose, int): raise TypeError(f"verbose must be int, got {type(verbose)}")
         if not isinstance(ek_list, np.ndarray): raise TypeError(f"ek_list must be ndarray, got {type(ek_list)}")
         if(wk_list is None):
@@ -33,6 +41,13 @@ class Lattice():
         print("##### END OF LATTICE INITIALIZATION #####")
 
     def solve_qp(self, Fragments_list, T=0.0):
+        """
+        Solve quasiparticle problem using the self-energies from passed list of Fragment objects.
+
+        :param Fragments_list: list of Fragment objects.
+        :param T: float, optional. Temperature (default: 0.0).
+        """
+        
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
 
@@ -42,7 +57,7 @@ class Lattice():
         if self.eks.shape[1] != nimp_tot or self.eks.shape[2] != nimp_tot:
             raise ValueError(f"ek_list second and third dimensions must be {nimp_tot}, got {self.eks.shape}")
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-3,T)
+        Tuse=np.maximum(1e-3,T) #TO BE SOLVED
         self.Rtot = block_diag(*[F.R for F in Fragments_list])
         self.Ltot = block_diag(*[F.Lambda for F in Fragments_list])
 
@@ -65,6 +80,13 @@ class Lattice():
         return self.Delta_p_tot, self.ERD_tot
     
     def compute_Gloc(self, w_list, Fragments_list, eps=1e-2):
+        """
+        Compute the local Green's function at given frequencies from the quasiparticle problem using the self-energies from passed list of Fragment objects.
+
+        :param w_list: ndarray. list or ndarray of frequencies at which to compute the local Green's function.
+        :param Fragments_list: list of Fragment objects.
+        :param eps: float, optional. Small imaginary part for the frequency (default: 1e-2).
+        """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
 
@@ -94,15 +116,35 @@ class Lattice():
         return Gloc
     
 
-    def fit_mu(self, n_target, Fragments_list, T=1e-2, mu_old=0.0, mode='qp', ntol=1e-4):
+    def fit_mu(self, n_target, Fragments_list, T=0.0, mu_old=0.0, mode='qp', ntol=1e-4):
+        """
+        Procedure to fit the chemical potential to achieve a target filling using either quasiparticle or fragment methods.
+
+        :param n_target: float. Target filling.
+        :param Fragments_list: list of Fragment objects.
+        :param T: float, optional. Temperature (default: 0.0).
+        :param mu_old: float, optional. Previous chemical potential (default: 0.0).
+        :param mode: str, optional. Mode of fitting ('qp' for quasiparticle, 'imp' for impurity/fragment) (default: 'qp').
+        :param ntol: float, optional. Tolerance for convergence (default: 1e-4).
+        """
         m = mode.lower()
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
         if m in ('qp', 'quasiparticle'):
-            return self.fit_mu_quasiparticle( n_target, Fragments_list, T=T, mu_old=mu_old )
+            return self.fit_mu_quasiparticle( n_target, Fragments_list, T=T, mu_old=mu_old, ntol=ntol )
         elif m in ('imp', 'impurity', 'frag', 'fragment'):
             return self.fit_mu_fragment( n_target, Fragments_list, T=T, mu_old=mu_old, ntol=ntol )
 
-    def fit_mu_quasiparticle(self, n_target, Fragments_list, T=1e-2, mu_old=0.0):
+    def fit_mu_quasiparticle(self, n_target, Fragments_list, T=1e-2, mu_old=0.0, ntol=1e-4):
+        """
+        Procedure to fit the chemical potential from the quasiparticle problem.
+
+        :param n_target: float. Target filling.
+        :param Fragments_list: list of Fragment objects.
+        :param T: float, optional. Temperature (default: 0.0).
+        :param mu_old: float, optional. Previous chemical potential (default: 0.0).
+        :param mode: str, optional. Mode of fitting ('qp' for quasiparticle, 'imp' for impurity/fragment) (default: 'qp').
+        :param ntol: float, optional. Tolerance for convergence (default: 1e-4).
+        """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
         if T < 0.0: raise ValueError("Temperature T must be non-negative")
@@ -138,7 +180,7 @@ class Lattice():
                     break
                 a -= 10.0
                 b += 10.0
-            dmu_target =  bisect(f=residual, a=a, b=b, xtol=1e-5)
+            dmu_target =  bisect(f=residual, a=a, b=b, xtol=ntol)
             mu_target  = mu_old + dmu_target
             for F in Fragments_list:
                 F.Lambda -= F.R @ ( dmu_target * np.eye(F.nimp)) @ F.R.T.conj()
@@ -150,10 +192,22 @@ class Lattice():
 
 
     def fit_mu_fragment(self, n_target, Fragments_list, T=1e-2, nsteps=10, dmu0=1e-2, ntol=1e-4, mu_old=0.0, spin_pen=0.0):
+        """
+        Procedure to fit the chemical potential from the fragment problem.
+        
+        :param n_target: float. Target filling.
+        :param Fragments_list: list of Fragment objects.
+        :param T: float, optional. Temperature (default: 0.0).
+        :param nsteps: int, optional. Maximum number of steps for fitting (default: 10).
+        :param dmu0: float, optional. Initial step size for chemical potential adjustment (default: 1e-2).
+        :param ntol: float, optional. Tolerance for convergence (default: 1e-4).
+        :param mu_old: float, optional. Previous chemical potential (default: 0.0).
+        :param spin_pen: float, optional. Penalty for spin polarization (default: 0.0).
+        """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
         if T < 0.0: raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-3,T)
+        Tuse=np.maximum(1e-3,T) #TO BE SOLVED
         nfill_old = sum(F.nfill for F in Fragments_list)
         dmu = dmu0 * np.sign(nfill_old - n_target)
         mu_o = mu_old
@@ -178,7 +232,11 @@ class Lattice():
         return mu_n
     
     def compute_ekin(self, Fragments_list, T):
-        """ Compute kinetic energy from the quasiparticle part
+        """
+        Compute kinetic energy from the quasiparticle part
+
+        :param Fragments_list: list of Fragment objects.
+        :param T: float, optional. Temperature (default: 0.0).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
@@ -200,8 +258,12 @@ class Lattice():
             ekin += wk*np.sum( ( np.dot(self.Rtot, np.dot(ek, self.Rtot.T.conj() ) ) ) * Dk )
         return ekin
 
-    def compute_functional(self, Fragments_list , T=1e-2):
-        """ Compute the value of the finite temperature functional
+    def compute_functional(self, Fragments_list , T=0.0):
+        """
+        Compute the value of the finite temperature functional
+
+        :param Fragments_list: list of Fragment objects.
+        :param T: float, optional. Temperature (default: 0.0).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
@@ -212,7 +274,7 @@ class Lattice():
         Omega_mix = 0.0
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
         # If T=0.0, use a small T to compute the functional
-        Tuse=np.maximum(1e-3,T)     
+        Tuse=np.maximum(1e-3,T)      #TO BE SOLVED
         for F in Fragments_list:
             if F.solver is None:
                 raise ValueError("Fragment solver is not set")
