@@ -62,7 +62,7 @@ class Lattice():
         if self.eks.shape[1] != nimp_tot or self.eks.shape[2] != nimp_tot:
             raise ValueError(f"ek_list second and third dimensions must be {nimp_tot}, got {self.eks.shape}")
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-3,T) #TO BE SOLVED
+        Tuse=np.maximum(1e-2,T) #TO BE SOLVED
         self.Rtot = block_diag(*[F.R for F in Fragments_list])
         self.Ltot = block_diag(*[F.Lambda for F in Fragments_list])
 
@@ -153,7 +153,7 @@ class Lattice():
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
         if T < 0.0: raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-3,T)
+        Tuse=np.maximum(1e-2,T)
         nimp_tot = sum(F.nimp for F in Fragments_list)
         nbath_tot = sum(F.nbath for F in Fragments_list)
 
@@ -211,7 +211,7 @@ class Lattice():
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
         if T < 0.0: raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-3,T) #TO BE SOLVED
+        Tuse=np.maximum(1e-2,T) #TO BE SOLVED
         nfill_old = sum(F.nfill for F in Fragments_list)
         dmu = dmu0 * np.sign(nfill_old - n_target)
         mu_o = mu_old
@@ -255,7 +255,7 @@ class Lattice():
         self.Ltot = block_diag(*[F.Lambda for F in Fragments_list])
 
         ekin = 0.0
-        Tuse=np.maximum(1e-3,T)
+        Tuse=np.maximum(1e-2,T)
         for ek,wk in zip(self.eks, self.wks):
             Hk_qp = self.Rtot @ ek @ self.Rtot.T.conj() + self.Ltot
             Dk = calc_nf(Hk_qp,Tuse).T
@@ -278,12 +278,12 @@ class Lattice():
         Omega_mix = 0.0
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
         # If T=0.0, use a small T to compute the functional
-        Tuse=np.maximum(1e-3,T)      #TO BE SOLVED
+        Tuse=np.maximum(1e-2,T)      #TO BE SOLVED
         for F in Fragments_list:
             if F.solver is None:
                 raise ValueError("Fragment solver is not set")
             else:
-                Omega_imps += -Tuse*np.log( F.solver.Zpart/np.exp(F.solver.gs_ene/Tuse) )
+                Omega_imps += F.solver.gs_ene - Tuse*np.log( F.solver.Zpart)
             # if T is small (only Gs and non degenerate) then  Omega_imps = F.solver.gs_ene
         #Quasiparticle part of the functional
         for ek,wk in zip(self.eks, self.wks):
