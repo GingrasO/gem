@@ -164,13 +164,6 @@ class Gdmft(object):
 
             diff_Lambda = np.abs(L_eval_new-L_eval_old).max()
 
-            print('Rold:',UL_old@R_old[::2,::2])
-            print('Rnew:',UL_new@R_new[::2,::2])
-            print('lambda_evals:',L_eval_new)
-            print('Rdag@R:', R_new.T.conj() @ R_new )
-            print('diff_R:',diff_R)
-            print('diff_L:',diff_Lambda)
-            print('mu:',self.mu)
             #time.sleep(1)
             self.diff = max(diff_R,diff_Lambda)
             # MIXING
