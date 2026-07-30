@@ -1,3 +1,8 @@
+###########################################
+# Definition of Lattice object
+# Author: Samuele Giuli
+# Email:  samuele.giuli@gmail.com
+###########################################
 import numpy as np
 from scipy.linalg import block_diag
 from scipy.optimize import brentq, bisect

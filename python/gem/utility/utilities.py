@@ -1,5 +1,7 @@
 ###########################################
 #      utilities for quantum embedding methods
+# Author: Tsung-Han Lee
+# Email:  henhans74716@gmail.com
 ###########################################
 
 import numpy as np
@@ -198,16 +200,19 @@ def calc_Fermi(x):
         # This one is used to stablize selective Mott, but would lead to suprious OSMT if temperature is too high.
         #f.append(1./(1+np.exp(500*xx)))
         # This one is important to get the correct phase diagram (especially for criyical t2/t1), but not stable in OSMP.
-        if abs(xx)<500:
+        if abs(xx)<50:
             f.append(1./(1+np.exp(xx)))
-        elif xx< -500:
+        elif xx< -50:
             f.append(1)
-        elif xx> 500:
+        elif xx> 50:
             f.append(0)
     return np.array(f)
 
 @jit(nopython=True)
 def calc_nf(H,T):
+    """
+    Apply the Fermi function to a Hamiltonian H at temperature T.
+    """
     evals, evecs = eigh(H/T)
     func = calc_Fermi(evals)
     dm = np.zeros(H.shape,dtype=np.complex128)
@@ -219,7 +224,7 @@ def calc_nf(H,T):
 
 
 
-#define on the fly when needed
+#define on the fly when needed?
 def denR(x):
     # return (x*((1.0+0.j)-x))**(-0.5)
     return (x*((1.0+0.j)-x)+1e-12)**(-0.5)

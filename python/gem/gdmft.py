@@ -1,3 +1,9 @@
+###########################################
+# Definition of Fragment objects
+# Author: Tsung-Han Lee, Samuele Giuli
+# Email:  henhans74716@gmail.com, samuele.giuli@gmail.com
+###########################################
+
 import scipy
 import h5py
 import numpy as np
