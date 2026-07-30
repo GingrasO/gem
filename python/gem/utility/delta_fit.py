@@ -118,6 +118,10 @@ def dH_dD(dD, R):
 # It works for both Lambda+R and Lambda_c+D
 # ============================================================
 def pack_params(Lambda, R):
+    '''
+    Routine to pack the parameters Lambda and R into a single vector for least-squares fitting.
+    Its inverse is unpack_params.
+    '''
     n = R.shape[0]
     p = R.shape[1]
 
@@ -135,6 +139,10 @@ def pack_params(Lambda, R):
     ])
 
 def unpack_params(x, n, p):
+    '''
+    Routine to unpack the parameters Lambda and R from a single vector for least-squares fitting.
+    Its inverse is pack_params.
+    '''
     iu = np.triu_indices(n)
     iu_strict = np.triu_indices(n, k=1)
 

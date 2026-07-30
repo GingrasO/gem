@@ -13,7 +13,7 @@
 # You may obtain a copy of the License at
 #     https:#www.gnu.org/licenses/gpl-3.0.txt
 #
-# Authors: Olivier Gingras and Tsung-Han Lee
+# Authors: Olivier Gingras, Tsung-Han Lee and Samuele Giuli
 
 import numpy as np
 
