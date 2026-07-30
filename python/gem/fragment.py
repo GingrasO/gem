@@ -38,7 +38,6 @@ class Fragment():
 
         """
 
-        #Checks?
         if not isinstance(nimp, int): raise TypeError(f"nimp must be int, got {type(nimp)}")
         if not isinstance(nbath, int): raise TypeError(f"nbath must be int, got {type(nbath)}")
         if not isinstance(eloc, np.ndarray): raise TypeError(f"eloc must be ndarray, got {type(eloc)}")
@@ -93,7 +92,7 @@ class Fragment():
         self.verb = verbose
 
         #Create Hermitian list here and store
-        #maybe with a variable nspin being 1 or 2 so that [::nspin] always stride properly
+        #spinfull and spinless versions
         self.H_list,self.tH_list=Hermitian_list(nbath)
         self.Hs_list,self.tHs_list=Hermitian_list(nbath//2)
 
@@ -113,9 +112,9 @@ class Fragment():
         Solve embedding problem using the solver from Fragment
 
         :param mu: float. Chemical potential.
-        :param T: float. Temperature.
-        :param num_eig: int. Number of eigenvalues to compute.
-        :param spin_pen: float. Penalty for spin singlet symmetry breaking.
+        :param T: float, optional. Temperature (default: 0.0).
+        :param num_eig: int, optional. Number of eigenvalues to compute (default: 1).
+        :param spin_pen: float, optional. Penalty for spin singlet symmetry breaking (default: 0.0).
         """
         h1e = np.zeros((self.ntot,self.ntot), dtype=np.complex128)
         h1e[:self.nimp,:self.nimp] = self.eloc - mu*np.eye(self.nimp)
@@ -144,9 +143,9 @@ class Fragment():
         '''
         This function update the self-energy parameters Lambda and R
 
-        :param T: float. Temperature.
-        :param move_pen: float. Penalty for moving the self-energy parameters.
-        :param use_Sz: bool. Whether to use Sz as a good quantum number.
+        :param T: float, optional. Temperature (default: 0.0).
+        :param move_pen: float, optional. Penalty for moving the self-energy parameters (default: 1e-6).
+        :param use_Sz: bool, optional. Whether to use Sz as a good quantum number (default: False).
 
         Return:
             R: ndarray. Updated self-energy parameter R.
@@ -186,9 +185,9 @@ class Fragment():
         '''
         This function update the hybridization parameters Lambda_c and D
 
-        :param T: float. Temperature.
-        :param move_pen: float. Penalty for moving the hybridization parameters.
-        :param use_Sz: bool. Whether to use Sz as a good quantum number.
+        :param T: float, optional. Temperature (default: 0.0).
+        :param move_pen: float, optional. Penalty for moving the hybridization parameters (default: 1e-6).
+        :param use_Sz: bool, optional. Whether to use Sz as a good quantum number (default: False).
 
         Return:
             D: ndarray. Updated hybridization parameter D.
@@ -237,6 +236,7 @@ class Fragment():
         Compute the self-energy from the analytical formula.
 
         :param z: complex. Real or matsubara frequency for self-energy
+        :param mu: float, optional. Chemical potential (default: 0.0).
         """
         m, nu = self.R.shape
         I_m = np.eye(m, dtype=complex)
@@ -247,13 +247,13 @@ class Fragment():
         return (z)*I_nu - np.linalg.inv(M) - self.eloc + mu*I_nu
 
 
-    def compute_Z(self, mu=0.0, z0=0.0, h=1e-8):
+    def compute_Z(self, mu=0.0, z0=0.0, h=1e-4):
         """
         Compute the quasiparticle weight Z from the self-energy parameters in the local case.
 
-        :param mu: float. Chemical potential.
-        :param z0: float. Frequency at which to compute Z.
-        :param h: float. Step size for finite difference.
+        :param mu: float, optional. Chemical potential (default: 0.0).
+        :param z0: float, optional. Frequency at which to compute Z (default: 0.0).
+        :param h: float, optional. Step size for finite difference (default: 1e-4).
 
         Return:
             Z: float. Quasiparticle weight.
