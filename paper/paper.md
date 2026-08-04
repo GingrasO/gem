@@ -1,17 +1,19 @@
 ---
-title: 'GEMSTONE(S): Ghost Embedding Method for Static and Thermal Observables in Nonperturbative Electronic Systems'
+title: 'GEM: Ghost Embedding Method'
 tags:
   - Python
-  - physics
+  - condensed matter physics
+  - strongly correlated electrons
   - quantum embedding
-  - ghost Gutzwiller Approximation (ghost-GA)
-  - Dynamical Mean-Field Theory (DMFT)
+  - ghost Gutzwiller approximation
+  - dynamical mean-field theory
 authors:
   - name: Samuele Giuli
     orcid: 0009-0004-7341-3655
     #equal-contrib: true
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: 1 # (Multiple affiliations must be quoted)
+    email: sgiuli@flatironinstitute.org
   - name: Author Without ORCID
     # equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
@@ -29,49 +31,55 @@ affiliations:
    index: 2
  - name: Independent Researcher, Country
    index: 3
-date: 13 August 2017
+date: 4 August 2026
 bibliography: paper.bib
 
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-# aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-# aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
 
-GEMSTONE(S) (Ghost Embedding Method for STatic Observables in Nonperturbative Electron systems) is an open-source Python package for solving strongly correlated electron problems within the ghost-Gutzwiller approximation at zero and finite temperature. The code implements a functional formulation of the ghost-Gutzwiller method that establishes a direct connection with dynamical mean-field theory (DMFT), enabling the computation of static observables in correlated lattice models with improved accuracy and flexibility over conventional variational approaches.
+GEM (Ghost Embedding Method) is an open-source Python package for computing equilibrium properties of models of strongly correlated electrons. Such models describe materials in which interactions between electrons cannot be treated as a small correction and can produce phenomena including interaction-driven metal-insulator transitions, strong renormalization of quasiparticles, magnetism, and orbital-selective behavior. GEM implements the ghost Gutzwiller approximation (ghost-GA) at zero and finite temperature, providing a computational framework in which a correlated lattice problem is mapped to coupled auxiliary quasiparticle and quantum-embedding problems [@Lanata2017; @Giuli2026].
 
-The software provides tools for constructing and solving multiorbital correlated-electron models, evaluating thermodynamic and ground-state properties, and studying interaction-driven phenomena such as the Mott transition, quasiparticle renormalization, and orbital-selective correlations. By combining a variational embedding framework with efficient numerical algorithms in Python, GEMSTONE(S) offers a flexible and extensible platform for both methodological developments and applications in condensed matter physics.
+The central approximation is controlled by the number of auxiliary, or ``ghost``, electronic levels. With one auxiliary level per physical level, the method reduces to the conventional Gutzwiller approximation; increasing the auxiliary space enriches the representable correlation structure, while the infinite-auxiliary limit recovers dynamical mean-field theory (DMFT) [@Giuli2026]. GEM exposes this formulation through composable Python objects for lattices, correlated fragments, self-consistency updates, impurity solvers, and observable evaluation. The package supports single- and multi-fragment lattice models, zero- and finite-temperature calculations, reusable examples and automated tests.
 
 # Statement of need
 
-Theoretical and computational studies of strongly correlated electron systems require methods capable of capturing nonperturbative many-body effects while remaining computationally tractable for realistic multiorbital models. Established approaches such as DMFT provide accurate descriptions of local electronic correlations, but often rely on computationally demanding impurity solvers whose complexity increases rapidly with orbital number and temperature. Variational methods based on the Gutzwiller approximation provide an attractive alternative due to their reduced computational cost, but traditional formulations can be difficult to generalize systematically and may lack a transparent connection to Green’s-function-based many-body frameworks.
+Nonperturbative calculations for correlated-electron models require a compromise between physical fidelity, numerical cost, and the range of accessible observables. DMFT is a standard framework for local quantum correlations, but its self-consistency loop requires repeated solutions of an interacting quantum impurity problem and the evaluation of frequency-dependent quantities [@Georges1996]. Depending on the impurity solver, calculations can become costly for many orbitals, low temperatures, broad parameter scans, or symmetry-broken phases. Conventional Gutzwiller methods are substantially lighter, but their restricted auxiliary space limits the spectral structures that they can represent and historically obscured their precise relation to dynamical embedding theories [@Gutzwiller1965; @Lanata2017].
 
-GEMSTONE(S) addresses this need by implementing the ghost-Gutzwiller approximation within a functional formalism that naturally connects variational embedding methods to DMFT concepts. The package enables researchers to study zero- and finite-temperature properties of correlated lattice models using a unified framework that retains much of the physical insight and efficiency of Gutzwiller methods while extending their applicability and interpretability.
+GEM addresses this gap by making the systematically improvable ghost-GA formulation available as research software. The implementation follows a free-energy functional that unifies zero-temperature ghost-GA, its finite-temperature extension, and DMFT: stationary conditions are expressed using static or thermal expectation values of effective Hamiltonians, and DMFT is obtained as the number of auxiliary bath modes tends to infinity (B\rightarrow\infty) [@Giuli2026].
+Importantly, this correspondence is not merely asymptotic in practical calculations. For the finite-temperature Hubbard-model benchmarks reported in [@Giuli2026], calculations with only (B=3) already reproduce DMFT thermodynamic results with high accuracy across the investigated interaction and temperature regimes. GEM therefore provides a controlled hierarchy in which increasing (B) systematically enlarges the auxiliary space, while small values of (B) can already offer an advantageous balance between computational cost and DMFT-level accuracy. This allows researchers to investigate ground-state and thermodynamic properties without requiring a conventional frequency-dependent DMFT workflow at every stage of a calculation.
 
-The software is primarily intended for researchers in condensed matter physics, computational many-body theory, and materials modeling. Potential users include scientists investigating Hubbard-like models, multiorbital correlation effects, finite-temperature phase diagrams, and methodological developments in variational embedding theories.
+The target users are researchers developing or applying quantum embedding methods in condensed-matter physics and materials theory. Representative uses include Hubbard and multiorbital model studies, phase-diagram calculations, tests of convergence with auxiliary-space size, investigations of Mott and orbital-selective transitions, and benchmarking or developing impurity solvers. By providing the method as a reusable package rather than a collection of project-specific scripts, GEM supports reproducible comparisons across models, solvers, temperatures, and approximation levels.
 
 # State of the field
 
-Several software packages are available for studying strongly correlated electron systems within dynamical mean-field theory (DMFT) and related embedding approaches. General-purpose frameworks such as TRIQS provide flexible infrastructures for DMFT calculations together with interfaces to multiple impurity solvers. A broad ecosystem of impurity solvers is also available, including exact diagonalization packages such as EDIpack, XDiag, and Pomerol, as well as density matrix renormalization group (DMRG) based solvers implemented in libraries such as ITensor, BLOCK, and ALPS. Continuous-time quantum Monte Carlo solvers and tensor-network approaches further extend the range of available numerical techniques for correlated-electron problems.
+The computational ecosystem for correlated-electron and quantum-embedding calculations spans several complementary classes of impurity solvers. Exact-diagonalization approaches represent the bath with a finite set of levels and provide direct access to real-frequency and ground-state quantities, but their cost grows exponentially with the number of impurity and bath degrees of freedom [@Caffarel1994, @Amaricci2022, @Crippa2025]. Tensor-network methods, including matrix-product-state impurity solvers, can accommodate substantially larger discretized baths by exploiting low-entanglement structure and have been applied to both imaginary- and real-time DMFT calculations [@Wolf2015; @Ganahl2015]. At finite temperature, continuous-time quantum Monte Carlo methods are widely used because they avoid an explicit bath discretization and can treat general multiorbital impurity models, although statistical noise, sign problems, and analytic continuation may limit accessible regimes or observables [@Gull2011]. Implementations such as w2dynamics provide production-oriented continuous-time quantum Monte Carlo workflows for one- and two-particle quantities [@Wallerberger2019], while broader community projects such as ALPS include implementations and reusable components for exact diagonalization, tensor-network methods, and quantum Monte Carlo [@Bauer2011].
 
-Within this landscape, GEMSTONE(S) is not intended to replace highly optimized impurity solvers, but rather to provide a complementary variational embedding framework based on the ghost-Gutzwiller approximation. The functional formulation implemented in GEMSTONE(S) establishes a direct connection with DMFT and therefore naturally enables interoperability with existing impurity-solver ecosystems. In particular, the formalism can exploit external solvers such as EDIpack, XDiag, Pomerol, and DMRG-based implementations to benchmark results, construct reference solutions, or extend the treatment of local correlations beyond the variational approximation.
+These solver technologies are complemented by software frameworks that provide common representations of Green’s functions, operators, data formats, and many-body workflows. TRIQS is one such framework [@Parcollet2015], but GEM is not tied conceptually to a single software ecosystem. Its distinguishing contribution is the implementation of a variational embedding hierarchy controlled by the number (B) of auxiliary bath modes. In contrast to packages centered on the numerical solution of a conventional quantum impurity action, GEM formulates the correlated problem through coupled quasiparticle and embedding Hamiltonians and supports systematic convergence toward the DMFT limit. It therefore occupies a distinct position between inexpensive static Gutzwiller approximations and fully dynamical impurity-solver workflows.
 
-Compared to conventional DMFT workflows, GEMSTONE(S) focuses on the efficient evaluation of static observables and thermodynamic quantities at zero and finite temperature within a variational framework that is computationally lighter than full impurity-based self-consistent calculations. This makes the software particularly attractive for exploratory studies of multiorbital systems, large parameter scans, and methodological developments where the computational cost of fully dynamical impurity solvers may become prohibitive.
+GEM serves a different role. It is not a replacement for general many-body frameworks or highly optimized impurity solvers; it is an implementation of a specific variational-to-dynamical embedding hierarchy that is not otherwise available as a maintained, documented package.
+Contributing the implementation directly to a conventional DMFT solver would not expose the method's distinctive optimization variables, finite auxiliary-space hierarchy, or coupled quasiparticle/embedding stationarity equations cleanly. Conversely, implementing all infrastructure independently would duplicate capabilities already available in the scientific Python and TRIQS ecosystems.
+GEM therefore adopts a focused package design: it implements the ghost-embedding algorithm and its domain objects while remaining interoperable with external numerical and impurity-solver components.
 
-The Python implementation additionally promotes accessibility, rapid prototyping, and integration with the broader scientific Python ecosystem, facilitating interaction with external numerical libraries and many-body solvers already widely used by the correlated-electron community.
+This positioning enables two complementary workflows. GEM can be used as a lower-cost variational embedding method for static and thermal observables at moderate auxiliary-space size, and it can be used as a controlled bridge toward DMFT by increasing that size. The latter provides a direct route for methodological studies that compare variational and dynamical descriptions within one formal and computational framework.
 
-# Implementation and availability
+# Software Design
 
-GEMSTONE(S) is implemented in Python and leverages the scientific Python ecosystem for numerical linear algebra, optimization, and data analysis. The code is organized in a modular fashion, separating model construction, variational optimization, finite-temperature solvers, and observable evaluation. This design facilitates extensibility and allows researchers to adapt the framework to new Hamiltonians, embedding schemes, and methodological developments.
+GEM separates the physical layers of the method into explicit software components. A lattice object stores the one-body dispersion and integration weights and solves the auxiliary quasiparticle problem. Correlated fragments store local interactions, embedding parameters, density matrices, and local observables. Solver objects handle the interacting embedding Hamiltonians, allowing the self-consistency machinery to remain independent of a particular impurity-solution strategy. A typical iteration solves the quasiparticle problem, updates hybridization parameters, solves each embedding problem, updates the self-energy parametrization, mixes parameters, and checks convergence.
 
-The package supports calculations for generic correlated-electron lattice models, including multiorbital Hubbard Hamiltonians, and provides routines for evaluating ground-state and finite-temperature observables within the ghost-Gutzwiller approximation. Numerical workflows are accessible through Python interfaces, enabling interactive exploration and integration with external analysis tools.
+This decomposition reflects several design trade-offs. First, GEM uses high-level Python interfaces to make model construction, experimentation, and inspection straightforward, while relying on NumPy and SciPy for array operations, sparse linear algebra, and optimization [@Harris2020; @Virtanen2020]. Numba is used where just-in-time compilation benefits basis construction [@Lam2015], and HDF5 support enables portable storage of numerical results [@Collette2013]. Second, the code represents the variational matrices directly rather than hiding them behind a monolithic solver. This increases transparency and makes new update schemes, symmetry constraints, mixing strategies, and observables easier to prototype. Third, the impurity-solver abstraction permits simple exact diagonalization for compact examples while leaving room for interfaces to more specialized solvers.
 
-The source code is openly available under an open-source license and hosted on a public version-control platform, ensuring reproducibility and community access. Documentation, examples, and installation instructions are provided alongside the repository to support both new users and developers.
+The repository includes executable examples for Bethe, square, and triangular lattices, including single-fragment, multi-fragment, plaquette, magnetic, and phase-diagram calculations. Automated tests and continuous-integration configuration exercise core functionality, while the user guide documents the theoretical mapping and the self-consistency sequence. GEM is distributed under the GNU General Public License version 3 or later and follows the build and packaging conventions of the TRIQS application ecosystem.
+
+
+# AI usage disclosure
+
+Generative AI was used to help reorganize and edit an initial draft of this JOSS paper.
+Generative AI was also used in different stages to refactor some parts of the code and to uniform the testing framework.
 
 # Acknowledgements
 
-Acknowledge contributors, funding, and support.
+The authors thank the contributors to TRIQS and the open-source scientific Python ecosystem.
+The Flatiron Institute is a division of the Simons Foundation.
 
 # References
