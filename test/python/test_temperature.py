@@ -73,7 +73,7 @@ class test_temperature(unittest.TestCase):
         S_results = (etot_results - func_results) / T_results  # S = ( E - Omega )/T
 
         output_dir = os.path.dirname(os.path.abspath(__file__))
-        hdf5_path = os.path.join(output_dir, "temperature_results.h5")
+        hdf5_path = os.path.join(output_dir, "results_temperature.h5")
 
         # STORE DATA
         #with h5py.File(hdf5_path, "w") as f:
@@ -89,7 +89,7 @@ class test_temperature(unittest.TestCase):
         #import matplotlib.pyplot as plt
         #fig, ax = plt.subplots()
         #ax.semilogx(T_results, S_results/np.log(2), 'o-', label='Entropy S/log(2)')
-        #ax.set_xlabel("Temperature T")  
+        #ax.set_xlabel("Temperature T")
         #ax.set_ylabel("Entropy S")
         #ax.set_title(f"Entropy vs Temperature (U={U})")
         #ax.grid(True, which='both', alpha=0.4)
