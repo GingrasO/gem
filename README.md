@@ -58,10 +58,20 @@ make test
 make install
 ```
 
-### References ###
+### Environment setup
+
+GEM provides a small script (gemvars.sh) to load its installation into your environment variables. Please source it with the proper replacement of INSTALL_PREFIX:
+
+source $INSTALL_PREFIX/share/gem/gemvars.sh
+
+To automate this process, please add this line to your ~/.bash_profile (or ~/.zprofile)
+
+
+References
+----------
 
 [1]: N. Lanatà, T.-H. Lee, Y.-X. Yao, and V. Dobrosavljević, [Emergent Bloch excitations in Mott matter, Phys. Rev. B 96, 195126 (2017).](https://doi.org/10.1103/PhysRevB.96.195126)
 
-[2]: S. Giuli, T.-H. Lee, Y.-X. Yao, G. Kotliar, A. E. Ruckenstein, O. Gingras, and N. Lanatà, [Unifying Variational and Dynamical Quantum Embedding: From Ghost Gutzwiller Approximation to Dynamical Mean-Field Theory](https://doi.org/10.48550/arXiv.2603.20559)
+[2]: S. Giuli, T.-H. Lee, Y.-X. Yao, G. Kotliar, A. E. Ruckenstein, O. Gingras, and N. Lanatà, [Unifying Variational and Dynamical Quantum Embedding: From Ghost Gutzwiller Approximation to Dynamical Mean-Field Theory, arXiv:2603.20559.](https://doi.org/10.48550/arXiv.2603.20559)
 
 ----------------
