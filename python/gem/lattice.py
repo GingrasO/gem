@@ -14,7 +14,7 @@ from numba import jit
 
 class Lattice():
     '''
-    Class for the lattice part to solve the quasiparticle problem
+    Class for the lattice part of the formalism. It is used to solve the quasiparticle problem.
     '''
     def __init__(self,
                  ek_list: np.ndarray, wk_list: np.ndarray = None, verbose=0
@@ -47,10 +47,10 @@ class Lattice():
 
     def solve_qp(self, Fragments_list, T=0.0):
         """
-        Solve quasiparticle problem using the self-energies from passed list of Fragment objects.
+        Solve quasiparticle problem using the self-energies passed as a list of Fragment objects.
 
-        :param Fragments_list: list of Fragment objects.
-        :param T: float, optional. Temperature (default: 0.0).
+        :param Fragments_list: List of Fragment objects that contain the self-energies.
+        :param T: float, optional. Electronic temperature (default: 0.0).
         """
 
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
@@ -86,11 +86,11 @@ class Lattice():
 
     def compute_Gloc(self, w_list, Fragments_list, eps=1e-2):
         """
-        Compute the local Green's function at given frequencies from the quasiparticle problem using the self-energies from passed list of Fragment objects.
+        Compute the local Green's function at given frequencies from the quasiparticle problem using the self-energies from passed as a list of Fragment objects.
 
-        :param w_list: ndarray. list or ndarray of frequencies at which to compute the local Green's function.
-        :param Fragments_list: list of Fragment objects.
-        :param eps: float, optional. Small imaginary part for the frequency (default: 1e-2).
+        :param w_list: ndarray. List or ndarray of frequencies at which to compute the local Green's function.
+        :param Fragments_list: List of Fragment objects that contain the self-energies.
+        :param eps: float, optional. Small imaginary part that acts as a scattering rate or a broading (default: 1e-2).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
@@ -123,14 +123,14 @@ class Lattice():
 
     def fit_mu(self, n_target, Fragments_list, T=0.0, mu_old=0.0, mode='qp', ntol=1e-4):
         """
-        Procedure to fit the chemical potential to achieve a target filling using either quasiparticle or fragment methods.
+        Procedure to determine the chemical potential that achieves a target filling using either the quasiparticle or the fragment method.
 
         :param n_target: float. Target filling.
-        :param Fragments_list: list of Fragment objects.
-        :param T: float, optional. Temperature (default: 0.0).
-        :param mu_old: float, optional. Previous chemical potential (default: 0.0).
+        :param Fragments_list: List of Fragment objects that contain the self-energies.
+        :param T: float, optional. Electronic temperature (default: 0.0).
+        :param mu_old: float, optional. Previous chemical potential, to help the search (default: 0.0).
         :param mode: str, optional. Mode of fitting ('qp' for quasiparticle, 'imp' for impurity/fragment) (default: 'qp').
-        :param ntol: float, optional. Tolerance for convergence (default: 1e-4).
+        :param ntol: float, optional. Tolerance on the filling for convergence (default: 1e-4).
         """
         m = mode.lower()
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
@@ -144,11 +144,10 @@ class Lattice():
         Procedure to fit the chemical potential from the quasiparticle problem.
 
         :param n_target: float. Target filling.
-        :param Fragments_list: list of Fragment objects.
-        :param T: float, optional. Temperature (default: 0.0).
-        :param mu_old: float, optional. Previous chemical potential (default: 0.0).
-        :param mode: str, optional. Mode of fitting ('qp' for quasiparticle, 'imp' for impurity/fragment) (default: 'qp').
-        :param ntol: float, optional. Tolerance for convergence (default: 1e-4).
+        :param Fragments_list: list of Fragment objects that contain the self-energies.
+        :param T: float, optional. Electronic temperature (default: 0.0).
+        :param mu_old: float, optional. Previous chemical potential, to help the search (default: 0.0).
+        :param ntol: float, optional. Tolerance on the filling for convergence (default: 1e-4).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
@@ -200,12 +199,12 @@ class Lattice():
         Procedure to fit the chemical potential from the fragment problem.
 
         :param n_target: float. Target filling.
-        :param Fragments_list: list of Fragment objects.
-        :param T: float, optional. Temperature (default: 0.0).
+        :param Fragments_list: List of Fragment objects that contain the self-energies.
+        :param T: float, optional. Electronic temperature (default: 0.0).
         :param nsteps: int, optional. Maximum number of steps for fitting (default: 10).
         :param dmu0: float, optional. Initial step size for chemical potential adjustment (default: 1e-2).
-        :param ntol: float, optional. Tolerance for convergence (default: 1e-4).
-        :param mu_old: float, optional. Previous chemical potential (default: 0.0).
+        :param ntol: float, optional. Tolerance on the filling for convergence (default: 1e-4).
+        :param mu_old: float, optional. Previous chemical potential, to help the search (default: 0.0).
         :param spin_pen: float, optional. Penalty for spin polarization (default: 0.0).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
@@ -237,10 +236,10 @@ class Lattice():
 
     def compute_ekin(self, Fragments_list, T):
         """
-        Compute kinetic energy from the quasiparticle part
+        Compute the kinetic energy from the quasiparticle part.
 
-        :param Fragments_list: list of Fragment objects.
-        :param T: float, optional. Temperature (default: 0.0).
+        :param Fragments_list: List of Fragment objects that contain the self-energies.
+        :param T: float, optional. Electronic temperature (default: 0.0).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
@@ -264,10 +263,10 @@ class Lattice():
 
     def compute_functional(self, Fragments_list , T=0.0):
         """
-        Compute the value of the finite temperature functional
+        Compute the value of the finite temperature functional.
 
-        :param Fragments_list: list of Fragment objects.
-        :param T: float, optional. Temperature (default: 0.0).
+        :param Fragments_list: List of Fragment objects that contain the self-energies.
+        :param T: float, optional. Electronic temperature (default: 0.0).
         """
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
