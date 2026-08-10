@@ -115,3 +115,16 @@ The build can be configured with the following CMake options::
 | Path to sphinx                                               | ``-DSPHINXBUILD_EXECUTABLE=<path>``           |
 +--------------------------------------------------------------+-----------------------------------------------+
 
+
+Environment setup
+=================
+
+GEM provides a small script (`gemvars.sh`)
+to load its installation into your environment variables.
+Please source it with the proper replacement of (`INSTALL_PREFIX`):
+
+        source $INSTALL_PREFIX/share/gem/gemvars.sh
+
+To automate this process, please add this line to your [~/.bash_profile](<https://en.wikipedia.org/wiki/Bash_(Unix_shell)#Startup_scripts>)
+(or [~/.zprofile](http://zsh.sourceforge.net/FAQ/zshfaq03.html#l19>)).
+
