@@ -63,13 +63,13 @@ make install
 ### Environment setup
 
 gem provides a small script (`gemvars.sh`)
-to load its installation into your :ref:`environment variables <environment_vars>`.
-Please source it with the proper replacement of INSTALL_PREFIX::
+to load its installation into your environment variables.
+Please source it with the proper replacement of (`INSTALL_PREFIX`):
 
         source $INSTALL_PREFIX/share/gem/gemvars.sh
 
-To automate this process, please add this line to your `~/.bash_profile <https://en.wikipedia.org/wiki/Bash_(Unix_shell)#Startup_scripts>`_
-(or `~/.zprofile <http://zsh.sourceforge.net/FAQ/zshfaq03.html#l19>`_)
+To automate this process, please add this line to your [~/.bash_profile](<https://en.wikipedia.org/wiki/Bash_(Unix_shell)#Startup_scripts>)
+(or [~/.zprofile](http://zsh.sourceforge.net/FAQ/zshfaq03.html#l19>)).
 
 
 References
@@ -83,6 +83,8 @@ References
 Support
 -------
 
+TRIQS/gem is supported by the [Flatiron Institute](https://www.simonsfoundation.org/flatiron/), a division of the [Simons Foundation](https://www.simonsfoundation.org/).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" width="20%" srcset="doc/_static/logo_ccq.png">
   <img alt="Flatiron Center for Computational Quantum Physics logo." width="20%" src="doc/_static/logo_ccq.png">
@@ -94,7 +96,5 @@ Support
   <source media="(prefers-color-scheme: dark)" width="20%" srcset="doc/_static/logo_simons.png">
   <img alt="Simons Foundation logo." width="20%" src="doc/_static/logo_simons.png">
 </picture>
-
-TRIQS/gem is supported by the [Flatiron Institute](https://www.simonsfoundation.org/flatiron/), a division of the [Simons Foundation](https://www.simonsfoundation.org/).
 
 ----------------
