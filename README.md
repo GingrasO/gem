@@ -1,4 +1,4 @@
-# gem - Ghost Embedding Method
+# GEM - Ghost Embedding Method
 
 > **Disclaimer:** This software is in **beta stage**. It is provided as-is, and no guarantee is made that it works for your use case or is free from bugs.
 >
@@ -10,9 +10,9 @@
 >
 
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://triqs.github.io/gem)
-[![docs](https://github.com/TRIQS/gem/actions/workflows/docs.yml/badge.svg)](https://github.com/TRIQS/gem/actions/workflows/docs.yml)
+[![docs](https://github.com/triqs/gem/actions/workflows/docs.yml/badge.svg)](https://github.com/triqs/gem/actions/workflows/docs.yml)
 
-Start to learn about gem on our website at [https://triqs.github.io/gem/](triqs.github.io/gem).
+Start to learn about GEM on our website at [https://triqs.github.io/gem/](triqs.github.io/gem).
 
 About
 -----
@@ -62,7 +62,7 @@ make install
 
 ### Environment setup
 
-gem provides a small script (`gemvars.sh`)
+GEM provides a small script (`gemvars.sh`)
 to load its installation into your environment variables.
 Please source it with the proper replacement of (`INSTALL_PREFIX`):
 
@@ -83,7 +83,7 @@ References
 Support
 -------
 
-TRIQS/gem is supported by the [Flatiron Institute](https://www.simonsfoundation.org/flatiron/), a division of the [Simons Foundation](https://www.simonsfoundation.org/).
+triqs/gem is supported by the [Flatiron Institute](https://www.simonsfoundation.org/flatiron/), a division of the [Simons Foundation](https://www.simonsfoundation.org/).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" width="20%" srcset="doc/_static/logo_ccq.png">

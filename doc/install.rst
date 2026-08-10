@@ -81,7 +81,7 @@ Installation Steps
 
 #. Clone the repository::
 
-     git clone https://github.com/TRIQS/gem.git
+     git clone https://github.com/triqs/gem.git
 
 #. Create a build directory and run CMake::
 

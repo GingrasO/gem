@@ -1,6 +1,6 @@
 .. _about:
 
-About gem
+About GEM
 *******************
 
 

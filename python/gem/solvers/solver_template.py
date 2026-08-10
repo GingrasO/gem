@@ -1,5 +1,5 @@
 #######################################################
-# Template for solvers to solve the embedding Hamiltonian in gem.
+# Template for solvers to solve the embedding Hamiltonian in GEM.
 # Author: Samuele Giuli
 # Email:  samuele.giuli@gmail.com
 #######################################################
@@ -18,7 +18,7 @@ class SolverTemplate(object):
         #things that re relevant for the solver
         self.type = "SolverTemplate"
         self.solver_params = solver_params if solver_params is not None else {}
-    
+
     def build_Hemb(self,
                    D, # MANDATORY: the hybridization matrix
                    eloc, # MANDATORY: the impurity one-body term
@@ -46,7 +46,7 @@ class SolverTemplate(object):
         #HERE YOU SHOULD SOLVE
 
 
-    
+
     def calc_density_matrix(self):
         '''
         Compute denstiy matrix.
@@ -57,7 +57,7 @@ class SolverTemplate(object):
         denMat = None
         return denMat
 
-    
+
     def compute_E1loc(self,eloc,mu=0.0):
         '''
         Compute the local one-body energy E1loc = Tr[eloc * denmat_impurity]
@@ -68,7 +68,7 @@ class SolverTemplate(object):
         denMat = self.calc_density_matrix()
         E1loc = np.trace((eloc - mu * np.eye(self.nimp)).dot(denMat[:self.nimp,:self.nimp].T))
         return E1loc
-    
+
     def compute_E2loc(self,eloc,D,Lambdac,mu=0.0):
         '''
         Compute local energy including local one and two-body term from a given set od thermal states
@@ -88,4 +88,4 @@ class SolverTemplate(object):
         E2loc = self.gs_ene - E1tot
         return E2loc
 
-    
+

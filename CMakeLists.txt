@@ -1,23 +1,23 @@
 # ##############################################################################
 #
-# gem - Ghost Embedding Method
+# GEM - Ghost Embedding Method
 #
 # A Python package for quantum embedding calculations based on the ghost Gutzwiller approximation.
 #
 # Copyright (C) 2026, The Simons Foundation
 #
 #
-# gem is free software: you can redistribute it and/or modify it under the
+# GEM is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# gem is distributed in the hope that it will be useful, but WITHOUT ANY
+# GEM is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# gem (in the file COPYING.txt in this directory). If not, see
+# GEM (in the file COPYING.txt in this directory). If not, see
 # <http://www.gnu.org/licenses/>.
 #
 # ##############################################################################
