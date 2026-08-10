@@ -19,7 +19,7 @@ class Lattice():
     def __init__(self,
                  ek_list: np.ndarray, wk_list: np.ndarray = None, verbose=0
                  ):
-        """  
+        """
         Initialize the Lattice class with the given parameters.
 
         :param ek_list: ndarray. List of one-body electronic Hamiltonian terms.
@@ -27,7 +27,7 @@ class Lattice():
         :param verbose: int, optional. Level of verbosity (default: 0).
 
         """
-        
+
         if not isinstance(verbose, int): raise TypeError(f"verbose must be int, got {type(verbose)}")
         if not isinstance(ek_list, np.ndarray): raise TypeError(f"ek_list must be ndarray, got {type(ek_list)}")
         if(wk_list is None):
@@ -52,7 +52,7 @@ class Lattice():
         :param Fragments_list: list of Fragment objects.
         :param T: float, optional. Temperature (default: 0.0).
         """
-        
+
         if not isinstance(Fragments_list, list) or not all(isinstance(F, Fragment) for F in Fragments_list):
             raise TypeError(f"Fragments_list must be a list of Fragment objects")
 
@@ -62,7 +62,7 @@ class Lattice():
         if self.eks.shape[1] != nimp_tot or self.eks.shape[2] != nimp_tot:
             raise ValueError(f"ek_list second and third dimensions must be {nimp_tot}, got {self.eks.shape}")
         if(T<0.0): raise ValueError("Temperature T must be non-negative")
-        Tuse=np.maximum(1e-2,T) #TO BE SOLVED
+        Tuse=np.maximum(1e-3,T) #TO BE SOLVED
         self.Rtot = block_diag(*[F.R for F in Fragments_list])
         self.Ltot = block_diag(*[F.Lambda for F in Fragments_list])
 
@@ -83,7 +83,7 @@ class Lattice():
             bath_stride += F.nbath
 
         return self.Delta_p_tot, self.ERD_tot
-    
+
     def compute_Gloc(self, w_list, Fragments_list, eps=1e-2):
         """
         Compute the local Green's function at given frequencies from the quasiparticle problem using the self-energies from passed list of Fragment objects.
@@ -119,7 +119,7 @@ class Lattice():
         for i,w in enumerate(w_list):
             Gloc[i,:,:] = compute_Gloc_at_w(w, self.Rtot, self.Ltot, self.eks, self.wks, eps)
         return Gloc
-    
+
 
     def fit_mu(self, n_target, Fragments_list, T=0.0, mu_old=0.0, mode='qp', ntol=1e-4):
         """
@@ -198,7 +198,7 @@ class Lattice():
     def fit_mu_fragment(self, n_target, Fragments_list, T=1e-2, nsteps=10, dmu0=1e-2, ntol=1e-4, mu_old=0.0, spin_pen=0.0):
         """
         Procedure to fit the chemical potential from the fragment problem.
-        
+
         :param n_target: float. Target filling.
         :param Fragments_list: list of Fragment objects.
         :param T: float, optional. Temperature (default: 0.0).
@@ -234,7 +234,7 @@ class Lattice():
             mu_n = mu_interp
 
         return mu_n
-    
+
     def compute_ekin(self, Fragments_list, T):
         """
         Compute kinetic energy from the quasiparticle part
