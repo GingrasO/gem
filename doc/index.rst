@@ -26,8 +26,8 @@ It supports different impurity solvers and provide a template to create your own
    :caption: Contents
 
    install
-   documentation
    user_guide
+   documentation
    references
    issues
    ChangeLog.md
