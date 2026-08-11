@@ -58,7 +58,7 @@ class SolverTemplate(object):
                    num_eig=1, # MANDATORY: number of eigenvalues to compute
                    verbose=1, # MANDATORY: verbose level
                    tol=1e-8,  # MANDATORY: tolerance for convergence
-                   T=0.0 # MANDATORY: inverse temperature
+                   T=0.0 # MANDATORY: temperature
                    ):
         '''
         Solve the embedded Hamiltonian. Either for the ground state or also some excited states, if not all.
