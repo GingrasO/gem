@@ -31,7 +31,7 @@ class test_temperature(unittest.TestCase):
         eks = np.array(eks)
 
         # initial value for hybridization
-        R0 = np.array([[0.2],[0.6],[0.2]]) + np.random.rand(B,1)*0.05
+        R0 = np.array([[0.2],[0.6],[0.2]])
         R0 = np.kron(R0, np.eye(2))
 
         Lambda0 = np.diag([0.6, 0, -0.6])
