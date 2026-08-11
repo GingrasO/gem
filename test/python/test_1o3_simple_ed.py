@@ -31,6 +31,7 @@ class test_hemb_simple_ed_1o3(unittest.TestCase):
         eks = np.array(eks)
 
         # random initial value for hybridization
+        np.random.seed(42)
         R0 = np.random.rand(nbath//2, nimp//2)
         R0 = np.kron(R0, np.eye(2))
 
