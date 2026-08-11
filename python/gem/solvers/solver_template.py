@@ -7,17 +7,28 @@ import numpy as np
 
 class SolverTemplate(object):
     '''
-    Your class aim to solve general impurity Hamiltonian.
+    Generic Solver class. The aim of this object that, given a general impurity Hamiltonian, it should be able to solve it an return the density matrix.
     '''
     def __init__(self,
                  norb,
-                 use_Ntot=False, use_Sz=False, # eventually flags to use symmetries
+                 use_Ntot=False,
+                 use_Sz=False, # eventually flags to use symmetries
                  thermal=False, # flag to indicate if the calculations is thermal or not
                  solver_params=None, # dict of solver-specific parameters; keys depend on the solver
                  ):
+        '''
+        Initialization of the Solver object.
+
+        :param norb:            int. Number of orbitals. Defines the dimensions of the Hamiltonian.
+        :param use_Ntot:        bool. Whether or not the number of fermions is conserved (default False).
+        :param use_Sz:          bool. Whether or not the Sz symmetry is enforced (default False).
+        :param thermal:         bool. Flag to indicate whether the calculation is thermal or not.
+        :param solver_params:   dict. Solver-specific parameters. Keys depend on the solver.
+        '''
         #things that re relevant for the solver
         self.type = "SolverTemplate"
         self.solver_params = solver_params if solver_params is not None else {}
+
 
     def build_Hemb(self,
                    D, # MANDATORY: the hybridization matrix
@@ -27,7 +38,21 @@ class SolverTemplate(object):
                    verbose=0, # MANDATORY: verbose level
                    spin_pen=0, sz_pen=0, sx_pen=0, sy_pen=0 # eventually penalty terms to enforce symmetries
                    ):
+        '''
+        Construct the embedded Hamiltonian.
+
+        :param D:           array. D matrix.
+        :param eloc:        array. Local part of the Hamiltonian.
+        :param Lambdac:     array. Lambda_c matrix.
+        :param V2E:         array. Two-body interaction of the impurity (Fragment).
+        :param verbose:     int. Level of verbosity (default 0).
+        :param spin_pen:    float. Penalty for states with non-zero <S^2> (default 0).
+        :param sz_pen:      float. Penalty for states with non-zero <S_z^2> (default 0).
+        :param sx_pen:      float. Penalty for states with non-zero <S_x^2> (default 0).
+        :param sy_pen:      float. Penalty for states with non-zero <S_y^2> (default 0).
+        '''
         print("build_Hemb not implemented yet")
+
 
     def solve_Hemb(self,
                    num_eig=1, # MANDATORY: number of eigenvalues to compute
@@ -36,9 +61,14 @@ class SolverTemplate(object):
                    T=0.0 # MANDATORY: inverse temperature
                    ):
         '''
-        diagonalize the Hamiltonian.
+        Solve the embedded Hamiltonian. Either for the ground state or also some excited states, if not all.
         Solver-specific parameters are read from self.solver_params with sensible defaults,
-        e.g.: my_param = self.solver_params.get('my_param', default_value)
+        e.g.: my_param = self.solver_params.get('my_param', default_value).
+
+        :param num_eig:     int. Number of eigenvectors to solve for, starting from the lower energy (default 1 for ground states)..
+        :param verbose:     int. Level of verbosity (default 1).
+        :param tol:         float. Tolerance for convergence (default 1e-8).
+        :param T:           float. Electronic temperature (default 0 for ground states).
         '''
         self.gs_ene = None # MANDATORY: ground state energy
         self.Zpart = None # MANDATORY: partition function for thermal calculations divided by exp(gs_ene/T) so that is 1 at zero temperature
@@ -49,7 +79,8 @@ class SolverTemplate(object):
 
     def calc_density_matrix(self):
         '''
-        Compute denstiy matrix.
+        Compute the denstiy matrix.
+
         Return:
           denmat: numpy.array. Densty matrix, <c^\dagger_i c_j>, of the system (impurity+bath).
         '''
@@ -60,7 +91,11 @@ class SolverTemplate(object):
 
     def compute_E1loc(self,eloc,mu=0.0):
         '''
-        Compute the local one-body energy E1loc = Tr[eloc * denmat_impurity]
+        Compute the local one-body energy E1loc = Tr[eloc * denmat_impurity].
+
+        :param eloc:    array. Local part of the Hamiltonian.
+        :param mu:      float. Chemical potential (default 0).
+
         Return:
           E1loc: float. Local one-body energy.
         '''
@@ -71,9 +106,14 @@ class SolverTemplate(object):
 
     def compute_E2loc(self,eloc,D,Lambdac,mu=0.0):
         '''
-        Compute local energy including local one and two-body term from a given set od thermal states
-        Works also at zero Temperature
-        Input:
+        Compute the local energy, including local one- and two-body terms from a given set of thermal states.
+        Works also at zero temperature for ground states.
+
+        :param eloc:    array. Local part of the Hamiltonian.
+        :param D:       array. D matrix.
+        :param Lambdac: array. Lambda_c matrix.
+        :param mu:      float. Chemical potential (default 0).
+
         Return:
           Eloc: float. Total local energy.
         '''
