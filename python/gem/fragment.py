@@ -75,7 +75,7 @@ class Fragment():
             if self.Lambda.shape != (nbath, nbath):
                 raise ValueError(f"Lambda must be ({nbath},{nbath}), got {self.Lambda.shape}")
         if R is None:
-            self.R = np.kron(np.random.rand(self.Bgh, 1), np.eye(nimp))
+            self.R = np.kron(np.ones((self.Bgh, 1))/np.sqrt(self.Bgh), np.eye(nimp))
         else:
             self.R = np.array(R)
             if self.R.shape != (nbath, nimp):
@@ -89,7 +89,7 @@ class Fragment():
             if self.Lambda_c.shape != (nbath, nbath):
                 raise ValueError(f"Lambda_c must be ({nbath},{nbath}), got {self.Lambda_c.shape}")
         if D is None:
-            self.D = np.kron(np.random.rand(self.Bgh, 1), np.eye(nimp))
+            self.D = np.kron(np.ones((self.Bgh, 1))/np.sqrt(self.Bgh), np.eye(nimp))
         else:
             self.D = np.array(D)
             if self.D.shape != (nbath, nimp):
