@@ -1,7 +1,7 @@
 ################################################################################
 #
-# gem : Ghost Embedding Method
-# 
+# GEM : Ghost Embedding Method
+#
 # Copyright (C) 2026, The Simons Foundation
 #   author: S. Giuli
 #

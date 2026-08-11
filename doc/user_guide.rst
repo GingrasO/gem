@@ -3,7 +3,7 @@
 User Guide
 **********
 
-This section provides a brief introduction to the theory behind gem and
+This section provides a brief introduction to the theory behind GEM and
 worked examples showing how to set up and run calculations.
 
 .. contents::
@@ -67,7 +67,7 @@ Consider a general multi-orbital Hubbard Hamiltonian written as
 .. math::
    :label: H_split
 
-   \hat H = \hat H_0 + \hat H_{\mathrm{int}} 
+   \hat H = \hat H_0 + \hat H_{\mathrm{int}}
 
 where the interaction part is assumed to be local,
 

@@ -2,12 +2,12 @@
 #
 # To be installed as ${MODULEPATH}/@PROJECT_NAME@/@PROJECT_VERSION@
 
-set     name        @PROJECT_NAME@
+set     name        @PROJECT_NAME_UPPERCASE@
 set     version     @PROJECT_VERSION@
 set     root        @CMAKE_INSTALL_PREFIX@
 set     git_hash    @PROJECT_GIT_HASH@
 
-set     url         "https://github.com/TRIQS/@PROJECT_NAME@"
+set     url         "https://github.com/triqs/@PROJECT_NAME@"
 set     description "An example application using cpp2py and triqs."
 
 module-whatis   "$description"
@@ -24,7 +24,7 @@ proc ModulesHelp { } {
 # is installed under a different name in your setup.
 prereq triqs/@TRIQS_VERSION@
 
-# Only one version of @PROJECT_NAME@ can be loaded at a time
+# Only one version of @PROJECT_NAME_UPPERCASE@ can be loaded at a time
 conflict $name
 
 setenv          @PROJECT_NAME@_ROOT      $root

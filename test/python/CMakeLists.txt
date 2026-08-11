@@ -9,8 +9,9 @@ set(all_tests
   test_Basic
   test_density_fitting
   test_temperature
-  test_1o3_simpled_ed
-  test_2o6_simple_ed
+  test_1o3_simple_ed
+  test_2o2_simple_ed
+  # test_2o6_simple_ed
   test_symmetries_simple_ed
   test_delta_fit_LR_B3
   test_delta_fit_LR_random

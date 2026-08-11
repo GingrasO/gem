@@ -38,6 +38,7 @@ jobs:
             -e "s|@PROJECT_VERSION@|0.1.0|g" \
             -e "s|@PROJECT_GIT_HASH@|${GIT_HASH}|g" \
             -e "s|@PROJECT_NAME@|gem|g" \
+            -e "s|@PROJECT_NAME_UPPERCASE@|GEM|g" \
             python/gem/version.py.in \
             > python/gem/version.py
 
@@ -47,6 +48,7 @@ jobs:
           sed \
             -e "s|@CMAKE_CURRENT_SOURCE_DIR@|${DOC_DIR}|g" \
             -e "s|@PROJECT_NAME@|gem|g" \
+            -e "s|@PROJECT_NAME_UPPERCASE@|GEM|g" \
             -e "s|@PROJECT_VERSION@|0.1.0|g" \
             doc/conf.py.in > doc/conf.py
 

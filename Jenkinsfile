@@ -161,8 +161,8 @@ try {
 } finally {
   /* send email on build failure (declarative pipeline's post section would work better) */
   if ((error != null || currentBuild.currentResult != 'SUCCESS') && env.BRANCH_NAME != "jenkins") emailext(
-    subject: "\$PROJECT_NAME - Build # \$BUILD_NUMBER - FAILED",
-    body: """\$PROJECT_NAME - Build # \$BUILD_NUMBER - FAILED
+    subject: "\$PROJECT_NAME_UPPERCASE - Build # \$BUILD_NUMBER - FAILED",
+    body: """\$PROJECT_NAME_UPPERCASE - Build # \$BUILD_NUMBER - FAILED
 
 Check console output at \$BUILD_URL to view full results.
 
