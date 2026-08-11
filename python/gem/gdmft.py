@@ -144,7 +144,8 @@ class Gdmft(object):
             print('imp denmat:')
             print(self.Fragment.denMat[:self.nimp,:self.nimp])
 
-            print(" --> n_filling:",self.nfill,' - target:',n_target)
+            if(n_target is not None):
+                print(" --> n_filling:",self.nfill,' - target:',n_target)
             if( (not n_target is None) and (np.abs(self.nfill - n_target)>n_tolerance) ):
                 print('Fitting')
                 mu_new = self.Lattice.fit_mu( n_target, [self.Fragment], T=T, mode=n_fit_method, mu_old=self.mu, ntol=n_tolerance )
