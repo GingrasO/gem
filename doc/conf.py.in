@@ -60,13 +60,15 @@ autodoc_mock_imports = [
 ]
 
 project = '@PROJECT_NAME@'
+project_uppercase = '@PROJECT_NAME@'
 version = '@PROJECT_VERSION@'
 
 # this makes the current project version available as var in every rst file
 rst_epilog = f"""
 .. |PROJECT_VERSION| replace:: {version}
 .. |PROJECT_NAME| replace:: {project}
-.. |bold_project_name| replace:: **{project}**
+.. |PROJECT_NAME_UPPERCASE| replace:: {project_uppercase}
+.. |bold_project_name| replace:: **{project_uppercase}**
 """
 
 
@@ -101,7 +103,7 @@ html_theme_options = {
 
 html_show_sphinx = False
 
-html_context = {'header_title': '@PROJECT_NAME@'}
+html_context = {'header_title': '@PROJECT_NAME_UPPERCASE@'}
 
 html_static_path = ['@CMAKE_CURRENT_SOURCE_DIR@/_static']
 html_sidebars = {'index': ['sideb.html', 'searchbox.html']}
@@ -150,7 +152,7 @@ class PatchedHTMLTranslator(HTMLTranslator):
         if 'target' in node:
             atts['target'] = node['target']
         self.body.append(self.starttag(node, 'a', '', **atts))
- 
+
         if node.get('secnumber'):
             self.body.append(('%s' + self.secnumber_suffix) %
                              '.'.join(map(str, node['secnumber'])))

@@ -28,6 +28,7 @@ cmake_policy(VERSION 3.20)
 # ############
 # Define Project
 project(gem VERSION 0.1.0 LANGUAGES C CXX)
+set(PROJECT_NAME_UPPERCASE "GEM")
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 if(POLICY CMP0144)
   cmake_policy(SET CMP0144 NEW)
@@ -48,8 +49,8 @@ execute_process(
 if(NOT PROJECT_GIT_HASH)
   set(PROJECT_GIT_HASH "unknown")
 endif()
-message(STATUS "${PROJECT_NAME} version : ${PROJECT_VERSION}")
-message(STATUS "${PROJECT_NAME} Git hash: ${PROJECT_GIT_HASH}")
+message(STATUS "${PROJECT_NAME_UPPERCASE} version : ${PROJECT_VERSION}")
+message(STATUS "${PROJECT_NAME_UPPERCASE} Git hash: ${PROJECT_GIT_HASH}")
 
 # Compute Python install destination relative to prefix
 execute_process(
@@ -73,7 +74,7 @@ endif()
 if(NOT IS_SUBPROJECT)
   message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
 endif()
-set(${PROJECT_NAME}_BINARY_DIR ${PROJECT_BINARY_DIR} CACHE STRING "Binary directory of the ${PROJECT_NAME} Project")
+set(${PROJECT_NAME}_BINARY_DIR ${PROJECT_BINARY_DIR} CACHE STRING "Binary directory of the ${PROJECT_NAME_UPPERCASE} Project")
 
 # Make additional Find Modules available
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/share/cmake/Modules)
@@ -147,7 +148,7 @@ if(BUILD_DEBIAN_PACKAGE AND NOT IS_SUBPROJECT)
   set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
   set(CPACK_GENERATOR "DEB")
   set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-  set(CPACK_PACKAGE_CONTACT "https://github.com/TRIQS/${PROJECT_NAME}")
+  set(CPACK_PACKAGE_CONTACT "https://github.com/triqs/${PROJECT_NAME}")
   execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CMAKE_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3, python3-numpy, h5py")
   set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
